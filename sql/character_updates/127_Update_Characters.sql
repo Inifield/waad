@@ -1,0 +1,23 @@
+ALTER TABLE `characters` ADD `height` float NOT NULL DEFAULT '1' AFTER `difficulty`;
+
+UPDATE `characters` SET `height`=1.75 where `race` = 1;
+UPDATE `characters` SET `height`=1.8 where `race` = 2;
+UPDATE `characters` SET `height`=0.9 where `race` = 3;
+UPDATE `characters` SET `height`=2.1 where `race` = 4;
+UPDATE `characters` SET `height`=1.8 where `race` = 5;
+UPDATE `characters` SET `height`=1.9 where `race` = 6;
+UPDATE `characters` SET `height`=0.8 where `race` = 7;
+UPDATE `characters` SET `height`=1.7 where `race` = 8;
+UPDATE `characters` SET `height`=1.5 where `race` = 9;
+UPDATE `characters` SET `height`=2.1 where `race` = 10;
+UPDATE `characters` SET `height`=1.8 where `race` = 11;
+UPDATE `characters` SET `height`=1.8 where `race` = 12;
+UPDATE `characters` SET `height`=2.3 where `race` = 13;
+UPDATE `characters` SET `height`=1.8 where `race` = 14;
+UPDATE `characters` SET `height`=1.8 where `race` = 15;
+UPDATE `characters` SET `height`=1.7 where `race` = 16;
+UPDATE `characters` SET `height`=1.5 where `race` = 17;
+UPDATE `characters` SET `height`=1.6 where `race` = 18;
+UPDATE `characters` SET `height`=1.5 where `race` = 19;
+UPDATE `characters` SET `height`=1.5 where `race` = 20;
+UPDATE `characters` SET `height`=1.6 where `race` = 21;

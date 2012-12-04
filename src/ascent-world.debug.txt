@@ -1,0 +1,22 @@
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# ZONES DE DEBUG: (Fin du fichier ascent-world.conf)
+#                 Si la section ou certains champs sont absent, ils deviennent inactifs dans le code
+#
+#                 Pour utiliser ces parametres, vous devez savoir ce que vous faites.
+#                 Leurs existences n'a pour but que de faciliter le passage des differents patchs
+#                 Il est fortement deconseillé de les activer sur un serveur Multi-Joueur
+#
+# TransporterGoId: Pour afficher le parcours d'un transport sur la console
+#                  Mettre un GameObject.Id active l'affichage
+#                  Mettre 0 ou supprimer le champ dé-acitve l'affichage console
+#                  Exemple: TransporterGoId="190536" affiche le parcours du bateau de Stormwind en Northrend  
+#                           Note: le transporter doit faire partie de la table Transport_data.    
+#
+# Debug_Player   : Pour afficher en console les differentes actions du/sur le player  
+#                  0: Pas d'affichage, 1: Affichage   
+#   
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+<DebugArea TransporterGoId="0"
+           Debug_Player="0">

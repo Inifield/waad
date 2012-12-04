@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="WS Interface">
+      <UniqueIdentifier>{b407b83e-a171-4ea3-9f82-e122cee1d2d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Client Handlers">
+      <UniqueIdentifier>{f65eeb15-2359-48b8-8f6e-2d7ab19bd4ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Caching">
+      <UniqueIdentifier>{064e768d-1f23-42a0-afce-84aa7494a655}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Console">
+      <UniqueIdentifier>{0f98eae3-e76e-4181-bc21-4e96173087bb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\ascent-logonserver\LogonCommServer.cpp">
+      <Filter>WS Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ascent-logonserver\LogonOpcodes.cpp">
+      <Filter>WS Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ascent-logonserver\AuthSocket.cpp">
+      <Filter>Client Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ascent-logonserver\AutoPatcher.cpp">
+      <Filter>Client Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ascent-logonserver\AccountCache.cpp">
+      <Filter>Caching</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ascent-logonserver\LogonConsole.cpp">
+      <Filter>Console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ascent-logonserver\LogonStdAfx.cpp" />
+    <ClCompile Include="..\..\src\ascent-logonserver\Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\ascent-logonserver\LogonCommServer.h">
+      <Filter>WS Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\LogonOpcodes.h">
+      <Filter>WS Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\AuthSocket.h">
+      <Filter>Client Handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\AuthStructs.h">
+      <Filter>Client Handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\AutoPatcher.h">
+      <Filter>Client Handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\AccountCache.h">
+      <Filter>Caching</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\LogonConsole.h">
+      <Filter>Console</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ascent-logonserver\LogonStdAfx.h" />
+    <ClInclude Include="..\..\src\ascent-logonserver\Main.h" />
+  </ItemGroup>
+</Project>

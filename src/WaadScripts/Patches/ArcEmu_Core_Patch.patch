@@ -1,0 +1,224 @@
+Index: AIInterface.cpp
+===================================================================
+--- AIInterface.cpp	(revision 1032)
++++ AIInterface.cpp	(working copy)
+@@ -242,8 +242,23 @@
+ 						}
+ 					}
+ 				}
++				
++				HandleChainAggro(pUnit);
++
++				//give 1 threat to this unit if were not on the threat list
++				if (m_aiTargets.find(pUnit->GetGUID())==m_aiTargets.end())
++				{
++					m_aiTargets.insert(TargetMap::value_type(pUnit->GetGUID(), 1));
++				}
+ 				//Zack : Put mob into combat animation. Take out weapons and start to look serious :P
+ 				m_Unit->smsg_AttackStart( pUnit );
++ 			}break;
++		case EVENT_DAMAGEDEALT:
++			{
++				if (m_aiTargets.find(pUnit->GetGUID())==m_aiTargets.end())
++				{
++					m_aiTargets.insert(TargetMap::value_type(pUnit->GetGUID(), 1));
++				}
+ 			}break;
+ 		case EVENT_LEAVECOMBAT:
+ 			{
+@@ -386,6 +401,7 @@
+ 				if( static_cast< Creature* >( m_Unit )->has_combat_text )
+ 					objmgr.HandleMonsterSayEvent( static_cast< Creature* >( m_Unit ), MONSTER_SAY_EVENT_ON_DAMAGE_TAKEN );
+ 
++				HandleChainAggro(pUnit);
+ 				CALL_SCRIPT_EVENT(m_Unit, OnDamageTaken)(pUnit, float(misc1));
+ 				if(!modThreatByPtr(pUnit, misc1))
+ 				{
+@@ -1955,7 +1971,7 @@
+ 			continue;
+ 		}
+ 
+-		if( isCombatSupport( m_Unit, pUnit ) && ( pUnit->GetAIInterface()->getAIState() == STATE_IDLE || pUnit->GetAIInterface()->getAIState() == STATE_SCRIPTIDLE ) )//Not sure
++		if( isCombatSupport( m_Unit, pUnit ) )//Not sure
+ 		{
+ 			if( m_Unit->GetDistanceSq(pUnit) < dist)
+ 			{
+@@ -4338,3 +4354,23 @@
+ #endif
+ 	}
+ }
++
++void AIInterface::HandleChainAggro(Unit* u)
++{
++	if (!m_Unit->IsInWorld() || !m_Unit->isAlive() || m_Unit->m_chain == NULL)
++		return;
++
++	for (std::set<Unit*>::iterator itr=m_Unit->m_chain->m_units.begin(); itr!=m_Unit->m_chain->m_units.end(); ++itr)
++	{
++		if (!(*itr)->IsInWorld() || !(*itr)->isAlive() || (m_Unit->m_chain->m_chainrange != 0 && m_Unit->CalcDistance(*itr) > m_Unit->m_chain->m_chainrange))
++			continue;
++
++		if ((*itr)->GetAIInterface()->GetAITargets()->find(u->GetGUID()) == (*itr)->GetAIInterface()->GetAITargets()->end())
++		{
++			if((*itr)->GetAIInterface()->getAIState() == STATE_IDLE || (*itr)->GetAIInterface()->getAIState() == STATE_FOLLOWING)
++				(*itr)->GetAIInterface()->HandleEvent(EVENT_ENTERCOMBAT, u, 0);
++			else
++				(*itr)->GetAIInterface()->GetAITargets()->insert(TargetMap::value_type(u->GetGUID(), 1));
++		}
++	}
++}
+Index: AIInterface.h
+===================================================================
+--- AIInterface.h	(revision 1032)
++++ AIInterface.h	(working copy)
+@@ -156,6 +156,7 @@
+ {
+ 	EVENT_ENTERCOMBAT,
+ 	EVENT_LEAVECOMBAT,
++	EVENT_DAMAGEDEALT,
+ 	EVENT_DAMAGETAKEN,
+ 	EVENT_FEAR,
+ 	EVENT_UNFEAR,
+@@ -232,6 +233,8 @@
+ 	AIInterface();
+ 	virtual ~AIInterface();
+ 
++	void HandleChainAggro(Unit* u);
++
+ 	// Misc
+ 	void Init(Unit *un, AIType at, MovementType mt);
+ 	void Init(Unit *un, AIType at, MovementType mt, Unit *owner); // used for pets
+Index: Object.cpp
+===================================================================
+--- Object.cpp	(revision 1032)
++++ Object.cpp	(working copy)
+@@ -849,6 +849,19 @@
+ 	return data;
+ }
+ 
++void Object::SetSpawnPosition(const LocationVector & v)
++{
++	SetSpawnPosition(v.x, v.y, v.z, v.o);
++}
++
++void Object::SetSpawnPosition(float newX, float newY, float newZ, float newOrientation)
++{
++	m_spawnLocation.x=newX;
++	m_spawnLocation.y=newY;
++	m_spawnLocation.z=newZ;
++	m_spawnLocation.o=newOrientation;
++}
++
+ bool Object::SetPosition(const LocationVector & v, bool allowPorting /* = false */)
+ {
+ 	bool updateMap = false, result = true;
+@@ -2516,6 +2529,9 @@
+ 		}*/	
+ 
+ 		pVictim->SetUInt32Value( UNIT_FIELD_HEALTH, health - damage );
++
++		if (IsCreature() && !IsPet())
++			static_cast<Unit*>(this)->GetAIInterface()->HandleEvent(EVENT_DAMAGEDEALT, pVictim, damage);
+ 	}
+ }
+ 
+@@ -3077,3 +3093,4 @@
+ 	return static_cast<uint32>(-1);
+ }
+ 
++
+Index: Object.h
+===================================================================
+--- Object.h	(revision 1032)
++++ Object.h	(working copy)
+@@ -182,6 +182,8 @@
+ 	bool IsBeingTeleported() { return mSemaphoreTeleport; }
+ 	void SetSemaphoreTeleport(bool semphsetting) { mSemaphoreTeleport = semphsetting; }
+ 
++	void SetSpawnPosition(float newX, float newY, float newZ, float newOrientation);
++	void SetSpawnPosition(const LocationVector & v);
+ 	bool SetPosition( float newX, float newY, float newZ, float newOrientation, bool allowPorting = false );
+ 	bool SetPosition( const LocationVector & v, bool allowPorting = false);
+ 	void SetRotation( uint64 guid );
+@@ -622,3 +624,4 @@
+ #endif
+ 
+ 
++
+Index: Unit.cpp
+===================================================================
+--- Unit.cpp	(revision 1032)
++++ Unit.cpp	(working copy)
+@@ -109,6 +109,7 @@
+ 
+ Unit::Unit()
+ {
++	m_chain = NULL;
+ 	m_attackTimer = 0;
+ 	m_attackTimer_1 = 0;
+ 	m_dualWield = false;
+@@ -331,6 +332,9 @@
+ 	//start to remove badptrs, if you delete from the heap null the ptr's damn!
+ 	RemoveAllAuras();
+ 
++	if (m_chain)
++		m_chain->RemoveUnit(this);
++
+ 	if( SM_CriticalChance != NULL ) {
+ 		delete [] SM_CriticalChance;
+ 		SM_CriticalChance = NULL;
+@@ -520,6 +524,21 @@
+ 	}
+ }
+ 
++void UnitChain::AddUnit(Unit* u)
++{
++	m_units.insert(u);
++	u->m_chain = this;
++}
++ 
++void UnitChain::RemoveUnit(Unit* u)
++{
++	m_units.erase(u);
++	u->m_chain = NULL;
++ 
++	if (m_units.size() == 0 && !m_persist)
++		delete this;
++}
++
+ void Unit::Update( uint32 p_time )
+ {
+ 	_UpdateSpells( p_time );
+Index: Unit.h
+===================================================================
+--- Unit.h	(revision 1032)
++++ Unit.h	(working copy)
+@@ -669,6 +669,19 @@
+ 	void ClearMyHealers();
+ };
+ 
++class SERVER_DECL UnitChain
++{
++public:
++	UnitChain(bool persist = false, float chainrange = 0.0f) : m_persist(persist), m_chainrange(chainrange) {}
++	
++	float m_chainrange;
++	bool m_persist;
++	std::set<Unit*> m_units;
++	void AddUnit(Unit* u);
++	void RemoveUnit(Unit* u);
++};
++
++
+ //====================================================================
+ //  Unit
+ //  Base object for Players and Creatures
+@@ -687,6 +700,8 @@
+ 	// a lua script cannot create a unit.
+ 	Unit(lua_State * L) { ASSERT(false); }*/
+ 
++	UnitChain* m_chain;
++
+ 	void CombatStatusHandler_UpdatePvPTimeout();
+ 	void CombatStatusHandler_ResetPvPTimeout();
+ 

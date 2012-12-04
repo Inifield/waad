@@ -1,0 +1,148 @@
+#
+# ELIZA SCRIPT FILE
+#
+#
+# FORMAT:
+# Sxxxxxx    - DEFINE SIGNON MESSAGE
+# Txxxxx
+# Txxxxx     - DEFINE PAIR OF WORDS TO TRANSPOSE
+# Nxxxxxx    - RESPONSE FOR NULL ENTRY
+# Mxxxxxx    - DEFINE RESPONSE FOR LATER USE OF "MY"
+# Xxxxxxx    - DEFINE RESPONSE FOR NO KEYWORD FOUND
+# Zxxxxxx    - DEFINE CONVERSATION TOPICS
+# Kxxxxxx    - DEFINE KEYWORD
+# Rxxxxxx    - DEFINE RESPONSE FOR PREVIOUS KEYWORD
+#
+# NOTE:  FOR "T" AND "K", Le dernier caractere est viré pour ajouté plus facilement les espaces.
+#        Transition table marche par pair Le player dit "je suis...", le pnj repond "Tu es..."
+#
+#        FOR "R" AND "M" La chaine apres le mot clef sera insere apres le *
+#
+#        Si un mot clef n'a pas de reponse, les reponses du prochain mot clef seraont utilisé
+#
+# SIGNON MESSAGE
+#
+SSalutation _NAME_, bienvenu dans l'coin.
+STient, comment 'vas aujourd'hui _NAME_ ?
+SSalutation, mon nom est _MY_NAME_, Comment vas tu _NAME_ ?
+#
+# TRANSPOSITION TABLE => TEXTE_PLAYER : Texte_reponse
+#
+TTU ES "
+TJe suis "
+TJE SUIS "
+TTu es "
+#
+# NULL RESPONSES
+#
+NPeux-tu etre plus clair.
+NJe ne comprend pas ce que tu veux.
+NHummmm?
+NHein?
+NUn cailloux serait plus interressant a ecouter.
+#
+# RESPONSES FOR "MY"
+# TO USE IF NO KEYWORD WAS FOUND.
+#
+MJuste avant tu disais ceci*.
+MY'a un moment tu as dit*.
+MY a t-il quelque chose a faire avec*?
+MTu as dit que*?
+#
+# NO KEYWORD FOUND
+#
+XC'est c'la ouiiii....
+XEt qu'est ce que je peux y faire ?
+XTu es aussi clair qu'un Troll des forets.
+XJe ne suis pas sur de comprende ce que tu dis.
+XTu marmone comme un Tauren, qu'est ce que tu dis ?
+XJamais entendu parler ca.
+XPeux tu etre un peu plus clair s'il te plait?
+XOui c'est interressant...
+XEt????
+XJ'aime bien quand tu parle tout seul.
+#
+# THE FOLLOWING RESPONSES WILL HOPEFULLY TRY TO 'STEER'
+# THE CONVERSATION TO A TOPIC THAT MAY POSSIBLY PRODUCE
+# MORE RECOGNIZABLE WORDS (KEYWORDS).
+#
+ZTu es au courant des dernieres rumeurs ?
+ZOu vas t-on aujourd'hui ?
+ZQuelles sont les nouvelles ?
+ZBon, on fait quoi maintenant ?
+ZQue compte tu faire aujourd'hui ?
+ZTu as entendu dire que le Horde etait souvent repoussé par l'Alliance a Alterac ?
+ZJ'ai entendu dire que la horde fesait la loi au goulet des Warsongs.
+ZIl parait qu'une morsure de Worgen te transforme en worgen la nuit.
+ZTu sais jouer au echec ?
+ZIl parait que les montures ne cours plus aussi vite qu'avant ?
+ZTu veux un peu d'aide pour comprendre ce monde ?
+ZTu aime les combats de gladiateurs ?
+ZPourquoi on ne va jamais sur Arathi ?
+#
+# DEFINE KEYWORDS AND RESPONSES
+#
+KLANCE LE SPELL "
+RSur qui je lance le spell _SPELL_ID_?
+RLe _SPELL_ID_, ok pas de probleme, mais sur quoi ?
+;
+KOUVRE "
+RJ'ouvre _GOB_NAME_?
+R_GOB_NAME_, ce truc, d'accord pas de probleme.
+;
+KSUR MOI "
+ROk sur toi, comme tu voudra.
+RSur toi ?, bon, comme tu voudra.
+;
+KSUR LUI "
+RSur _SELECTION_ ?
+REh _SELECTION_, planque toi.
+;
+KSUR EUX "
+RIl faut mieux que tu t'eloigne un peu._AOE_
+ROk, recule un peu._AOE_
+;
+KNON "
+RD'accord, t'enerve pas.
+ROk Ok, comme tu veux.
+;
+KOUI "
+RC'est parti pour _ACTION_START_.
+R_ACTION_START_, Ok.
+;
+KSUIS MOI "
+RJe te suis _NAME_._ACTION_SUIVRE_
+RC'est quand tu veux _NAME_._ACTION_SUIVRE_
+;
+KRESTE LA "
+KNE BOUGE P"
+ROk je reste la._ACTION_RESTE_
+RComme une statue en marbre._ACTION_RESTE_
+RD'accord je bouge plus._ACTION_RESTE_
+;
+#ITEM_QUALITY_POOR_GREY             = 0,
+#ITEM_QUALITY_NORMAL_WHITE          = 1,
+#ITEM_QUALITY_UNCOMMON_GREEN        = 2,
+#ITEM_QUALITY_RARE_BLUE             = 3,
+#ITEM_QUALITY_EPIC_PURPLE           = 4,
+#ITEM_QUALITY_LEGENDARY_ORANGE      = 5,
+#ITEM_QUALITY_ARTIFACT_LIGHT_YELLOW = 6,
+KDONNE MOI L'ITEM "
+KPEUX TU ME DONNER L'ITEM "
+R_ITEM_NAME_ Gris._GIVE_ITEM_
+R_ITEM_NAME_ Blanc._GIVE_ITEM_
+R_ITEM_NAME_ Vert._GIVE_ITEM_
+R_ITEM_NAME_ Bleu._GIVE_ITEM_
+R_ITEM_NAME_ Violet._GIVE_ITEM_
+R_ITEM_NAME_ Epic._GIVE_ITEM_
+R_ITEM_NAME_ Legendaire._GIVE_ITEM_
+R_ITEM_NAME_ Artefact._GIVE_ITEM_
+RCertainement pas, des clous alors!.
+;
+KVA VERS L'AUBERGE"
+ROk je file._ACTION_SE_DEPLACE_
+ROuiiiiii, un bon verre d'hydromele me fera le plus grand bien._ACTION_SE_DEPLACE_
+RD'accord j'y vais._ACTION_SE_DEPLACE_
+;
+
+

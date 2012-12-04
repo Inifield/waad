@@ -1,0 +1,1 @@
+UPDATE creature_proto cp, creature_names cn SET npcflags =4194305 WHERE cp.entry=cn.entry AND cn.subname LIKE "Ma%tre des %curies" AND npcflags < 4194305;

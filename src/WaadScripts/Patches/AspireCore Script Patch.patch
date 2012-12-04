@@ -1,0 +1,1275 @@
+Index: projects/SpellsHandlers2008.vcproj
+===================================================================
+--- projects/SpellsHandlers2008.vcproj	(revision 252)
++++ projects/SpellsHandlers2008.vcproj	(working copy)
+@@ -370,10 +370,6 @@
+ 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+ 			>
+ 			<File
+-				RelativePath="..\src\SpellHandlers\DruidSpells.cpp"
+-				>
+-			</File>
+-			<File
+ 				RelativePath="..\src\SpellHandlers\HunterSpells.cpp"
+ 				>
+ 			</File>
+@@ -386,26 +382,14 @@
+ 				>
+ 			</File>
+ 			<File
+-				RelativePath="..\src\SpellHandlers\OldSpellCPPStuff.cpp"
+-				>
+-			</File>
+-			<File
+ 				RelativePath="..\src\SpellHandlers\PaladinSpells.cpp"
+ 				>
+ 			</File>
+ 			<File
+-				RelativePath="..\src\SpellHandlers\PriestSpells.cpp"
+-				>
+-			</File>
+-			<File
+ 				RelativePath="..\src\SpellHandlers\QIspells.cpp"
+ 				>
+ 			</File>
+ 			<File
+-				RelativePath="..\src\SpellHandlers\Raid_BlackTemple.cpp"
+-				>
+-			</File>
+-			<File
+ 				RelativePath="..\src\SpellHandlers\RogueSpells.cpp"
+ 				>
+ 			</File>
+Index: scripts2008.sln
+===================================================================
+--- scripts2008.sln	(revision 252)
++++ scripts2008.sln	(working copy)
+@@ -14,8 +14,6 @@
+ EndProject
+ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LUAScripting", "projects\LUAScripting2008.vcproj", "{AEFCEECF-6839-4F1B-9317-70BF3EE09247}"
+ EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtraScripts", "projects\ExtraScripts2008.vcproj", "{DF7A3434-324E-418F-8F82-98A2C62366C6}"
+-EndProject
+ Global
+ 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+ 		Debug|Win32 = Debug|Win32
+@@ -80,12 +78,6 @@
+ 		{AEFCEECF-6839-4F1B-9317-70BF3EE09247}.Release|Win32.Build.0 = Release|Win32
+ 		{AEFCEECF-6839-4F1B-9317-70BF3EE09247}.Release|x64.ActiveCfg = Release|x64
+ 		{AEFCEECF-6839-4F1B-9317-70BF3EE09247}.Release|x64.Build.0 = Release|x64
+-		{DF7A3434-324E-418F-8F82-98A2C62366C6}.Debug|Win32.ActiveCfg = Debug|Win32
+-		{DF7A3434-324E-418F-8F82-98A2C62366C6}.Debug|Win32.Build.0 = Debug|Win32
+-		{DF7A3434-324E-418F-8F82-98A2C62366C6}.Debug|x64.ActiveCfg = Debug|Win32
+-		{DF7A3434-324E-418F-8F82-98A2C62366C6}.Release|Win32.ActiveCfg = Release|Win32
+-		{DF7A3434-324E-418F-8F82-98A2C62366C6}.Release|Win32.Build.0 = Release|Win32
+-		{DF7A3434-324E-418F-8F82-98A2C62366C6}.Release|x64.ActiveCfg = Release|Win32
+ 	EndGlobalSection
+ 	GlobalSection(SolutionProperties) = preSolution
+ 		HideSolutionNode = FALSE
+Index: src/InstanceScripts/Base.cpp
+===================================================================
+--- src/InstanceScripts/Base.cpp	(revision 338)
++++ src/InstanceScripts/Base.cpp	(working copy)
+@@ -1264,7 +1264,7 @@
+ 			return false;
+ 	}
+ 	if( UnitTarget->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH) ) return false;
+-	if( UnitTarget->m_auracount[SPELL_AURA_MOD_INVISIBILITY] ) return false;
++	if( UnitTarget->m_invisible ) return false;
+ 	if( UnitTarget->isAlive() && (pFilter & TargetFilter_Corpse) ) return false;
+ 
+ 	//Check if we apply target filtering
+Index: src/InstanceScripts/Instance_HellfireRamparts.cpp
+===================================================================
+--- src/InstanceScripts/Instance_HellfireRamparts.cpp	(revision 252)
++++ src/InstanceScripts/Instance_HellfireRamparts.cpp	(working copy)
+@@ -1638,7 +1638,7 @@
+ 			if(pUnit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Instance_SethekkHalls.cpp
+===================================================================
+--- src/InstanceScripts/Instance_SethekkHalls.cpp	(revision 252)
++++ src/InstanceScripts/Instance_SethekkHalls.cpp	(working copy)
+@@ -2184,7 +2184,7 @@
+ 			if(z_diff > 5.0f)
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Instance_ShadowLabyrinth.cpp
+===================================================================
+--- src/InstanceScripts/Instance_ShadowLabyrinth.cpp	(revision 252)
++++ src/InstanceScripts/Instance_ShadowLabyrinth.cpp	(working copy)
+@@ -1958,7 +1958,7 @@
+ 			if(z_diff > 2.5f)
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Instance_TheShatteredHalls.cpp
+===================================================================
+--- src/InstanceScripts/Instance_TheShatteredHalls.cpp	(revision 252)
++++ src/InstanceScripts/Instance_TheShatteredHalls.cpp	(working copy)
+@@ -2030,7 +2030,7 @@
+ 			if(pUnit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Raid_BlackTemple.cpp
+===================================================================
+--- src/InstanceScripts/Raid_BlackTemple.cpp	(revision 339)
++++ src/InstanceScripts/Raid_BlackTemple.cpp	(working copy)
+@@ -84,7 +84,7 @@
+ 		Aura *pAura = new Aura(dbcSpell.LookupEntry(MUTANT_WAR_HOUND_CLOUD_OF_DISEASE), 20000, _unit, _unit);
+ 		if (pAura != NULL)
+ 		{
+-			_unit->AddAura(pAura, NULL);
++			_unit->AddAura(pAura);
+ 		}
+ 	}
+ };
+@@ -3198,7 +3198,7 @@
+ 			Aura *aura = new Aura(dbcSpell.LookupEntry(SpellId), 15000, _unit, _unit);
+ 			if (aura)
+ 			{
+-				_unit->AddAura(aura, NULL);
++				_unit->AddAura(aura);
+ 			}
+ 
+ 			AuraChange = t + 15;
+@@ -3865,7 +3865,7 @@
+ 			if(pUnit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+@@ -6055,8 +6055,7 @@
+ 			mScenePart = 1;
+ 			break;
+ 		case 19:
+-			_unit->m_auracount[SPELL_AURA_MOD_INVISIBILITY];	// Ascent's
+-			//_unit->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true;						// Arc's
++			_unit->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true;						// Arc's
+ 			_unit->UpdateVisibility();
+ 			break;
+ 		case 20:
+@@ -6097,8 +6096,7 @@
+ 			if(z_diff > 5.0f)
+ 				continue;
+ 
+-			if(_unit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])	// Ascent's
+-			//if(_unit->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true)					// Arc's)
++			if(_unit->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true)					// Arc's)
+ 				continue;
+ 
+ 			if(!pUnit->isAlive())
+@@ -6407,8 +6405,7 @@
+ 				if (pAkama != NULL)
+ 				{
+ 					AkamaAI *pAkamaAI = (AkamaAI*)(static_cast<MoonScriptCreatureAI*>(pAkama->GetScript()));
+-					pAkama->m_auracount[SPELL_AURA_MOD_INVISIBILITY];	// Ascent's
+-					//pAkama->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true;						// Arc's
++					pAkama->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true;						// Arc's
+ 					pAkama->UpdateVisibility();
+ 					if (!pAkamaAI->GetCanMove())
+ 					{
+Index: src/InstanceScripts/Raid_CoT_BattleOfMountHyjal.cpp
+===================================================================
+--- src/InstanceScripts/Raid_CoT_BattleOfMountHyjal.cpp	(revision 339)
++++ src/InstanceScripts/Raid_CoT_BattleOfMountHyjal.cpp	(working copy)
+@@ -536,7 +536,7 @@
+ 						Aura *aura = new Aura(spells[1].info, 5000, _unit, _unit);
+ 						if (aura != NULL)
+ 						{
+-							_unit->AddAura(aura, NULL);
++							_unit->AddAura(aura);
+ 						}
+ 					}
+ 
+@@ -1078,7 +1078,7 @@
+ 				Aura *aura = new Aura(spells[3].info, 20000, _unit, RTarget);
+ 				if (aura != NULL)
+ 				{
+-					RTarget->AddAura(aura, NULL);
++					RTarget->AddAura(aura);
+ 				}
+ 
+ 				TargetTable.clear();
+@@ -1234,7 +1234,7 @@
+ 			if(z_diff > 2.5f)
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Raid_GruulsLair.cpp
+===================================================================
+--- src/InstanceScripts/Raid_GruulsLair.cpp	(revision 252)
++++ src/InstanceScripts/Raid_GruulsLair.cpp	(working copy)
+@@ -481,7 +481,7 @@
+ 						Player *pPlayer = static_cast<Player*>(*itr);
+ 						if (!pPlayer->isAlive())
+ 							continue;
+-						if (pPlayer->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++						if (pPlayer->m_invisible)
+ 							continue;
+ 						if (pPlayer->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
+ 							continue;
+Index: src/InstanceScripts/Raid_Karazhan.cpp
+===================================================================
+--- src/InstanceScripts/Raid_Karazhan.cpp	(revision 252)
++++ src/InstanceScripts/Raid_Karazhan.cpp	(working copy)
+@@ -2757,7 +2757,7 @@
+ 			if(pUnit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Raid_SerpentshrineCavern.cpp
+===================================================================
+--- src/InstanceScripts/Raid_SerpentshrineCavern.cpp	(revision 339)
++++ src/InstanceScripts/Raid_SerpentshrineCavern.cpp	(working copy)
+@@ -1216,7 +1216,7 @@
+ 	if ( pSpell == NULL || pSpell->u_caster == NULL )
+ 		return true;
+ 
+-	pSpell->u_caster->CastSpell( static_cast<Unit*>(pSpell->m_targets.m_target), dbcSpell.LookupEntry( CHAOS_BLAST_EFFECT ), true );
++	pSpell->u_caster->CastSpell( pSpell->m_targets.m_unitTarget, dbcSpell.LookupEntry( CHAOS_BLAST_EFFECT ), true );
+ 	return true;
+ }
+ 
+@@ -1726,7 +1726,7 @@
+ 			if(pUnit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
+ 				continue;
+ 
+-			if(pUnit->m_auracount[SPELL_AURA_MOD_INVISIBILITY])
++			if(pUnit->m_invisible)
+ 				continue;
+ 			
+ 			if(!pUnit->isAlive() || _unit == pUnit)
+Index: src/InstanceScripts/Raid_Magtheridons_Lair.cpp
+===================================================================
+--- src/InstanceScripts/Raid_Magtheridons_Lair.cpp	(revision 339)
++++ src/InstanceScripts/Raid_Magtheridons_Lair.cpp	(working copy)
+@@ -251,7 +251,7 @@
+ 							Aura * aura = new Aura(dbcSpell.LookupEntry(SOUL_TRANSFER), -1, BuffedChanneler, BuffedChanneler);
+ 							if (aura != NULL)
+ 							{
+-								BuffedChanneler->AddAura(aura, NULL);
++								BuffedChanneler->AddAura(aura);
+ 							}
+ 						}
+ 					}
+@@ -613,7 +613,7 @@
+ 			Aura *aura = new Aura(dbcSpell.LookupEntry(MIND_EXHAUSTION), 78000, Magtheridon, Channeler);
+ 			if (aura != NULL)
+ 			{
+-				Channeler->AddAura(aura, NULL);
++				Channeler->AddAura(aura);
+ 			}
+ 
+ 			MagYell = true;
+@@ -1329,7 +1329,7 @@
+ 		Aura * aura = new Aura(dbcSpell.LookupEntry(BANISHMENT), -1, _unit, _unit);
+ 		if (aura != NULL)
+ 		{
+-			_unit->AddAura(aura, NULL);
++			_unit->AddAura(aura);
+ 		}
+ 		_unit->CastSpell(_unit, dbcSpell.LookupEntry(BANISH), true);
+ 		_unit->GetAIInterface()->SetAllowedToEnterCombat(false);
+Index: src/LUAScripting/LUAEngine.cpp
+===================================================================
+--- src/LUAScripting/LUAEngine.cpp	(revision 252)
++++ src/LUAScripting/LUAEngine.cpp	(working copy)
+@@ -3813,7 +3813,7 @@
+ 		return 0;
+ 	if(enabled > 0)
+ 		ptr->m_invisFlag = INVIS_FLAG_TOTAL;
+-		ptr->m_auracount[SPELL_AURA_MOD_INVISIBILITY] = true;
++		ptr->m_invisible = true;
+ 	return 1;
+ }
+ int luaUnit_MoveFly(lua_State * L, Unit * ptr)
+@@ -4693,7 +4693,7 @@
+ 	if( !ptr || !sp|| sp == 0) return 0;
+ 	
+ 	Spell * spp = new Spell(ptr,dbcSpell.LookupEntry(sp),true, NULL);
+-	SpellCastTargets tar(ptr);
++	SpellCastTargets tar(ptr->GetGUID());
+ 	spp->prepare(&tar);
+ 	return 0;
+ }
+@@ -4704,7 +4704,7 @@
+ 	if( !ptr || !sp|| sp == 0) return 0;
+ 	
+ 	Spell * nspell = new Spell(ptr,dbcSpell.LookupEntry(sp),false,NULL);
+-	SpellCastTargets tar(ptr);
++	SpellCastTargets tar(ptr->GetGUID());
+ 	nspell->prepare(&tar);
+ 	return 0;
+ }
+@@ -4716,7 +4716,7 @@
+ 	if( !ptr || !sp || sp == 0) return 0;
+ 
+ 	Spell * nspell = new Spell(ptr,dbcSpell.LookupEntry(sp),true,NULL);
+-	SpellCastTargets tar(target);
++	SpellCastTargets tar(target->GetGUID());
+ 	nspell->prepare(&tar);
+ 	return 0;
+ }
+@@ -4727,7 +4727,7 @@
+ 	Unit * target = Lunar<Unit>::check(L,2);
+ 	if( !ptr || !sp || sp == 0) return 0;
+ 	Spell * nspell = new Spell(ptr,dbcSpell.LookupEntry(sp),false,NULL);
+-	SpellCastTargets tar(target);
++	SpellCastTargets tar(target->GetGUID());
+ 	nspell->prepare(&tar);
+ 	return 0;
+ }
+@@ -4752,3 +4752,9 @@
+ 
+ 
+ 
++
++
++
++
++
++
+Index: src/Makefile.am
+===================================================================
+--- src/Makefile.am	(revision 252)
++++ src/Makefile.am	(working copy)
+@@ -1,2 +1,2 @@
+ SUBDIRS = GossipScripts InstanceScripts MiscScripts QuestScripts \
+-SpellHandlers ServerStatusPlugin LUAScripting ExtraScripts
++SpellHandlers ServerStatusPlugin LUAScripting
+Index: src/SpellHandlers/HunterSpells.cpp
+===================================================================
+--- src/SpellHandlers/HunterSpells.cpp	(revision 252)
++++ src/SpellHandlers/HunterSpells.cpp	(working copy)
+@@ -48,73 +48,8 @@
+     return true;
+ }
+ 
+-class RevivePet : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(RevivePet);
+-	RevivePet(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->p_caster == NULL || _spell->p_caster->GetSummon() == NULL)
+-			return SPELL_FAILED_NO_PET;
+-			
+-		if (!_spell->p_caster->GetSummon()->isDead())
+-			return SPELL_FAILED_TARGET_NOT_DEAD;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-};
+-
+-class SteadyShot : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(SteadyShot);
+-	SteadyShot(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		if(EffectIndex == 0 && _spell->u_caster != NULL)
+-		{
+-			if( _spell->p_caster != NULL )
+-			{
+-				Item *it;
+-				if(_spell->p_caster->GetItemInterface())
+-				{
+-					it = _spell->p_caster->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
+-					if(it)
+-					{
+-						float weapondmg = it->GetProto()->Damage[0].Min + RandomFloat( it->GetProto()->Damage[0].Max );
+-						*value += float2int32(150 + weapondmg/float(it->GetProto()->Delay/1000.0f)*2.8f);
+-					}
+-				}
+-			}
+-			if(target && target->IsDazed())
+-				*value += 175;
+-			*value += (uint32)(_spell->u_caster->GetRAP()*0.2);
+-		}
+-	}
+-};
+-
+-class MongooseBite : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(MongooseBite);
+-	MongooseBite(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		if( _spell->u_caster != NULL )
+-			*value += _spell->u_caster->GetAP()/5;
+-	}
+-};
+-
+ void SetupHunterSpells(ScriptMgr * mgr)
+ {
+     mgr->register_dummy_spell(24531, &Refocus);
+     mgr->register_dummy_spell(23989, &Readiness);
+-	mgr->register_spell_script(982, &RevivePet::Create);
+-	mgr->register_spell_script(34128, &SteadyShot::Create);
+-	mgr->register_spell_script(1495, &MongooseBite::Create);
+-	mgr->register_spell_script(14269, &MongooseBite::Create);
+-	mgr->register_spell_script(14270, &MongooseBite::Create);
+-	mgr->register_spell_script(14271, &MongooseBite::Create);
+-	mgr->register_spell_script(36916, &MongooseBite::Create);
+ }
+Index: src/SpellHandlers/ItemSpells_1.cpp
+===================================================================
+--- src/SpellHandlers/ItemSpells_1.cpp	(revision 252)
++++ src/SpellHandlers/ItemSpells_1.cpp	(working copy)
+@@ -300,8 +300,8 @@
+ 
+ 	uint32 currentCritterID = 0;
+ 
+-	if(pSpell->p_caster->critterPet && pSpell->p_caster->critterPet->GetCreatureName())
+-		currentCritterID = pSpell->p_caster->critterPet->GetCreatureName()->Id;
++	if(pSpell->p_caster->critterPet && pSpell->p_caster->critterPet->creature_info)
++		currentCritterID = pSpell->p_caster->critterPet->creature_info->Id;
+ 
+ 	uint32 newspell = 0;
+ 
+@@ -498,8 +498,6 @@
+ 	mgr->register_dummy_spell(29200, &PurifyBoarMeat);			// Purify Boar meat spell
+ 	mgr->register_dummy_spell(35036, &WarpRiftGenerator);       // Summon a Warp Rift in Void Ridge
+ 
+-
+-
+ // REGISTER NEW DUMMY SPELLS ABOVE THIS LINE
+ // *****************************************************************************
+ }
+Index: src/SpellHandlers/MageSpells.cpp
+===================================================================
+--- src/SpellHandlers/MageSpells.cpp	(revision 252)
++++ src/SpellHandlers/MageSpells.cpp	(working copy)
+@@ -25,28 +25,7 @@
+     return true;
+ }
+ 
+-class IceBlock : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(IceBlock);
+-	IceBlock(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->u_caster == NULL || _spell->u_caster->HasAura(41425))
+-			return SPELL_FAILED_DAMAGE_IMMUNE;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-
+-	void OnCast()
+-	{
+-		if (_spell->u_caster != NULL)
+-			_spell->u_caster->CastSpell(_spell->u_caster, 41425, true);
+-	}
+-};
+-
+ void SetupMageSpells(ScriptMgr * mgr)
+ {
+     mgr->register_dummy_spell(11958, &ColdSnap);
+-	mgr->register_spell_script(45438, &IceBlock::Create);
+ }
+Index: src/SpellHandlers/Makefile.am
+===================================================================
+--- src/SpellHandlers/Makefile.am	(revision 338)
++++ src/SpellHandlers/Makefile.am	(working copy)
+@@ -6,6 +6,6 @@
+ 
+ lib_LTLIBRARIES = libSpellHandlers.la
+ 
+-libSpellHandlers_la_SOURCES = DruidSpells.cpp HunterSpells.cpp ItemSpells_1.cpp \
+-MageSpells.cpp PaladinSpells.cpp PriestSpells.cpp OldSpellCPPStuff.cpp RogueSpells.cpp \
+-ShamanSpells.cpp WarlockSpells.cpp WarriorSpells.cpp Raid_BlackTemple.cpp QIspells.cpp Setup.cpp
++libSpellHandlers_la_SOURCES = HunterSpells.cpp ItemSpells_1.cpp \
++MageSpells.cpp PaladinSpells.cpp RogueSpells.cpp \
++ShamanSpells.cpp WarlockSpells.cpp WarriorSpells.cpp QIspells Setup.cpp
+Index: src/SpellHandlers/PaladinSpells.cpp
+===================================================================
+--- src/SpellHandlers/PaladinSpells.cpp	(revision 252)
++++ src/SpellHandlers/PaladinSpells.cpp	(working copy)
+@@ -75,14 +75,14 @@
+ 			break;
+ 	}
+ 
+-	SpellEntry * m_spellInfo = dbcSpell.LookupEntry(applyId);
++	SpellEntry * entry = dbcSpell.LookupEntry(applyId);
+ 
+ 	if(apply == true)
+ 	{
+ 		int32 value = 0;
+-		float randomPointsPerLevel = m_spellInfo->EffectDicePerLevel[2];
+-		int32 basePoints = m_spellInfo->EffectBasePoints[2] + 1;
+-		int32 randomPoints = m_spellInfo->EffectDieSides[2];
++		float randomPointsPerLevel = entry->EffectDicePerLevel[2];
++		int32 basePoints = entry->EffectBasePoints[2] + 1;
++		int32 randomPoints = entry->EffectDieSides[2];
+ 		if(u_caster)
+ 				randomPoints += u_caster->getLevel() * (int32)randomPointsPerLevel;
+ 
+@@ -92,10 +92,10 @@
+ 				value = basePoints + rand()  %randomPoints;
+ 
+ 		//this may be dangerous but let it be
+-		/*if(m_spellInfo->SpellGroupType)
++		/*if(entry->SpellGroupType)
+ 		{
+-				SM_FIValue(u_caster->SM_FDummy,&value,m_spellInfo->SpellGroupType);
+-				SM_PIValue(u_caster->SM_PDummy,&value,m_spellInfo->SpellGroupType);
++				SM_FIValue(u_caster->SM_FDummy,&value,entry->SpellGroupType);
++				SM_PIValue(u_caster->SM_PDummy,&value,entry)->SpellGroupType);
+ 		}*/
+ 
+ 		// add spell damage!
+Index: src/SpellHandlers/RogueSpells.cpp
+===================================================================
+--- src/SpellHandlers/RogueSpells.cpp	(revision 338)
++++ src/SpellHandlers/RogueSpells.cpp	(working copy)
+@@ -37,201 +37,7 @@
+     return true;
+ }
+ 
+-class Ambush : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Ambush);
+-	Ambush(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->u_caster == NULL || !_spell->u_caster->IsStealth())
+-			return SPELL_FAILED_ONLY_STEALTHED;
+-
+-		if (_spell->p_caster != NULL)
+-		{
+-			Item * pMainHand = _spell->p_caster->GetItemInterface()->GetInventoryItem( INVENTORY_SLOT_NOT_SET, EQUIPMENT_SLOT_MAINHAND );
+-			if( !pMainHand || pMainHand->GetProto()->Class != 2 || pMainHand->GetProto()->SubClass != 15 )
+-				return SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND;
+-		}
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-};
+-
+-class Backstab : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Backstab);
+-	Backstab(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->p_caster != NULL)
+-		{
+-			Item * pMainHand = _spell->p_caster->GetItemInterface()->GetInventoryItem( INVENTORY_SLOT_NOT_SET, EQUIPMENT_SLOT_MAINHAND );
+-			if( !pMainHand || pMainHand->GetProto()->Class != 2 || pMainHand->GetProto()->SubClass != 15 )
+-				return SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND;
+-		}
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-};
+-
+-class Stealth : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Stealth);
+-	Stealth(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->u_caster == NULL || _spell->u_caster->CombatStatus.IsInCombat())
+-			return SPELL_FAILED_TARGET_IN_COMBAT;
+-
+-		if (_spell->p_caster != NULL && _spell->p_caster->m_bgHasFlag)
+-			return SPELL_FAILED_SPELL_UNAVAILABLE;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-};
+-
+-class Vanish : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Vanish);
+-	Vanish(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->p_caster != NULL && _spell->p_caster->m_bgHasFlag)
+-			return SPELL_FAILED_SPELL_UNAVAILABLE;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-};
+-
+-class Garrote : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Garrote);
+-	Garrote(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		// WoWWiki says +( 0.18 * attack power / number of ticks )
+-		// Tooltip gives no specific reading, but says ", increased by your attack power.".
+-		if( _spell->u_caster != NULL )
+-		{
+-			float ap = (float)_spell->u_caster->GetAP();
+-			if( EffectIndex == 0 )
+-			{
+-				*value += (uint32) ceilf( ( ap * 0.18f ) / 6 );
+-			}
+-		}
+-	}
+-};
+-
+-class Rupture : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Rupture);
+-	Rupture(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		/* 
+-		1pt = Attack Power * 0.04 + x
+-		2pt = Attack Power * 0.10 + y
+-		3pt = Attack Power * 0.18 + z
+-		4pt = Attack Power * 0.21 + a
+-		5pt = Attack Power * 0.24 + b
+-		*/
+-		if( _spell->u_caster->IsPlayer() )
+-		{
+-			float ap = (float)_spell->u_caster->GetAP();
+-			float cp = (float)static_cast< Player* >(_spell->u_caster)->m_comboPoints;
+-			*value += (uint32) ceilf( ( ap * ( 0.04f * cp ) ) / ( ( 6 + ( cp * 2 ) ) / 2 ) );
+-		}
+-	}
+-};
+-
+-class Envenom : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Envenom);
+-	Envenom(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		if( _spell->p_caster != NULL && EffectIndex == 0 )//Envenom
+-		{
+-			*value *= _spell->p_caster->m_comboPoints;
+-			*value += (uint32)(_spell->p_caster->GetAP() * (0.03f * _spell->p_caster->m_comboPoints));
+-			_spell->m_requiresCP = true;
+-		}
+-	}
+-};
+-
+-class Eviscerate : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Eviscerate);
+-	Eviscerate(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		if( _spell->p_caster != NULL && EffectIndex == 0 )//Envenom
+-		{
+-			value += (uint32)( _spell->p_caster->GetAP() * ( 0.03 * _spell->p_caster->m_comboPoints ) );
+-		}
+-	}
+-};
+-
+ void SetupRogueSpells(ScriptMgr * mgr)
+ {
+-    //mgr->register_dummy_spell(14185, &Preparation);
+-	mgr->register_spell_script(53, &Backstab::Create);
+-	mgr->register_spell_script(2589, &Backstab::Create);
+-	mgr->register_spell_script(2590, &Backstab::Create);
+-	mgr->register_spell_script(2591, &Backstab::Create);
+-	mgr->register_spell_script(8721, &Backstab::Create);
+-	mgr->register_spell_script(11279, &Backstab::Create);
+-	mgr->register_spell_script(11280, &Backstab::Create);
+-	mgr->register_spell_script(11281, &Backstab::Create);
+-	mgr->register_spell_script(25300, &Backstab::Create);
+-	mgr->register_spell_script(26863, &Backstab::Create);
+-	mgr->register_spell_script(8676, &Ambush::Create);
+-	mgr->register_spell_script(8724, &Ambush::Create);
+-	mgr->register_spell_script(8725, &Ambush::Create);
+-	mgr->register_spell_script(11267, &Ambush::Create);
+-	mgr->register_spell_script(11268, &Ambush::Create);
+-	mgr->register_spell_script(11269, &Ambush::Create);
+-	mgr->register_spell_script(27441, &Ambush::Create);
+-	mgr->register_spell_script(1784, &Stealth::Create);
+-	mgr->register_spell_script(1785, &Stealth::Create);
+-	mgr->register_spell_script(1786, &Stealth::Create);
+-	mgr->register_spell_script(1787, &Stealth::Create);
+-	mgr->register_spell_script(1856, &Vanish::Create);
+-	mgr->register_spell_script(1857, &Vanish::Create);
+-	mgr->register_spell_script(26889, &Vanish::Create);
+-	mgr->register_spell_script(703, &Garrote::Create);
+-	mgr->register_spell_script(8631, &Garrote::Create);
+-	mgr->register_spell_script(8632, &Garrote::Create);
+-	mgr->register_spell_script(8633, &Garrote::Create);
+-	mgr->register_spell_script(11289, &Garrote::Create);
+-	mgr->register_spell_script(11290, &Garrote::Create);
+-	mgr->register_spell_script(26839, &Garrote::Create);
+-	mgr->register_spell_script(26884, &Garrote::Create);
+-	mgr->register_spell_script(1943, &Rupture::Create);
+-	mgr->register_spell_script(8639, &Rupture::Create);
+-	mgr->register_spell_script(8640, &Rupture::Create);
+-	mgr->register_spell_script(11273, &Rupture::Create);
+-	mgr->register_spell_script(11274, &Rupture::Create);
+-	mgr->register_spell_script(11275, &Rupture::Create);
+-	mgr->register_spell_script(26867, &Rupture::Create);
+-	mgr->register_spell_script(32645, &Envenom::Create);
+-	mgr->register_spell_script(32684, &Envenom::Create);
+-	mgr->register_spell_script(2098, &Eviscerate::Create);
+-	mgr->register_spell_script(6760, &Eviscerate::Create);
+-	mgr->register_spell_script(6761, &Eviscerate::Create);
+-	mgr->register_spell_script(6762, &Eviscerate::Create);
+-	mgr->register_spell_script(8623, &Eviscerate::Create);
+-	mgr->register_spell_script(8624, &Eviscerate::Create);
+-	mgr->register_spell_script(11299, &Eviscerate::Create);
+-	mgr->register_spell_script(11300, &Eviscerate::Create);
+-	mgr->register_spell_script(31016, &Eviscerate::Create);
+-	mgr->register_spell_script(26865, &Eviscerate::Create);
++    mgr->register_dummy_spell(14185, &Preparation);
+ }
+Index: src/SpellHandlers/Setup.cpp
+===================================================================
+--- src/SpellHandlers/Setup.cpp	(revision 252)
++++ src/SpellHandlers/Setup.cpp	(working copy)
+@@ -35,10 +35,7 @@
+     SetupMageSpells(mgr);
+     SetupPaladinSpells(mgr);
+     SetupRogueSpells(mgr);
+-	SetupOldSpellCPPSuff(mgr);
+-	SetupDruidSpells(mgr);
+-	SetupPriestSpells(mgr);
+-	SetupRaidBlackTempleSpells(mgr);
++    SetupQuestItems(mgr);
+ }
+ 
+ #ifdef WIN32
+Index: src/SpellHandlers/Setup.h
+===================================================================
+--- src/SpellHandlers/Setup.h	(revision 252)
++++ src/SpellHandlers/Setup.h	(working copy)
+@@ -18,8 +18,6 @@
+ #ifndef SPELL_SCRIPTS_SETUP_H
+ #define SPELL_SCRIPTS_SETUP_H
+ 
+-#pragma warning(disable:4244)
+-
+ void SetupShamanSpells(ScriptMgr * mgr);
+ void SetupWarlockSpells(ScriptMgr * mgr);
+ void SetupWarriorSpells(ScriptMgr * mgr);
+@@ -28,11 +26,6 @@
+ void SetupMageSpells(ScriptMgr * mgr);
+ void SetupPaladinSpells(ScriptMgr * mgr);
+ void SetupRogueSpells(ScriptMgr * mgr);
+-void SetupDruidSpells(ScriptMgr * mgr);
+-void SetupPriestSpells(ScriptMgr * mgr);
+-void SetupOldSpellCPPSuff(ScriptMgr * mgr);
++void SetupQuestItems(ScriptMgr * mgr);
+ 
+-//Instance spells (mainly scripted targets)
+-void SetupRaidBlackTempleSpells(ScriptMgr* mgr);
+-
+ #endif
+Index: src/SpellHandlers/ShamanSpells.cpp
+===================================================================
+--- src/SpellHandlers/ShamanSpells.cpp	(revision 252)
++++ src/SpellHandlers/ShamanSpells.cpp	(working copy)
+@@ -58,8 +58,12 @@
+ 
+     if(!enchantment_entry || !pSpell->p_caster)
+         return true;
++		Item * item = NULL;
++	if(rand()%2 == 0) // Don't know which weapon to enchant, so use random
++		item = pSpell->p_caster->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_OFFHAND);
++	if(!item)
++		item = pSpell->p_caster->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_MAINHAND);
+ 
+-    Item * item = pSpell->p_caster->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_MAINHAND);
+     EnchantEntry * enchant = dbcEnchant.LookupEntry(enchantment_entry);
+     if(!item || !enchant)
+         return true;
+@@ -82,24 +86,6 @@
+     return true;
+ }
+ 
+-class LinkedHPElemental : public CreatureAIScript
+-{
+-public:
+-    ADD_CREATURE_FACTORY_FUNCTION(LinkedHPElemental);
+-	LinkedHPElemental(Creature* pCreature) : CreatureAIScript(pCreature) { }
+-
+-	void OnLoad()
+-	{
+-		//we should be in world here, lets get totem
+-		Unit* totem=_unit->GetMapMgr()->GetUnit(_unit->GetUInt64Value(UNIT_FIELD_CREATEDBY));
+-
+-		if (totem == NULL) //WTF
+-			return;
+-
+-		_unit->ShareHealthWithUnit(totem);
+-	}
+-};
+-
+ void SetupShamanSpells(ScriptMgr * mgr)
+ {
+     mgr->register_dummy_spell(8017, &RockbiterWeapon); // rank 1
+@@ -111,6 +97,4 @@
+     mgr->register_dummy_spell(16316, &RockbiterWeapon);// rank 7
+ 	mgr->register_dummy_spell(25479, &RockbiterWeapon);// rank 8
+     mgr->register_dummy_spell(25485, &RockbiterWeapon);// rank 9
+-	mgr->register_creature_script(15352, &LinkedHPElemental::Create);
+-	mgr->register_creature_script(15438, &LinkedHPElemental::Create);
+ }
+Index: src/SpellHandlers/WarlockSpells.cpp
+===================================================================
+--- src/SpellHandlers/WarlockSpells.cpp	(revision 252)
++++ src/SpellHandlers/WarlockSpells.cpp	(working copy)
+@@ -18,313 +18,9 @@
+ #include "StdAfx.h"
+ #include "Setup.h"
+ 
+-class UnstableAffliction : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(UnstableAffliction);
+-	UnstableAffliction(Spell* pSpell) : SpellScript(pSpell) {}
+-
+-	void OnDispel(Aura* pDispelledAura, Spell* pDispellingSpell)
+-	{
+-		Unit* caster=pDispelledAura->GetUnitCaster();
+-
+-		if (pDispellingSpell->u_caster == NULL || caster == NULL)
+-			return;
+-
+-		Spell* sp=new Spell(pDispellingSpell->u_caster, dbcSpell.LookupEntry(31117), true, NULL);
+-		sp->forced_basepoints[0]=pDispelledAura->m_spellProto->EffectBasePoints[0] * 9;
+-		SpellCastTargets t;
+-		t.m_target = pDispellingSpell->u_caster;
+-		sp->prepare(&t);
+-	}
+-};
+-
+-class CurseOfDoom : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(CurseOfDoom);
+-	CurseOfDoom(Spell* pSpell) : SpellScript(pSpell) {}
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		Unit* u_target = _spell->GetUnitTarget();
+-		if (u_target != NULL && u_target->IsPlayer())
+-			return SPELL_FAILED_TARGET_IS_PLAYER;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-
+-	void OnExpire()
+-	{
+-		Unit* target=_spell->GetUnitTarget();
+-
+-		if (target == NULL || !target->isDead())
+-			return;
+-
+-		if (RandomUInt(100) < 20)
+-			target->CastSpell(target, 18662, true);
+-	}
+-};
+-
+-class LifeTap : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(LifeTap);
+-	int32 valueforplayer;
+-	LifeTap(Spell* pSpell) : SpellScript(pSpell) {}
+-
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		if (_spell->u_caster == NULL)
+-			return;
+-
+-		*value += _spell->u_caster->GetSpellDmgBonus(_spell->u_caster, _spell->m_spellInfo, *value, false);
+-
+-		if (_spell->u_caster->HasAura(18182))
+-			*value *= 1.1f;
+-		if (_spell->u_caster->HasAura(18183))
+-			*value *= 1.2f;
+-
+-		valueforplayer = *value;
+-	}
+-
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		if (_spell->u_caster == NULL)
+-			return SPELL_FAILED_BAD_TARGETS;
+-
+-		if (_spell->u_caster->GetUInt32Value(UNIT_FIELD_HEALTH) <= _spell->CalculateEffect(0, _spell->u_caster))
+-			return SPELL_FAILED_FIZZLE;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-
+-	void DummyEffect(uint32 EffectIndex)
+-	{
+-		if (_spell->u_caster == NULL)
+-			return;
+-
+-		_spell->u_caster->DealDamage(_spell->u_caster, valueforplayer, 0, 0, _spell->m_spellInfo->Id);
+-		_spell->u_caster->Energize(_spell->u_caster, _spell->m_spellInfo->Id, valueforplayer, 0);
+-
+-		//give extra points to player's pet (mana feed)
+-		if (_spell->p_caster != NULL && _spell->damage > valueforplayer && _spell->p_caster->GetSummon() != NULL)
+-			_spell->u_caster->Energize(_spell->p_caster->GetSummon(), _spell->m_spellInfo->Id, _spell->damage - valueforplayer, 0);
+-	}
+-};
+-
+-class SoulLink : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(SoulLink);
+-
+-	SoulLink(Spell* pSpell) : SpellScript(pSpell) {}
+-	DamageSplitTarget splitter;
+-	Player* source;
+-
+-	void DummyEffect(uint32 EffectIndex)
+-	{
+-		if (_spell->p_caster == NULL || _spell->p_caster->GetSummon() == NULL)
+-			return;
+-
+-		splitter.m_flatDamageSplit = 0;
+-		splitter.m_spellId = _spell->m_spellInfo->Id;
+-		splitter.m_pctDamageSplit = 0.2f;
+-		splitter.damage_type = 64 | 32 | 16 | 8 | 4 | 2 | 1;
+-		splitter.creator = (void*)this;
+-		splitter.m_target = _spell->p_caster->GetSummon()->GetGUID();
+-		_spell->p_caster->m_damageSplitTargets.push_back(splitter);
+-		source = _spell->p_caster;
+-	}
+-
+-	void OnRemove(Aura* pRemovedAura)
+-	{
+-		if (_spell->p_caster == NULL)
+-			return;
+-
+-		for (std::list<DamageSplitTarget>::iterator i=source->m_damageSplitTargets.begin(); i!=source->m_damageSplitTargets.end(); ++i)
+-		{
+-			if ((*i).creator == this)
+-			{
+-				source->m_damageSplitTargets.erase(i);
+-				break;
+-			}
+-		}
+-	}
+-};
+-
+-class DrainLife : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(DrainLife);
+-	DrainLife(Spell* pSpell) : SpellScript(pSpell) {}
+-
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		Unit* u_target = _spell->GetUnitTarget();
+-
+-		if (_spell->u_caster == NULL || u_target == NULL)
+-			return;
+-
+-		float mod=1.0f;
+-		
+-		Aura* aur = NULL;
+-
+-		for(uint32 x = MAX_AURAS; x < MAX_PASSIVE_AURAS; ++x)
+-		{
+-			if (u_target->m_auras[x] != NULL && u_target->m_auras[x]->m_spellProto->NameHash == SPELL_HASH_SOUL_SIPHON)
+-				aur = u_target->m_auras[x];
+-		}
+-
+-		if (aur == NULL)
+-			return;
+-
+-		for(int i = MAX_POSITIVE_AURAS; i <= MAX_AURAS; i++)
+-			if(u_target->m_auras[i] && objmgr.GetSpellSkill(u_target->m_auras[i]->GetSpellId())->Id == SKILL_AFFLICTION)
+-					mod += aur->m_spellProto->EffectBasePoints[0] /100;
+-
+-		if (mod > aur->m_spellProto->EffectBasePoints[1])
+-			mod = aur->m_spellProto->EffectBasePoints[1];
+-
+-		*value *= mod;
+-	}
+-};
+-
+-class WarlockPetScaling01 : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(WarlockPetScaling01);
+-	WarlockPetScaling01(Spell* pSpell) : SpellScript(pSpell) {}
+-
+-	void OnCast()
+-	{
+-
+-		if (_spell->u_caster == NULL || !_spell->u_caster->IsPet())
+-			return;
+-
+-		Pet* pet=static_cast<Pet*>(_spell->u_caster);
+-
+-		if (pet->GetOwner() == NULL)
+-			return;
+-
+-		uint32 MaxSchoolBonus=0;
+-		for (int32 i=0; i<7; i++)
+-			if (pet->GetOwner()->GetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i) > MaxSchoolBonus)
+-				MaxSchoolBonus = pet->GetOwner()->GetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i);
+-
+-		_spell->forced_basepoints[0]=pet->GetOwner()->GetUInt32Value(UNIT_FIELD_STAT2) * 0.3;
+-		_spell->forced_basepoints[1]=MaxSchoolBonus * 0.57;
+-		_spell->forced_basepoints[2]=MaxSchoolBonus * 0.15;
+-	}
+-};
+-
+-class Conflagrate : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(Conflagrate);
+-	Conflagrate(Spell * pSpell) : SpellScript(pSpell) {}
+-	Unit* u_target;
+-	SpellCastError CanCast(bool tolerate)
+-	{
+-		u_target = _spell->GetUnitTarget();
+-		if( u_target == NULL || !u_target->HasFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_IMMOLATE))
+-			return SPELL_FAILED_CASTER_AURASTATE;
+-
+-		return SPELL_CANCAST_OK;
+-	}
+-	void OnEffect(uint32 EffectIndex)
+-	{
+-		if( u_target && u_target->HasAurasWithNameHash(SPELL_HASH_IMMOLATE) )
+-			u_target->RemoveAuraByNameHash(SPELL_HASH_IMMOLATE);
+-	}
+-};
+-
+-class SoulShatter : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(SoulShatter);
+-	SoulShatter(Spell * pSpell) : SpellScript(pSpell) {}
+-
+-	void DummyEffect(uint32 EffectIndex)
+-	{
+-		if (_spell->GetUnitTarget() == NULL)
+-			return;
+-
+-		_spell->GetUnitTarget()->GetAIInterface()->modThreatByPtr(_spell->u_caster, _spell->GetUnitTarget()->GetAIInterface()->getThreatByPtr(_spell->u_caster) * (_spell->m_spellInfo->EffectBasePoints[EffectIndex] / 100));
+-	}
+-};
+-
+-class DemonicKnowledge : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(DemonicKnowledge);
+-	int32 amountadded;
+-	DemonicKnowledge(Spell * pSpell) : SpellScript(pSpell) { amountadded=0; }
+-
+-
+-	void DummyAura(bool apply, Aura* aura)
+-	{
+-		if ( aura->GetTarget()->IsPet() )
+-		{
+-			Unit* PetOwner;
+-			if ( static_cast< Pet* >( aura->GetTarget() )->GetPetOwner() )
+-			{
+-				PetOwner = static_cast< Pet* >( aura->GetTarget() )->GetPetOwner();
+-
+-				if (amountadded == 0.0f)
+-				{
+-					uint32 val1 = aura->GetTarget()->GetUInt32Value( UNIT_FIELD_STAT2 ); // stamina
+-					uint32 val2 = aura->GetTarget()->GetUInt32Value( UNIT_FIELD_STAT3 ); // intelect
+-					uint32 val0 = val1+val2;
+-					float amount = (float)(val0*aura->mod->m_amount)/100;
+-					amountadded=amount;
+-				}
+-
+-				int32 val;
+-
+-				if( apply )
+-					val = (int32)amountadded;
+-				else
+-					val = (int32)-amountadded;
+-
+-				for (uint32 x=0;x<7;x++)
+-					PetOwner->ModUnsigned32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + x, val);
+-					
+-				PetOwner->CalcDamage();
+-			}
+-		}
+-	}
+-};
+-
+ void SetupWarlockSpells(ScriptMgr * mgr)
+ {
+-	mgr->register_spell_script(30108, &UnstableAffliction::Create);
+-	mgr->register_spell_script(30404, &UnstableAffliction::Create);
+-	mgr->register_spell_script(30405, &UnstableAffliction::Create);
+-	mgr->register_spell_script(603, &CurseOfDoom::Create);
+-	mgr->register_spell_script(30910, &CurseOfDoom::Create);
+-	mgr->register_spell_script(1454, &LifeTap::Create);
+-	mgr->register_spell_script(1455, &LifeTap::Create);
+-	mgr->register_spell_script(1456, &LifeTap::Create);
+-	mgr->register_spell_script(11687, &LifeTap::Create);
+-	mgr->register_spell_script(11688, &LifeTap::Create);
+-	mgr->register_spell_script(11689, &LifeTap::Create);
+-	mgr->register_spell_script(27222, &LifeTap::Create);
+-	mgr->register_spell_script(19028, &SoulLink::Create);
+-	mgr->register_spell_script(689, &DrainLife::Create);
+-	mgr->register_spell_script(699, &DrainLife::Create);
+-	mgr->register_spell_script(709, &DrainLife::Create);
+-	mgr->register_spell_script(7651, &DrainLife::Create);
+-	mgr->register_spell_script(11699, &DrainLife::Create);
+-	mgr->register_spell_script(11700, &DrainLife::Create);
+-	mgr->register_spell_script(27219, &DrainLife::Create);
+-	mgr->register_spell_script(21220, &DrainLife::Create);
+-	mgr->register_spell_script(17962, &Conflagrate::Create);
+-	mgr->register_spell_script(18930, &Conflagrate::Create);
+-	mgr->register_spell_script(18931, &Conflagrate::Create);
+-	mgr->register_spell_script(18932, &Conflagrate::Create);
+-	mgr->register_spell_script(27266, &Conflagrate::Create);
+-	mgr->register_spell_script(30912, &Conflagrate::Create);
+-	mgr->register_spell_script(29858, &SoulShatter::Create);
+-	mgr->register_spell_script(35696, &DemonicKnowledge::Create);
++	// moo?
+ }
+ 
++
+Index: src/SpellHandlers/WarriorSpells.cpp
+===================================================================
+--- src/SpellHandlers/WarriorSpells.cpp	(revision 252)
++++ src/SpellHandlers/WarriorSpells.cpp	(working copy)
+@@ -88,7 +88,7 @@
+ 
+ bool Execute(uint32 i, Spell* pSpell)
+ {
+-    //uint32 uSpellId = pSpell->m_spellInfo->Id;
++    uint32 uSpellId = pSpell->m_spellInfo->Id;
+     uint32 base_dmg = pSpell->damage;
+     /*
+     Attempt to finish off a wounded foe, causing 125 damage and converting each extra point
+@@ -112,10 +112,8 @@
+     add_damage *= pSpell->u_caster->GetUInt32Value(UNIT_FIELD_POWER2) / 10;   // rage is *10 always
+     
+     // send spell damage log
+-	//pSpell->u_caster->SpellNonMeleeDamageLog(target, 20647, base_dmg + add_damage, false);
+-	SpellEntry *sp_for_the_logs = dbcSpell.LookupEntry(20647);
+-	pSpell->u_caster->Strike( target, MELEE, sp_for_the_logs, base_dmg + add_damage, 0, 0, true, true );
+-	// zero rage
++    pSpell->u_caster->SpellNonMeleeDamageLog(target, 20647, base_dmg + add_damage, false);
++    // zero rage
+     pSpell->u_caster->SetUInt32Value(UNIT_FIELD_POWER2, 0);
+     return true;
+ }
+@@ -128,22 +126,9 @@
+   return true;
+ }
+ 
+-class VictoryRush : public SpellScript
+-{
+-public:
+-	ADD_SPELL_FACTORY_FUNCTION(VictoryRush);
+-	VictoryRush(Spell* pSpell) : SpellScript(pSpell) {}
+-	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
+-	{
+-		if(EffectIndex == 0 && _spell->u_caster != NULL)
+-			*value = (*value * _spell->u_caster->GetAP())/100;
+-	}
+-};
+-
+ /* Module info */
+ void SetupWarriorSpells(ScriptMgr * mgr)
+ {
+-	mgr->register_spell_script(34428, &VictoryRush::Create);
+     /**** Charge ****/
+     mgr->register_dummy_spell(100, &Charge);      // Rank 1
+     mgr->register_dummy_spell(6178, &Charge);     // Rank 2
+Index: src/MiscScripts/Creatures.cpp
+===================================================================
+--- src/MiscScripts/Creatures.cpp	(revision 339)
++++ src/MiscScripts/Creatures.cpp	(working copy)
+@@ -111,9 +111,7 @@
+ public:
+ 	ADD_CREATURE_FACTORY_FUNCTION(AllianceGryphon);
+ 
+-	AllianceGryphon(Creature* pCreature) : CreatureAIScript(pCreature) {
+-		_unit->GetAIInterface()->m_neutralGuard = true;
+-	}
++	AllianceGryphon(Creature* pCreature) : CreatureAIScript(pCreature) {}
+ 
+    	void OnCombatStart(Unit* mTarget)
+     {
+@@ -130,9 +128,7 @@
+ public:
+ 	ADD_CREATURE_FACTORY_FUNCTION(AllianceHippogryph);
+ 
+-	AllianceHippogryph(Creature* pCreature) : CreatureAIScript(pCreature) {	
+-		_unit->GetAIInterface()->m_neutralGuard = true;
+-	}
++	AllianceHippogryph(Creature* pCreature) : CreatureAIScript(pCreature) {}
+ 
+    	void OnCombatStart(Unit* mTarget)
+     {
+@@ -148,9 +144,7 @@
+ {
+ public:
+ 	ADD_CREATURE_FACTORY_FUNCTION(HordeWyvern);
+-	HordeWyvern(Creature* pCreature) : CreatureAIScript(pCreature) {
+-		_unit->GetAIInterface()->m_neutralGuard = true;
+-	}
++	HordeWyvern(Creature* pCreature) : CreatureAIScript(pCreature) {}
+ 
+    	void OnCombatStart(Unit* mTarget)
+     {
+@@ -167,9 +161,7 @@
+ {
+ public:
+ 	ADD_CREATURE_FACTORY_FUNCTION(HordeBat);
+-	HordeBat(Creature* pCreature) : CreatureAIScript(pCreature) {	
+-		_unit->GetAIInterface()->m_neutralGuard = true;
+-	}
++	HordeBat(Creature* pCreature) : CreatureAIScript(pCreature) {}
+ 
+    	void OnCombatStart(Unit* mTarget)
+     {
+
+	 

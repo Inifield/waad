@@ -1,0 +1,3 @@
+Pour compiler les FunScripts sous linux
+
+Il faut ajouter FunScripts dans le fichier Makefile.am du dossier WaadScripts/src 

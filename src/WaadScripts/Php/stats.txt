@@ -1,0 +1,14 @@
+utilise stats.php comme une image dans votre code 
+
+exemple :
+<img src=stats.php?quoi=player> 
+
+valeur geree : player gm alliance horde accept peak
+
+config comme il est la le .php il les 60 dernieres entre donc les deux dernieres heures d'activites
+(sachant que le core cree un xml donc une entree sql toute les deux 
+minutes)
+
+Ne pas oubliee de creer la base grace au .sql
+
+Bon jeu

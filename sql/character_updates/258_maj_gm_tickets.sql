@@ -1,0 +1,1 @@
+ALTER TABLE `gm_tickets` CHANGE `type` `map` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';

@@ -1,0 +1,477 @@
+Index: src/ascent-world/AIInterface.cpp
+===================================================================
+--- src/ascent-world/AIInterface.cpp	(revision 284)
++++ src/ascent-world/AIInterface.cpp	(working copy)
+@@ -224,7 +224,22 @@
+ 						}
+ 					}
+ 				}
++
++				HandleChainAggro(pUnit);
++
++				//give 1 threat to this unit if were not on the threat list
++				if (m_aiTargets.find(pUnit)==m_aiTargets.end())
++				{
++					m_aiTargets.insert(TargetMap::value_type(pUnit, 1));
++				}
+ 			}break;
++		case EVENT_DAMAGEDEALT:
++			{
++				if (m_aiTargets.find(pUnit)==m_aiTargets.end())
++				{
++					m_aiTargets.insert(TargetMap::value_type(pUnit, 1));
++				}
++			}break;
+ 		case EVENT_LEAVECOMBAT:
+ 			{
+ 				if( pUnit == NULL ) return;
+@@ -325,6 +340,7 @@
+ 			{
+ 				if( pUnit == NULL ) return;
+ 
++				HandleChainAggro(pUnit);
+ 				CALL_SCRIPT_EVENT(m_Unit, OnDamageTaken)(pUnit, float(misc1));
+ 				if(!modThreatByPtr(pUnit, misc1))
+ 				{
+@@ -681,7 +697,7 @@
+ 	}
+ 	else if(m_AIState != STATE_IDLE && m_AIState != STATE_SCRIPTIDLE)
+ 	{
+-		FindFriends(16.0f/*4.0f*/);
++		FindFriends(100.0f/*10.0f*/);
+ 	}
+ 
+ 	if( m_updateAssist )
+@@ -1580,7 +1596,7 @@
+ 			continue;
+ 		}
+ 
+-		if( isCombatSupport( m_Unit, pUnit ) && ( pUnit->GetAIInterface()->getAIState() == STATE_IDLE || pUnit->GetAIInterface()->getAIState() == STATE_SCRIPTIDLE ) )//Not sure
++		if( isCombatSupport( m_Unit, pUnit ) )//Not sure
+ 		{
+ 			if( m_Unit->GetDistanceSq(pUnit) < dist)
+ 			{
+@@ -3655,4 +3671,24 @@
+ 	return true;
+ }
+ 
++void AIInterface::HandleChainAggro(Unit* u)
++{
++	if (!m_Unit->IsInWorld() || !m_Unit->isAlive() || m_Unit->m_chain == NULL)
++		return;
++
++	for (std::set<Unit*>::iterator itr=m_Unit->m_chain->m_units.begin(); itr!=m_Unit->m_chain->m_units.end(); ++itr)
++	{
++		if (!(*itr)->IsInWorld() || !(*itr)->isAlive() || (m_Unit->m_chain->m_chainrange != 0 && m_Unit->CalcDistance(*itr) > m_Unit->m_chain->m_chainrange))
++			continue;
++
++		if ((*itr)->GetAIInterface()->GetAITargets()->find(u) == (*itr)->GetAIInterface()->GetAITargets()->end())
++		{
++			if((*itr)->GetAIInterface()->getAIState() == STATE_IDLE || (*itr)->GetAIInterface()->getAIState() == STATE_FOLLOWING)
++				(*itr)->GetAIInterface()->HandleEvent(EVENT_ENTERCOMBAT, u, 0);
++			else
++				(*itr)->GetAIInterface()->GetAITargets()->insert(TargetMap::value_type(u, 1));
++		}
++	}
++}
++
+ #endif
+Index: src/ascent-world/AIInterface.h
+===================================================================
+--- src/ascent-world/AIInterface.h	(revision 284)
++++ src/ascent-world/AIInterface.h	(working copy)
+@@ -147,6 +147,7 @@
+ {
+ 	EVENT_ENTERCOMBAT,
+ 	EVENT_LEAVECOMBAT,
++	EVENT_DAMAGEDEALT,
+ 	EVENT_DAMAGETAKEN,
+ 	EVENT_FEAR,
+ 	EVENT_UNFEAR,
+@@ -220,6 +221,8 @@
+ 	AIInterface();
+ 	~AIInterface();
+ 
++	void HandleChainAggro(Unit* u);
++
+ 	// Misc
+ 	void Init(Unit *un, AIType at, MovementType mt);
+ 	void Init(Unit *un, AIType at, MovementType mt, Unit *owner); // used for pets
+Index: src/ascent-world/Creature.cpp
+===================================================================
+--- src/ascent-world/Creature.cpp	(revision 284)
++++ src/ascent-world/Creature.cpp	(working copy)
+@@ -249,6 +249,7 @@
+ 
+ void Creature::generateLoot()
+ {
++	if (!loot.items.empty()) return;
+ 	lootmgr.FillCreatureLoot(&loot,GetEntry(), m_mapMgr ? (m_mapMgr->iInstanceMode > 0 ? true : false) : false);
+ 	
+ 	loot.gold = proto ? proto->money : 0;
+Index: src/ascent-world/LootMgr.cpp
+===================================================================
+--- src/ascent-world/LootMgr.cpp	(revision 284)
++++ src/ascent-world/LootMgr.cpp	(working copy)
+@@ -445,6 +445,91 @@
+ 
+ }
+ 
++void LootMgr::AddLoot(Loot * loot, uint32 itemid, uint32 mincount, uint32 maxcount, uint32 ffa_loot)
++{
++	uint32 i;
++	uint32 count;
++	ItemPrototype *itemproto = ItemPrototypeStorage.LookupEntry(itemid);
++
++	if( itemproto )// this check is needed until loot DB is fixed
++	{
++		if( mincount == maxcount )
++			count = maxcount;
++		else
++			count = RandomUInt(maxcount - mincount) + mincount;
++
++		for( i = 0; i < loot->items.size(); ++i )
++		{
++			//itemid rand match a already placed item, if item is stackable and unique(stack), increment it, otherwise skips
++			if((loot->items[i].item.itemproto == itemproto) && itemproto->MaxCount && ((loot->items[i].iItemsCount + count) < itemproto->MaxCount))
++			{
++				if(itemproto->Unique && ((loot->items[i].iItemsCount+count) < itemproto->Unique))
++				{
++					loot->items[i].iItemsCount += count;
++					break;
++				}
++				else if (!itemproto->Unique)
++				{
++					loot->items[i].iItemsCount += count;
++					break;
++				}
++			}
++		}
++
++		if( i != loot->items.size() )
++			return;
++
++		_LootItem item;
++		item.itemproto = itemproto;
++		item.displayid = itemproto->DisplayInfoID;
++
++		__LootItem itm;
++		itm.item = item;
++		itm.iItemsCount = count;
++		itm.roll = NULL;
++		itm.passed = false;
++		itm.ffa_loot = ffa_loot;
++		itm.has_looted.clear();
++		
++		if( itemproto->Quality > 1 && itemproto->ContainerSlots == 0 )
++		{
++			itm.iRandomProperty=GetRandomProperties( itemproto );
++			itm.iRandomSuffix=GetRandomSuffix( itemproto );
++		}
++		else
++		{
++			// save some calls :P
++			itm.iRandomProperty = NULL;
++			itm.iRandomSuffix = NULL;
++		}
++
++		loot->items.push_back(itm);
++	}
++	if( loot->items.size() > 16 )
++	{
++		std::vector<__LootItem>::iterator item_to_remove;
++		std::vector<__LootItem>::iterator itr;
++		uint32 item_quality;
++		bool quest_item;
++		while( loot->items.size() > 16 )
++		{
++			item_to_remove = loot->items.begin();
++			item_quality = 0;
++			quest_item = false;
++			for( itr = loot->items.begin(); itr != loot->items.end(); ++itr )
++			{
++				item_quality = (*itr).item.itemproto->Quality;
++				quest_item = (*itr).item.itemproto->Class == ITEM_CLASS_QUEST;
++				if( (*item_to_remove).item.itemproto->Quality > item_quality && !quest_item )
++				{
++					item_to_remove = itr;
++				}
++			}
++			loot->items.erase( item_to_remove );
++		}
++	}
++}
++
+ void LootMgr::FillCreatureLoot(Loot * loot,uint32 loot_id, bool heroic)
+ {
+ 	loot->items.clear();
+Index: src/ascent-world/LootMgr.h
+===================================================================
+--- src/ascent-world/LootMgr.h	(revision 284)
++++ src/ascent-world/LootMgr.h	(working copy)
+@@ -118,12 +118,14 @@
+ 
+ 
+ 
+-class LootMgr : public Singleton < LootMgr >
++class SERVER_DECL LootMgr : public Singleton < LootMgr >
+ {
+ public:
+ 	LootMgr();
+ 	~LootMgr();
+ 
++	void AddLoot(Loot * loot, uint32 itemid, uint32 mincount, uint32 maxcount, uint32 ffa_loot);
++
+ 	void FillCreatureLoot(Loot * loot,uint32 loot_id, bool heroic);
+ 	void FillGOLoot(Loot * loot,uint32 loot_id, bool heroic);
+ 	void FillItemLoot(Loot *loot, uint32 loot_id);
+Index: src/ascent-world/MapCell.h
+===================================================================
+--- src/ascent-world/MapCell.h	(revision 284)
++++ src/ascent-world/MapCell.h	(working copy)
+@@ -29,7 +29,7 @@
+ #define MAKE_CELL_EVENT(x,y) ( ((x) * 1000) + 200 + y )
+ #define DECODE_CELL_EVENT(dest_x, dest_y, ev) (dest_x) = ((ev-200)/1000); (dest_y) = ((ev-200)%1000);
+ 
+-class MapCell
++class SERVER_DECL MapCell
+ {
+ 	friend class MapMgr;
+ public:
+@@ -66,6 +66,8 @@
+ 	void QueueUnloadPending();
+ 	void CancelPendingUnload();
+ 	void Unload();
++	ASCENT_INLINE uint16 GetPositionX() { return _x; }
++	ASCENT_INLINE uint16 GetPositionY() { return _y; }
+ 
+ 	ObjectSet _respawnObjects;
+ 
+Index: src/ascent-world/MapMgr.cpp
+===================================================================
+--- src/ascent-world/MapMgr.cpp	(revision 284)
++++ src/ascent-world/MapMgr.cpp	(working copy)
+@@ -1224,7 +1224,7 @@
+ 
+ 			if (objCell)
+ 			{
+-				if (objCell->HasPlayers())
++				if (objCell->HasPlayers() || m_forcedcells.find(objCell) != m_forcedcells.end())
+ 				{
+ 					return true;
+ 				}
+@@ -1929,3 +1929,15 @@
+ 	return new DynamicObject(HIGHGUID_TYPE_DYNAMICOBJECT,(++m_DynamicObjectHighGuid));
+ }
+ 
++void MapMgr::AddForcedCell(MapCell* c)
++{
++	m_forcedcells.insert(c);
++	UpdateCellActivity(c->GetPositionX(), c->GetPositionY(), 1);
++}
++
++void MapMgr::RemoveForcedCell(MapCell* c)
++{
++	m_forcedcells.erase(c);
++	UpdateCellActivity(c->GetPositionX(), c->GetPositionY(), 1);
++}
++
+Index: src/ascent-world/MapMgr.h
+===================================================================
+--- src/ascent-world/MapMgr.h	(revision 284)
++++ src/ascent-world/MapMgr.h	(working copy)
+@@ -81,7 +81,11 @@
+ public:
+ 		
+ 	//This will be done in regular way soon
++	std::set<MapCell*> m_forcedcells;
+ 
++	void AddForcedCell(MapCell* c);
++	void RemoveForcedCell(MapCell* c);
++
+ 	Mutex m_objectinsertlock;
+ 	ObjectSet m_objectinsertpool;
+ 	void AddObject(Object *);
+Index: src/ascent-world/Object.cpp
+===================================================================
+--- src/ascent-world/Object.cpp	(revision 284)
++++ src/ascent-world/Object.cpp	(working copy)
+@@ -748,6 +748,19 @@
+ 	return data;
+ }
+ 
++void Object::SetSpawnPosition(const LocationVector & v)
++{
++	SetSpawnPosition(v.x, v.y, v.z, v.o);
++}
++
++void Object::SetSpawnPosition(float newX, float newY, float newZ, float newOrientation)
++{
++	m_spawnLocation.x=newX;
++	m_spawnLocation.y=newY;
++	m_spawnLocation.z=newZ;
++	m_spawnLocation.o=newOrientation;
++}
++
+ bool Object::SetPosition(const LocationVector & v, bool allowPorting /* = false */)
+ {
+ 	bool updateMap = false, result = true;
+@@ -2228,6 +2241,9 @@
+ 		}*/	
+ 
+ 		pVictim->SetUInt32Value( UNIT_FIELD_HEALTH, health - damage );
++
++		if (IsCreature() && !IsPet())
++			static_cast<Unit*>(this)->GetAIInterface()->HandleEvent(EVENT_DAMAGEDEALT, pVictim, damage);
+ 	}
+ }
+ 
+Index: src/ascent-world/Object.h
+===================================================================
+--- src/ascent-world/Object.h	(revision 284)
++++ src/ascent-world/Object.h	(working copy)
+@@ -175,6 +175,8 @@
+ 	bool IsBeingTeleported() { return mSemaphoreTeleport; }
+ 	void SetSemaphoreTeleport(bool semphsetting) { mSemaphoreTeleport = semphsetting; }
+ 
++	void SetSpawnPosition(float newX, float newY, float newZ, float newOrientation);
++	void SetSpawnPosition(const LocationVector & v);
+ 	bool SetPosition( float newX, float newY, float newZ, float newOrientation, bool allowPorting = false );
+ 	bool SetPosition( const LocationVector & v, bool allowPorting = false);
+ 	void SetRotation( uint64 guid );
+@@ -598,3 +600,4 @@
+ #endif
+ 
+ 
++
+Index: src/ascent-world/ScriptMgr.cpp
+===================================================================
+--- src/ascent-world/ScriptMgr.cpp	(revision 284)
++++ src/ascent-world/ScriptMgr.cpp	(working copy)
+@@ -451,6 +451,16 @@
+ 
+ }
+ 
++void GameObjectAIScript::ModifyAIUpdateEvent(uint32 newfrequency)
++{
++	sEventMgr.ModifyEventTimeAndTimeLeft(_gameobject, EVENT_SCRIPT_UPDATE_EVENT, newfrequency);
++}
++ 
++void GameObjectAIScript::RemoveAIUpdateEvent()
++{
++	sEventMgr.RemoveEvents(_gameobject, EVENT_SCRIPT_UPDATE_EVENT);
++}
++
+ void GameObjectAIScript::RegisterAIUpdateEvent(uint32 frequency)
+ {
+ 	sEventMgr.AddEvent(_gameobject, &GameObject::CallScriptUpdate, EVENT_SCRIPT_UPDATE_EVENT, frequency, 0,0);
+@@ -915,4 +925,4 @@
+ 	OUTER_LOOP_BEGIN(SERVER_HOOK_EVENT_ON_KILL_CREATURE, tOnKillCreature)
+ 		(call)(pPlayer, pCreature);
+ 	OUTER_LOOP_END
+-}
+\ No newline at end of file
++}
+Index: src/ascent-world/ScriptMgr.h
+===================================================================
+--- src/ascent-world/ScriptMgr.h	(revision 284)
++++ src/ascent-world/ScriptMgr.h	(working copy)
+@@ -234,6 +234,8 @@
+ 	virtual void Destroy() {}
+ 
+ 	void RegisterAIUpdateEvent(uint32 frequency);
++	void ModifyAIUpdateEvent(uint32 newfrequency);
++	void RemoveAIUpdateEvent();
+ 
+ protected:
+ 
+Index: src/ascent-world/TaxiMgr.h
+===================================================================
+--- src/ascent-world/TaxiMgr.h	(revision 284)
++++ src/ascent-world/TaxiMgr.h	(working copy)
+@@ -79,7 +79,7 @@
+ };
+ 
+ 
+-class TaxiMgr :  public Singleton < TaxiMgr >
++class SERVER_DECL TaxiMgr :  public Singleton < TaxiMgr >
+ {
+ public:
+ 	TaxiMgr() 
+Index: src/ascent-world/Unit.cpp
+===================================================================
+--- src/ascent-world/Unit.cpp	(revision 284)
++++ src/ascent-world/Unit.cpp	(working copy)
+@@ -21,6 +21,7 @@
+ 
+ Unit::Unit()
+ {
++	m_chain = NULL;
+ 	m_attackTimer = 0;
+ 	m_attackTimer_1 = 0;
+ 	m_duelWield = false;
+@@ -234,9 +235,12 @@
+ }
+ 
+ Unit::~Unit()
+-{  
++{
+ 	RemoveAllAuras();
+ 
++	if (m_chain)
++		m_chain->RemoveUnit(this);
++
+ 	if(SM_CriticalChance != 0) delete [] SM_CriticalChance ;
+ 	if(SM_FDur != 0) delete [] SM_FDur ;//flat
+ 	if(SM_PDur != 0) delete [] SM_PDur ;//pct
+@@ -6227,6 +6231,18 @@
+ 	m_aiInterface = new_interface; 
+ }
+ 
++void UnitChain::AddUnit(Unit* u)
++{
++	m_units.insert(u);
++	u->m_chain = this;
++}
+ 
++void UnitChain::RemoveUnit(Unit* u)
++{
++	m_units.erase(u);
++	u->m_chain = NULL;
+ 
++	if (m_units.size() == 0 && !m_persist)
++		delete this;
++}
+ 
+Index: src/ascent-world/Unit.h
+===================================================================
+--- src/ascent-world/Unit.h	(revision 284)
++++ src/ascent-world/Unit.h	(working copy)
+@@ -645,6 +645,18 @@
+ 	uint64 AttackerVect(AttackerVector *Vect, const uint64 &Guid, bool Remove = false);
+ };
+ 
++class SERVER_DECL UnitChain
++{
++public:
++	UnitChain(bool persist = false, float chainrange = 0.0f) : m_persist(persist), m_chainrange(chainrange) {}
++	
++	float m_chainrange;
++	bool m_persist;
++	std::set<Unit*> m_units;
++	void AddUnit(Unit* u);
++	void RemoveUnit(Unit* u);
++};
++
+ //====================================================================
+ //  Unit
+ //  Base object for Players and Creatures
+@@ -663,6 +675,7 @@
+ 	// a lua script cannot create a unit.
+ 	Unit(lua_State * L) { ASSERT(false); }*/
+ 
++	UnitChain* m_chain;
+ 
+ 	void CombatStatusHandler_UpdatePvPTimeout();
+ 	void CombatStatusHandler_ResetPvPTimeout();
+

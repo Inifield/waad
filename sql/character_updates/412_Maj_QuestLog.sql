@@ -1,0 +1,1 @@
+ALTER TABLE `questlog` ADD COLUMN `slain` INT(20) UNSIGNED NOT NULL DEFAULT 0 AFTER `mob_kill4`;

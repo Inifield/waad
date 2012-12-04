@@ -1,0 +1,1 @@
+ALTER TABLE `gameobject_spawns` CHANGE COLUMN `stateNpcLink` `phaseMask` INTEGER UNSIGNED NOT NULL DEFAULT 0;

@@ -1,0 +1,1 @@
+UPDATE `accounts` SET flags=8 ;

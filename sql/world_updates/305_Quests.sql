@@ -1,0 +1,3 @@
+ALTER TABLE `quests` DROP COLUMN `RewRepFaction6`,
+ DROP COLUMN `RewRepValue6`;
+ALTER TABLE `quests` CHANGE COLUMN `RewRepLimit` `RewMoneyLimit` INTEGER UNSIGNED NOT NULL DEFAULT 0;

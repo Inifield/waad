@@ -1,0 +1,1 @@
+ALTER TABLE `ai_agents` ADD `spellheroicmode` INT( 30 ) NOT NULL DEFAULT '0' COMMENT '0: Tous - 1:Standard - 2: Mode heroique' AFTER  `cooldown`;

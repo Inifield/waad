@@ -1,0 +1,1 @@
+ALTER TABLE `playercreateinfo` ADD BaseRunic INT(10) NOT NULL DEFAULT '0' AFTER BaseEnergy;

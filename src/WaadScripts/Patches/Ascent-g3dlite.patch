@@ -1,0 +1,722 @@
+Index: Trunk/projects/ExtraScripts2008.vcproj
+===================================================================
+--- Trunk/projects/ExtraScripts2008.vcproj	(revision 269)
++++ Trunk/projects/ExtraScripts2008.vcproj	(working copy)
+@@ -42,7 +42,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/GossipScripts2003.vcproj
+===================================================================
+--- Trunk/projects/GossipScripts2003.vcproj	(revision 269)
++++ Trunk/projects/GossipScripts2003.vcproj	(working copy)
+@@ -20,7 +20,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -71,7 +71,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/GossipScripts2005.vcproj
+===================================================================
+--- Trunk/projects/GossipScripts2005.vcproj	(revision 269)
++++ Trunk/projects/GossipScripts2005.vcproj	(working copy)
+@@ -41,7 +41,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/GossipScripts2008.vcproj
+===================================================================
+--- Trunk/projects/GossipScripts2008.vcproj	(revision 269)
++++ Trunk/projects/GossipScripts2008.vcproj	(working copy)
+@@ -46,7 +46,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -130,7 +130,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -210,7 +210,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -291,7 +291,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/InstanceScripts2003.vcproj
+===================================================================
+--- Trunk/projects/InstanceScripts2003.vcproj	(revision 269)
++++ Trunk/projects/InstanceScripts2003.vcproj	(working copy)
+@@ -20,7 +20,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -71,7 +71,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/InstanceScripts2005.vcproj
+===================================================================
+--- Trunk/projects/InstanceScripts2005.vcproj	(revision 269)
++++ Trunk/projects/InstanceScripts2005.vcproj	(working copy)
+@@ -41,7 +41,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/InstanceScripts2008.vcproj
+===================================================================
+--- Trunk/projects/InstanceScripts2008.vcproj	(revision 269)
++++ Trunk/projects/InstanceScripts2008.vcproj	(working copy)
+@@ -46,7 +46,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -130,7 +130,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -211,7 +211,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -293,7 +293,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/LUAScripting.vcproj
+===================================================================
+--- Trunk/projects/LUAScripting.vcproj	(revision 269)
++++ Trunk/projects/LUAScripting.vcproj	(working copy)
+@@ -20,7 +20,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -71,7 +71,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/LUAScripting2005.vcproj
+===================================================================
+--- Trunk/projects/LUAScripting2005.vcproj	(revision 269)
++++ Trunk/projects/LUAScripting2005.vcproj	(working copy)
+@@ -42,7 +42,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;_CRT_SECURE_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -123,7 +123,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;_CRT_SECURE_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/LUAScripting2008.vcproj
+===================================================================
+--- Trunk/projects/LUAScripting2008.vcproj	(revision 269)
++++ Trunk/projects/LUAScripting2008.vcproj	(working copy)
+@@ -46,7 +46,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;_CRT_SECURE_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -129,7 +129,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -209,7 +209,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;_CRT_SECURE_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -290,7 +290,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/Misc2003.vcproj
+===================================================================
+--- Trunk/projects/Misc2003.vcproj	(revision 269)
++++ Trunk/projects/Misc2003.vcproj	(working copy)
+@@ -19,7 +19,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -70,7 +70,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/Misc2005.vcproj
+===================================================================
+--- Trunk/projects/Misc2005.vcproj	(revision 269)
++++ Trunk/projects/Misc2005.vcproj	(working copy)
+@@ -40,7 +40,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/Misc2008.vcproj
+===================================================================
+--- Trunk/projects/Misc2008.vcproj	(revision 269)
++++ Trunk/projects/Misc2008.vcproj	(working copy)
+@@ -46,7 +46,7 @@
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -129,7 +129,7 @@
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -210,7 +210,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -292,7 +292,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/Quest2003.vcproj
+===================================================================
+--- Trunk/projects/Quest2003.vcproj	(revision 269)
++++ Trunk/projects/Quest2003.vcproj	(working copy)
+@@ -19,7 +19,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -70,7 +70,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/Quest2005.vcproj
+===================================================================
+--- Trunk/projects/Quest2005.vcproj	(revision 269)
++++ Trunk/projects/Quest2005.vcproj	(working copy)
+@@ -40,7 +40,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/Quest2008.vcproj
+===================================================================
+--- Trunk/projects/Quest2008.vcproj	(revision 269)
++++ Trunk/projects/Quest2008.vcproj	(working copy)
+@@ -45,7 +45,7 @@
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -128,7 +128,7 @@
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -209,7 +209,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -291,7 +291,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/ServerStatusPlugin2003.vcproj
+===================================================================
+--- Trunk/projects/ServerStatusPlugin2003.vcproj	(revision 269)
++++ Trunk/projects/ServerStatusPlugin2003.vcproj	(working copy)
+@@ -20,7 +20,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -71,7 +71,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/ServerStatusPlugin2005.vcproj
+===================================================================
+--- Trunk/projects/ServerStatusPlugin2005.vcproj	(revision 269)
++++ Trunk/projects/ServerStatusPlugin2005.vcproj	(working copy)
+@@ -41,7 +41,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/ServerStatusPlugin2008.vcproj
+===================================================================
+--- Trunk/projects/ServerStatusPlugin2008.vcproj	(revision 269)
++++ Trunk/projects/ServerStatusPlugin2008.vcproj	(working copy)
+@@ -46,7 +46,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -130,7 +130,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -210,7 +210,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -291,7 +291,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/SpellsHandlers2003.vcproj
+===================================================================
+--- Trunk/projects/SpellsHandlers2003.vcproj	(revision 269)
++++ Trunk/projects/SpellsHandlers2003.vcproj	(working copy)
+@@ -20,7 +20,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="TRUE"
+ 				BasicRuntimeChecks="3"
+@@ -71,7 +71,7 @@
+ 			CharacterSet="2">
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/SpellsHandlers2005.vcproj
+===================================================================
+--- Trunk/projects/SpellsHandlers2005.vcproj	(revision 269)
++++ Trunk/projects/SpellsHandlers2005.vcproj	(working copy)
+@@ -41,7 +41,7 @@
+ 				Name="VCCLCompilerTool"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -122,7 +122,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/SpellsHandlers2008.vcproj
+===================================================================
+--- Trunk/projects/SpellsHandlers2008.vcproj	(revision 269)
++++ Trunk/projects/SpellsHandlers2008.vcproj	(working copy)
+@@ -46,7 +46,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -130,7 +130,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -210,7 +210,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+@@ -291,7 +291,7 @@
+ 			/>
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB;X64;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/projects/TournamentScripts2008.vcproj
+===================================================================
+--- Trunk/projects/TournamentScripts2008.vcproj	(revision 269)
++++ Trunk/projects/TournamentScripts2008.vcproj	(working copy)
+@@ -44,7 +44,7 @@
+ 				AdditionalOptions="/MP"
+ 				Optimization="0"
+ 				InlineFunctionExpansion="2"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				MinimalRebuild="true"
+ 				BasicRuntimeChecks="3"
+@@ -125,7 +125,7 @@
+ 			<Tool
+ 				Name="VCCLCompilerTool"
+ 				AdditionalOptions="/MP"
+-				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
++				AdditionalIncludeDirectories="..\..\ascent-shared;..\..\ascent-shared\g3dlite;..\..\ascent-shared\vmap;..\..\ascent-world;..\..\..\dep\include;..\..\..\dep\src"
+ 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SCRIPTLIB"
+ 				RuntimeLibrary="0"
+ 				UsePrecompiledHeader="0"
+Index: Trunk/src/ExtraScripts/Makefile.am
+===================================================================
+--- Trunk/src/ExtraScripts/Makefile.am	(revision 269)
++++ Trunk/src/ExtraScripts/Makefile.am	(working copy)
+@@ -1,4 +1,5 @@
+ INCLUDES += -I$(srcdir) -I$(srcdir)/../../../../dep/include -I$(srcdir)/../../../ascent-shared
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ INCLUDES += -I$(srcdir)/../../../ascent-world -I$(srcdir)/../../../../dep/src
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+Index: Trunk/src/GossipScripts/Makefile.am
+===================================================================
+--- Trunk/src/GossipScripts/Makefile.am	(revision 269)
++++ Trunk/src/GossipScripts/Makefile.am	(working copy)
+@@ -2,6 +2,7 @@
+    -I$(top_srcdir)/src/ascent-realmserver -I$(top_srcdir)/src/ascent-shared -I$(top_srcdir)/src/ascent-voicechat \
+    -I$(top_srcdir)/src/ascent-world -I$(srcdir) -I$(srcdir)/../../../../dep/include \
+    -I$(srcdir)/../../../../dep/src -I$(srcdir)/../../../../src
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+ 
+Index: Trunk/src/InstanceScripts/Makefile.am
+===================================================================
+--- Trunk/src/InstanceScripts/Makefile.am	(revision 269)
++++ Trunk/src/InstanceScripts/Makefile.am	(working copy)
+@@ -2,6 +2,7 @@
+    -I$(top_srcdir)/src/ascent-realmserver -I$(top_srcdir)/src/ascent-shared -I$(top_srcdir)/src/ascent-voicechat \
+    -I$(top_srcdir)/src/ascent-world -I$(srcdir) -I$(srcdir)/../../../../dep/include \
+    -I$(srcdir)/../../../../dep/src -I$(srcdir)/../../../../src
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+ 
+Index: Trunk/src/LUAScripting/Makefile.am
+===================================================================
+--- Trunk/src/LUAScripting/Makefile.am	(revision 269)
++++ Trunk/src/LUAScripting/Makefile.am	(working copy)
+@@ -1,5 +1,6 @@
+ INCLUDES += -I$(srcdir) -I$(srcdir)/../../../../dep/include -I$(srcdir)/../../../ascent-shared
+ INCLUDES += -I$(srcdir)/../../../ascent-world -I$(srcdir)/../../../../dep/src
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+ 
+Index: Trunk/src/MiscScripts/Makefile.am
+===================================================================
+--- Trunk/src/MiscScripts/Makefile.am	(revision 269)
++++ Trunk/src/MiscScripts/Makefile.am	(working copy)
+@@ -2,6 +2,7 @@
+    -I$(top_srcdir)/src/ascent-realmserver -I$(top_srcdir)/src/ascent-shared -I$(top_srcdir)/src/ascent-voicechat \
+    -I$(top_srcdir)/src/ascent-world -I$(srcdir) -I$(srcdir)/../../../../dep/include \
+    -I$(srcdir)/../../../../dep/src -I$(srcdir)/../../../../src
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+ 
+Index: Trunk/src/QuestScripts/Makefile.am
+===================================================================
+--- Trunk/src/QuestScripts/Makefile.am	(revision 269)
++++ Trunk/src/QuestScripts/Makefile.am	(working copy)
+@@ -2,6 +2,7 @@
+    -I$(top_srcdir)/src/ascent-realmserver -I$(top_srcdir)/src/ascent-shared -I$(top_srcdir)/src/ascent-voicechat \
+    -I$(top_srcdir)/src/ascent-world -I$(srcdir) -I$(srcdir)/../../../../dep/include \
+    -I$(srcdir)/../../../../dep/src -I$(srcdir)/../../../../src
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+ 
+Index: Trunk/src/ServerStatusPlugin/Makefile.am
+===================================================================
+--- Trunk/src/ServerStatusPlugin/Makefile.am	(revision 269)
++++ Trunk/src/ServerStatusPlugin/Makefile.am	(working copy)
+@@ -1,4 +1,5 @@
+ INCLUDES += -I$(srcdir) -I$(srcdir)/../../../../dep/include -I$(srcdir)/../../../ascent-shared
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ INCLUDES += -I$(srcdir)/../../../ascent-world -I$(srcdir)/../../../../dep/src
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+Index: Trunk/src/SpellHandlers/Makefile.am
+===================================================================
+--- Trunk/src/SpellHandlers/Makefile.am	(revision 269)
++++ Trunk/src/SpellHandlers/Makefile.am	(working copy)
+@@ -1,5 +1,6 @@
+ INCLUDES += -I$(srcdir) -I$(srcdir)/../../../../dep/include -I$(srcdir)/../../../ascent-shared
+ INCLUDES += -I$(srcdir)/../../../ascent-world -I$(srcdir)/../../../../dep/src
++INCLUDES += -I$(srcdir)/../../../ascent-shared/g3dlite -I$(srcdir)/../../../ascent-shared/vmap
+ 
+ AM_CXXFLAGS = -DSCRIPTLIB
+ 
