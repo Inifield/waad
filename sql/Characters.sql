@@ -1,21 +1,28 @@
--- MySQL Administrator dump 1.4
---
--- ------------------------------------------------------
--- Server version	5.1.30-community
 
+-- MySQL dump 10.13  Distrib 5.5.16, for Win32 (x86)
+--
+-- Host: localhost    Database: WAAD
+-- ------------------------------------------------------
+-- Server version	5.5.29
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8 */;
-
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-
+--
+-- Table structure for table `_blizzrequirements`
+--
 
 DROP TABLE IF EXISTS `_blizzrequirements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `_blizzrequirements` (
   `acct_id` bigint(20) unsigned NOT NULL DEFAULT '0',
   `AlreadyDK` bigint(20) unsigned NOT NULL DEFAULT '0',
@@ -23,12 +30,15 @@ CREATE TABLE `_blizzrequirements` (
   PRIMARY KEY (`acct_id`),
   UNIQUE KEY `a` (`acct_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `_blizzrequirements` DISABLE KEYS */;
-/*!40000 ALTER TABLE `_blizzrequirements` ENABLE KEYS */;
-
+--
+-- Table structure for table `account_data`
+--
 
 DROP TABLE IF EXISTS `account_data`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `account_data` (
   `acct` int(30) NOT NULL,
   `uiconfig0` blob,
@@ -43,27 +53,34 @@ CREATE TABLE `account_data` (
   PRIMARY KEY (`acct`),
   UNIQUE KEY `a` (`acct`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `account_data` DISABLE KEYS */;
-/*!40000 ALTER TABLE `account_data` ENABLE KEYS */;
-
+--
+-- Table structure for table `account_forced_permissions`
+--
 
 DROP TABLE IF EXISTS `account_forced_permissions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `account_forced_permissions` (
   `login` varchar(50) NOT NULL,
   `permissions` varchar(100) NOT NULL,
   PRIMARY KEY (`login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `account_forced_permissions` DISABLE KEYS */;
-/*!40000 ALTER TABLE `account_forced_permissions` ENABLE KEYS */;
-
+--
+-- Table structure for table `accounts`
+--
 
 DROP TABLE IF EXISTS `accounts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `accounts` (
   `acct` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `login` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `password` varchar(28) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `SessionKey` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `encrypted_password` varchar(42) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `gm` varchar(27) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `banned` int(1) unsigned NOT NULL DEFAULT '0',
@@ -76,12 +93,15 @@ CREATE TABLE `accounts` (
   PRIMARY KEY (`acct`,`login`),
   UNIQUE KEY `acct` (`acct`)
 ) ENGINE=MyISAM AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `accounts` DISABLE KEYS */;
-/*!40000 ALTER TABLE `accounts` ENABLE KEYS */;
-
+--
+-- Table structure for table `achievements`
+--
 
 DROP TABLE IF EXISTS `achievements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `achievements` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player` int(11) NOT NULL,
@@ -92,13 +112,16 @@ CREATE TABLE `achievements` (
   UNIQUE KEY `c` (`player`,`achievementid`),
   KEY `a` (`player`),
   KEY `b` (`achievementid`)
-) ENGINE=MyISAM AUTO_INCREMENT=20214 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=48257 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `achievements` DISABLE KEYS */;
-/*!40000 ALTER TABLE `achievements` ENABLE KEYS */;
-
+--
+-- Table structure for table `arenateams`
+--
 
 DROP TABLE IF EXISTS `arenateams`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `arenateams` (
   `id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Unique ID',
   `type` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Type: 0-2v2 1-3v3 2-5v5',
@@ -110,26 +133,29 @@ CREATE TABLE `arenateams` (
   `bordercolor` int(10) unsigned NOT NULL DEFAULT '0',
   `backgroundcolor` int(10) unsigned NOT NULL DEFAULT '0',
   `rating` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Server Rating',
-  `data` varchar(24) COLLATE utf8_unicode_ci NOT NULL COMMENT '(played_week) (won_week) (played_season) (won_season)',
-  `ranking` int(10) unsigned NOT NULL COMMENT 'Server Ranking',
-  `player_data1` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data2` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data3` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data4` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data5` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data6` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data7` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data8` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data9` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
-  `player_data10` varchar(32) COLLATE utf8_unicode_ci NOT NULL COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `data` varchar(24) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(played_week) (won_week) (played_season) (won_season)',
+  `ranking` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Server Ranking',
+  `player_data1` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data2` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data3` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data4` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data5` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data6` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data7` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data8` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data9` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
+  `player_data10` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '(player_guid) (played_week) (won_week) (played_season) (won_season)',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Arena Teams';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `arenateams` DISABLE KEYS */;
-/*!40000 ALTER TABLE `arenateams` ENABLE KEYS */;
-
+--
+-- Table structure for table `auctions`
+--
 
 DROP TABLE IF EXISTS `auctions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `auctions` (
   `auctionId` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `auctionhouse` int(11) unsigned DEFAULT NULL,
@@ -142,51 +168,60 @@ CREATE TABLE `auctions` (
   `deposit` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`auctionId`)
 ) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `auctions` DISABLE KEYS */;
-/*!40000 ALTER TABLE `auctions` ENABLE KEYS */;
-
+--
+-- Table structure for table `banned_names`
+--
 
 DROP TABLE IF EXISTS `banned_names`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `banned_names` (
   `name` varchar(30) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `banned_names` DISABLE KEYS */;
-/*!40000 ALTER TABLE `banned_names` ENABLE KEYS */;
-
+--
+-- Table structure for table `banned_phrases`
+--
 
 DROP TABLE IF EXISTS `banned_phrases`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `banned_phrases` (
   `phrase` varchar(250) NOT NULL,
   PRIMARY KEY (`phrase`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `banned_phrases` DISABLE KEYS */;
-/*!40000 ALTER TABLE `banned_phrases` ENABLE KEYS */;
-
+--
+-- Table structure for table `characters`
+--
 
 DROP TABLE IF EXISTS `characters`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `characters` (
   `guid` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `acct` int(10) unsigned NOT NULL,
-  `name` varchar(21) NOT NULL DEFAULT '',
+  `name` varchar(21) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `race` tinyint(3) unsigned NOT NULL,
   `class` tinyint(3) unsigned NOT NULL,
   `gender` tinyint(3) unsigned NOT NULL,
   `custom_faction` int(10) unsigned NOT NULL DEFAULT '0',
-  `level` tinyint(3) unsigned NOT NULL,
+  `level` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `xp` int(10) unsigned NOT NULL,
-  `exploration_data` longtext NOT NULL,
-  `skills` longtext NOT NULL,
+  `exploration_data` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `skills` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `watched_faction_index` bigint(30) NOT NULL DEFAULT '0',
   `selected_pvp_title` int(10) unsigned NOT NULL DEFAULT '0',
   `available_pvp_titles1` bigint(30) unsigned NOT NULL DEFAULT '0',
-  `available_pvp_titles2` bigint(30) unsigned NOT NULL,
+  `available_pvp_titles2` bigint(30) unsigned NOT NULL DEFAULT '0',
   `gold` int(10) unsigned NOT NULL DEFAULT '0',
   `ammo_id` int(10) unsigned NOT NULL DEFAULT '0',
   `available_prof_points` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `total_talent_points` int(30) NOT NULL,
+  `total_talent_points` int(30) NOT NULL DEFAULT '0',
   `current_hp` int(10) unsigned NOT NULL DEFAULT '0',
   `current_power` int(10) unsigned NOT NULL DEFAULT '0',
   `pvprank` int(10) unsigned NOT NULL DEFAULT '0',
@@ -200,9 +235,9 @@ CREATE TABLE `characters` (
   `orientation` float NOT NULL DEFAULT '0',
   `mapId` int(10) unsigned NOT NULL DEFAULT '0',
   `zoneId` int(10) unsigned NOT NULL DEFAULT '0',
-  `taximask` longtext NOT NULL,
+  `taximask` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `banned` int(40) NOT NULL,
-  `banReason` varchar(50) NOT NULL,
+  `banReason` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `timestamp` int(10) unsigned NOT NULL DEFAULT '0',
   `online` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `bindpositionX` float NOT NULL DEFAULT '0',
@@ -213,7 +248,7 @@ CREATE TABLE `characters` (
   `isResting` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `restState` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `restTime` int(10) unsigned NOT NULL DEFAULT '0',
-  `playedtime` longtext NOT NULL,
+  `playedtime` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `deathstate` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `TalentResetTimes` int(10) unsigned NOT NULL DEFAULT '0',
   `first_login` tinyint(3) unsigned NOT NULL DEFAULT '0',
@@ -234,12 +269,12 @@ CREATE TABLE `characters` (
   `transporter_xdiff` float NOT NULL DEFAULT '0',
   `transporter_ydiff` float NOT NULL DEFAULT '0',
   `transporter_zdiff` float NOT NULL DEFAULT '0',
-  `deleted_spells` longtext NOT NULL,
-  `reputation` longtext NOT NULL,
-  `actions` longtext NOT NULL,
-  `auras` longtext NOT NULL,
-  `finished_quests` longtext NOT NULL,
-  `finished_daily_quests` longtext NOT NULL,
+  `deleted_spells` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `reputation` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `actions` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `auras` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `finished_quests` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `finished_daily_quests` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `honorRolloverTime` int(30) NOT NULL DEFAULT '0',
   `killsToday` int(10) unsigned NOT NULL DEFAULT '0',
   `killsYesterday` int(10) unsigned NOT NULL DEFAULT '0',
@@ -249,29 +284,33 @@ CREATE TABLE `characters` (
   `honorPoints` int(10) unsigned NOT NULL DEFAULT '0',
   `difficulty` int(10) unsigned NOT NULL DEFAULT '0',
   `height` float NOT NULL DEFAULT '1',
+  `PhaseMask` int(10) unsigned NOT NULL DEFAULT '1',
   `active_spec` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `specs_count` tinyint(3) unsigned NOT NULL DEFAULT '1',
   `need_talent_reset` int(3) NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`)
-) ENGINE=MyISAM AUTO_INCREMENT=10 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=26 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `characters` DISABLE KEYS */;
-/*!40000 ALTER TABLE `characters` ENABLE KEYS */;
-
+--
+-- Table structure for table `characters_insert_queue`
+--
 
 DROP TABLE IF EXISTS `characters_insert_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `characters_insert_queue` (
-  `guid` int(10) unsigned NOT NULL,
+  `guid` int(10) unsigned NOT NULL DEFAULT '0',
   `acct` int(10) unsigned NOT NULL,
-  `name` varchar(21) NOT NULL,
+  `name` varchar(21) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `race` tinyint(3) unsigned NOT NULL,
   `class` tinyint(3) unsigned NOT NULL,
   `gender` tinyint(3) unsigned NOT NULL,
   `custom_faction` int(10) unsigned NOT NULL DEFAULT '0',
-  `level` tinyint(3) unsigned NOT NULL,
+  `level` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `xp` int(10) unsigned NOT NULL,
-  `exploration_data` longtext NOT NULL,
-  `skills` longtext NOT NULL,
+  `exploration_data` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `skills` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `watched_faction_index` int(10) unsigned NOT NULL DEFAULT '0',
   `selected_pvp_title` int(10) unsigned NOT NULL DEFAULT '0',
   `available_pvp_titles` int(10) unsigned NOT NULL DEFAULT '0',
@@ -292,9 +331,9 @@ CREATE TABLE `characters_insert_queue` (
   `orientation` float NOT NULL DEFAULT '0',
   `mapId` int(10) unsigned NOT NULL DEFAULT '0',
   `zoneId` int(10) unsigned NOT NULL DEFAULT '0',
-  `taximask` longtext NOT NULL,
+  `taximask` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `banned` int(40) NOT NULL,
-  `banReason` varchar(50) NOT NULL,
+  `banReason` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `timestamp` int(10) unsigned NOT NULL DEFAULT '0',
   `online` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `bindpositionX` float NOT NULL DEFAULT '0',
@@ -305,7 +344,7 @@ CREATE TABLE `characters_insert_queue` (
   `isResting` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `restState` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `restTime` int(10) unsigned NOT NULL DEFAULT '0',
-  `playedtime` longtext NOT NULL,
+  `playedtime` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `deathstate` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `TalentResetTimes` int(10) unsigned NOT NULL DEFAULT '0',
   `first_login` tinyint(3) unsigned NOT NULL DEFAULT '0',
@@ -326,13 +365,13 @@ CREATE TABLE `characters_insert_queue` (
   `transporter_xdiff` float NOT NULL DEFAULT '0',
   `transporter_ydiff` float NOT NULL DEFAULT '0',
   `transporter_zdiff` float NOT NULL DEFAULT '0',
-  `spells` longtext NOT NULL,
-  `deleted_spells` longtext NOT NULL,
-  `reputation` longtext NOT NULL,
-  `actions` longtext NOT NULL,
-  `auras` longtext NOT NULL,
-  `finished_quests` longtext NOT NULL,
-  `honorPointsToAdd` int(11) NOT NULL,
+  `spells` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `deleted_spells` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `reputation` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `actions` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `auras` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `finished_quests` longtext CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `honorPointsToAdd` int(11) NOT NULL DEFAULT '0',
   `killsToday` int(10) unsigned NOT NULL DEFAULT '0',
   `killsYesterday` int(10) unsigned NOT NULL DEFAULT '0',
   `killsLifeTime` int(10) unsigned NOT NULL DEFAULT '0',
@@ -344,12 +383,15 @@ CREATE TABLE `characters_insert_queue` (
   UNIQUE KEY `name` (`name`),
   KEY `acct` (`acct`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `characters_insert_queue` DISABLE KEYS */;
-/*!40000 ALTER TABLE `characters_insert_queue` ENABLE KEYS */;
-
+--
+-- Table structure for table `charters`
+--
 
 DROP TABLE IF EXISTS `charters`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `charters` (
   `charterId` int(30) NOT NULL,
   `charterType` int(30) NOT NULL DEFAULT '0',
@@ -368,12 +410,15 @@ CREATE TABLE `charters` (
   PRIMARY KEY (`charterId`),
   UNIQUE KEY `leaderGuid` (`leaderGuid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `charters` DISABLE KEYS */;
-/*!40000 ALTER TABLE `charters` ENABLE KEYS */;
-
+--
+-- Table structure for table `corpses`
+--
 
 DROP TABLE IF EXISTS `corpses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `corpses` (
   `guid` int(10) unsigned NOT NULL DEFAULT '0',
   `positionX` float NOT NULL DEFAULT '0',
@@ -386,12 +431,15 @@ CREATE TABLE `corpses` (
   `data` longtext COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `corpses` DISABLE KEYS */;
-/*!40000 ALTER TABLE `corpses` ENABLE KEYS */;
-
+--
+-- Table structure for table `gm_groups`
+--
 
 DROP TABLE IF EXISTS `gm_groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `gm_groups` (
   `rank` int(10) unsigned NOT NULL COMMENT 'Id du groupe',
   `flags` varchar(45) NOT NULL COMMENT 'Flags spécifique',
@@ -399,33 +447,34 @@ CREATE TABLE `gm_groups` (
   `comment` text,
   PRIMARY KEY (`rank`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `gm_groups` DISABLE KEYS */;
-INSERT INTO `gm_groups` VALUES  (1,'rt',0,'Adviseur (téléportation de base)'),
- (2,'bcfghikmuCGPRT',1,'Game Master'),
- (3,'nopqsvwLMSW',2,'GM - Tech DB (lookups)'),
- (4,'aeBEIN',3,'Administrateur'),
- (5,'A',4,'Super-administrateur');
-/*!40000 ALTER TABLE `gm_groups` ENABLE KEYS */;
-
+--
+-- Table structure for table `gm_overrides`
+--
 
 DROP TABLE IF EXISTS `gm_overrides`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `gm_overrides` (
   `command` varchar(100) NOT NULL,
   `access` char(1) NOT NULL,
   PRIMARY KEY (`command`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COMMENT='Commands System';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `gm_overrides` DISABLE KEYS */;
-/*!40000 ALTER TABLE `gm_overrides` ENABLE KEYS */;
-
+--
+-- Table structure for table `gm_tickets`
+--
 
 DROP TABLE IF EXISTS `gm_tickets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `gm_tickets` (
   `guid` int(10) unsigned NOT NULL DEFAULT '0',
   `name` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
   `level` int(10) unsigned NOT NULL DEFAULT '0',
-  `type` int(10) unsigned NOT NULL DEFAULT '0',
+  `map` int(10) unsigned NOT NULL DEFAULT '0',
   `posX` float NOT NULL DEFAULT '0',
   `posY` float NOT NULL DEFAULT '0',
   `posZ` float NOT NULL DEFAULT '0',
@@ -433,12 +482,15 @@ CREATE TABLE `gm_tickets` (
   `timestamp` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `gm_tickets` DISABLE KEYS */;
-/*!40000 ALTER TABLE `gm_tickets` ENABLE KEYS */;
-
+--
+-- Table structure for table `groups`
+--
 
 DROP TABLE IF EXISTS `groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `groups` (
   `group_id` int(30) NOT NULL,
   `group_type` tinyint(2) NOT NULL,
@@ -492,12 +544,15 @@ CREATE TABLE `groups` (
   `timestamp` int(30) NOT NULL,
   PRIMARY KEY (`group_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `groups` DISABLE KEYS */;
-/*!40000 ALTER TABLE `groups` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_bankitems`
+--
 
 DROP TABLE IF EXISTS `guild_bankitems`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_bankitems` (
   `guildId` int(30) NOT NULL,
   `tabId` int(30) NOT NULL,
@@ -508,12 +563,15 @@ CREATE TABLE `guild_bankitems` (
   KEY `b` (`tabId`),
   KEY `c` (`slotId`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_bankitems` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_bankitems` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_banklogs`
+--
 
 DROP TABLE IF EXISTS `guild_banklogs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_banklogs` (
   `log_id` int(30) NOT NULL,
   `guildid` int(30) NOT NULL,
@@ -527,12 +585,15 @@ CREATE TABLE `guild_banklogs` (
   KEY `a` (`guildid`),
   KEY `b` (`tabid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_banklogs` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_banklogs` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_banktabs`
+--
 
 DROP TABLE IF EXISTS `guild_banktabs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_banktabs` (
   `guildId` int(30) NOT NULL,
   `tabId` int(30) NOT NULL,
@@ -542,23 +603,29 @@ CREATE TABLE `guild_banktabs` (
   KEY `a` (`guildId`),
   KEY `b` (`tabId`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_banktabs` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_banktabs` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_checkpoints`
+--
 
 DROP TABLE IF EXISTS `guild_checkpoints`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_checkpoints` (
   `guildid` int(30) NOT NULL,
   `checkid` int(30) NOT NULL,
   PRIMARY KEY (`guildid`,`checkid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_checkpoints` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_checkpoints` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_data`
+--
 
 DROP TABLE IF EXISTS `guild_data`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_data` (
   `guildid` int(30) NOT NULL,
   `playerid` int(30) NOT NULL,
@@ -580,12 +647,15 @@ CREATE TABLE `guild_data` (
   `lastItemWithdrawReset5` int(30) NOT NULL,
   `itemWithdrawlsSinceLastReset5` int(30) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_data` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_data` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_logs`
+--
 
 DROP TABLE IF EXISTS `guild_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_logs` (
   `log_id` int(30) NOT NULL,
   `guildid` int(30) NOT NULL,
@@ -595,12 +665,15 @@ CREATE TABLE `guild_logs` (
   `misc2` int(30) NOT NULL,
   `misc3` int(30) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_logs` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_logs` ENABLE KEYS */;
-
+--
+-- Table structure for table `guild_ranks`
+--
 
 DROP TABLE IF EXISTS `guild_ranks`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_ranks` (
   `guildId` int(6) unsigned NOT NULL DEFAULT '0',
   `rankId` int(1) NOT NULL DEFAULT '0',
@@ -621,12 +694,15 @@ CREATE TABLE `guild_ranks` (
   `itemStacksPerDay5` int(30) NOT NULL DEFAULT '0',
   PRIMARY KEY (`guildId`,`rankId`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guild_ranks` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guild_ranks` ENABLE KEYS */;
-
+--
+-- Table structure for table `guilds`
+--
 
 DROP TABLE IF EXISTS `guilds`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guilds` (
   `guildId` bigint(20) NOT NULL AUTO_INCREMENT,
   `guildName` varchar(32) NOT NULL DEFAULT '',
@@ -637,19 +713,22 @@ CREATE TABLE `guilds` (
   `borderColor` int(10) NOT NULL DEFAULT '0',
   `backgroundColor` int(10) NOT NULL DEFAULT '0',
   `guildInfo` varchar(100) NOT NULL DEFAULT '',
-  `motd` varchar(200) NOT NULL,
+  `motd` varchar(200) NOT NULL DEFAULT '',
   `createdate` int(30) NOT NULL DEFAULT '0',
   `bankTabCount` int(30) NOT NULL DEFAULT '0',
   `bankBalance` int(30) NOT NULL,
   PRIMARY KEY (`guildId`),
   UNIQUE KEY `guildId` (`guildId`)
 ) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `guilds` DISABLE KEYS */;
-/*!40000 ALTER TABLE `guilds` ENABLE KEYS */;
-
+--
+-- Table structure for table `instances`
+--
 
 DROP TABLE IF EXISTS `instances`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `instances` (
   `id` int(30) NOT NULL,
   `mapid` int(30) NOT NULL,
@@ -661,23 +740,29 @@ CREATE TABLE `instances` (
   `creator_guid` int(30) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `instances` DISABLE KEYS */;
-/*!40000 ALTER TABLE `instances` ENABLE KEYS */;
-
+--
+-- Table structure for table `ipbans`
+--
 
 DROP TABLE IF EXISTS `ipbans`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ipbans` (
   `ip` varchar(15) COLLATE utf8_unicode_ci NOT NULL,
   `expire` int(16) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`ip`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `ipbans` DISABLE KEYS */;
-/*!40000 ALTER TABLE `ipbans` ENABLE KEYS */;
-
+--
+-- Table structure for table `mailbox`
+--
 
 DROP TABLE IF EXISTS `mailbox`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mailbox` (
   `message_id` int(10) unsigned NOT NULL DEFAULT '0',
   `message_type` int(10) unsigned NOT NULL DEFAULT '0',
@@ -695,12 +780,15 @@ CREATE TABLE `mailbox` (
   `read_flag` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `deleted_flag` tinyint(3) unsigned NOT NULL DEFAULT '0'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `mailbox` DISABLE KEYS */;
-/*!40000 ALTER TABLE `mailbox` ENABLE KEYS */;
-
+--
+-- Table structure for table `mailbox_insert_queue`
+--
 
 DROP TABLE IF EXISTS `mailbox_insert_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mailbox_insert_queue` (
   `sender_guid` int(30) NOT NULL,
   `receiver_guid` int(30) NOT NULL,
@@ -710,12 +798,15 @@ CREATE TABLE `mailbox_insert_queue` (
   `money` int(30) NOT NULL,
   `item_id` int(30) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `mailbox_insert_queue` DISABLE KEYS */;
-/*!40000 ALTER TABLE `mailbox_insert_queue` ENABLE KEYS */;
-
+--
+-- Table structure for table `playercooldowns`
+--
 
 DROP TABLE IF EXISTS `playercooldowns`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playercooldowns` (
   `player_guid` int(30) NOT NULL,
   `cooldown_type` int(30) NOT NULL COMMENT '0 is spell, 1 is item, 2 is spell category',
@@ -724,14 +815,17 @@ CREATE TABLE `playercooldowns` (
   `cooldown_spellid` int(30) NOT NULL COMMENT 'spell that cast it',
   `cooldown_itemid` int(30) NOT NULL COMMENT 'item that cast it'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playercooldowns` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playercooldowns` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerglyphs`
+--
 
 DROP TABLE IF EXISTS `playerglyphs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerglyphs` (
-  `guid` int(10) unsigned NOT NULL,
+  `guid` int(10) unsigned NOT NULL DEFAULT '0',
   `spec` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `glyph1` smallint(5) unsigned DEFAULT NULL,
   `glyph2` smallint(5) unsigned DEFAULT NULL,
@@ -741,12 +835,15 @@ CREATE TABLE `playerglyphs` (
   `glyph6` smallint(5) unsigned DEFAULT NULL,
   PRIMARY KEY (`guid`,`spec`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerglyphs` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerglyphs` ENABLE KEYS */;
-
+--
+-- Table structure for table `playeritems`
+--
 
 DROP TABLE IF EXISTS `playeritems`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playeritems` (
   `ownerguid` int(10) unsigned NOT NULL DEFAULT '0',
   `guid` bigint(20) unsigned NOT NULL DEFAULT '0',
@@ -768,12 +865,15 @@ CREATE TABLE `playeritems` (
   UNIQUE KEY `guid` (`guid`),
   KEY `ownerguid` (`ownerguid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playeritems` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playeritems` ENABLE KEYS */;
-
+--
+-- Table structure for table `playeritems_insert_queue`
+--
 
 DROP TABLE IF EXISTS `playeritems_insert_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playeritems_insert_queue` (
   `ownerguid` int(10) unsigned NOT NULL DEFAULT '0',
   `entry` int(10) unsigned NOT NULL DEFAULT '0',
@@ -792,12 +892,15 @@ CREATE TABLE `playeritems_insert_queue` (
   `enchantments` longtext COLLATE utf8_unicode_ci NOT NULL,
   KEY `ownerguid` (`ownerguid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playeritems_insert_queue` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playeritems_insert_queue` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerpetactionbar`
+--
 
 DROP TABLE IF EXISTS `playerpetactionbar`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerpetactionbar` (
   `ownerguid` bigint(20) NOT NULL DEFAULT '0',
   `petnumber` int(11) NOT NULL DEFAULT '0',
@@ -823,12 +926,15 @@ CREATE TABLE `playerpetactionbar` (
   `spellstate_10` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`ownerguid`,`petnumber`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerpetactionbar` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerpetactionbar` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerpets`
+--
 
 DROP TABLE IF EXISTS `playerpets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerpets` (
   `ownerguid` bigint(20) NOT NULL DEFAULT '0',
   `petnumber` int(11) NOT NULL DEFAULT '0',
@@ -838,28 +944,35 @@ CREATE TABLE `playerpets` (
   `xp` int(11) NOT NULL DEFAULT '0',
   `active` tinyint(1) NOT NULL DEFAULT '0',
   `level` int(11) NOT NULL DEFAULT '0',
-  `happiness` int(11) NOT NULL DEFAULT '0',
+  `currentloyalty` int(11) NOT NULL DEFAULT '0',
+  `happinesslvl` int(10) unsigned NOT NULL DEFAULT '0',
   `happinessupdate` int(11) NOT NULL DEFAULT '0',
   `summon` int(11) NOT NULL DEFAULT '0'
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerpets` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerpets` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerpetspells`
+--
 
 DROP TABLE IF EXISTS `playerpetspells`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerpetspells` (
   `ownerguid` bigint(20) unsigned NOT NULL DEFAULT '0',
   `petnumber` int(10) unsigned NOT NULL DEFAULT '0',
   `spellid` int(10) unsigned NOT NULL DEFAULT '0',
   `flags` smallint(5) unsigned NOT NULL DEFAULT '0'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerpetspells` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerpetspells` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerpettalents`
+--
 
 DROP TABLE IF EXISTS `playerpettalents`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerpettalents` (
   `ownerguid` bigint(20) NOT NULL DEFAULT '0',
   `petnumber` int(4) NOT NULL DEFAULT '0',
@@ -868,12 +981,15 @@ CREATE TABLE `playerpettalents` (
   KEY `a` (`ownerguid`),
   KEY `b` (`petnumber`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerpettalents` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerpettalents` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerskills`
+--
 
 DROP TABLE IF EXISTS `playerskills`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerskills` (
   `player_guid` int(11) NOT NULL DEFAULT '0',
   `skill_id` int(11) NOT NULL DEFAULT '0',
@@ -882,47 +998,74 @@ CREATE TABLE `playerskills` (
   `maxlvl` int(11) NOT NULL DEFAULT '1',
   PRIMARY KEY (`player_guid`,`skill_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerskills` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerskills` ENABLE KEYS */;
-
+--
+-- Table structure for table `playerspells`
+--
 
 DROP TABLE IF EXISTS `playerspells`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playerspells` (
   `guid` int(10) unsigned NOT NULL,
   `spellid` int(10) unsigned NOT NULL,
   PRIMARY KEY (`guid`,`spellid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playerspells` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playerspells` ENABLE KEYS */;
-
+--
+-- Table structure for table `playersummonspells`
+--
 
 DROP TABLE IF EXISTS `playersummonspells`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playersummonspells` (
   `ownerguid` bigint(20) unsigned NOT NULL DEFAULT '0',
   `entryid` int(10) unsigned NOT NULL DEFAULT '0',
   `spellid` int(10) unsigned NOT NULL DEFAULT '0'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playersummonspells` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playersummonspells` ENABLE KEYS */;
-
+--
+-- Table structure for table `playertalents`
+--
 
 DROP TABLE IF EXISTS `playertalents`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `playertalents` (
-  `guid` int(10) unsigned NOT NULL,
+  `guid` int(10) unsigned NOT NULL DEFAULT '0',
   `spec` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `tid` smallint(5) unsigned NOT NULL,
-  `rank` tinyint(3) unsigned NOT NULL,
-  PRIMARY KEY (`guid`,`spec`,`tid`)
+  `tid` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `rank` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spec`,`tid`) USING BTREE
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `playertalents` DISABLE KEYS */;
-/*!40000 ALTER TABLE `playertalents` ENABLE KEYS */;
+--
+-- Table structure for table `prestartqueries`
+--
 
+DROP TABLE IF EXISTS `prestartqueries`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `prestartqueries` (
+  `Query` varchar(1024) NOT NULL,
+  `SingleShot` int(1) unsigned NOT NULL DEFAULT '1',
+  `Seq` int(11) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`Seq`)
+) ENGINE=MyISAM AUTO_INCREMENT=26 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `questlog`
+--
 
 DROP TABLE IF EXISTS `questlog`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `questlog` (
   `player_guid` bigint(20) unsigned NOT NULL DEFAULT '0',
   `quest_id` int(10) unsigned NOT NULL DEFAULT '0',
@@ -936,25 +1079,32 @@ CREATE TABLE `questlog` (
   `mob_kill2` int(10) unsigned NOT NULL DEFAULT '0',
   `mob_kill3` int(10) unsigned NOT NULL DEFAULT '0',
   `mob_kill4` int(10) unsigned NOT NULL DEFAULT '0',
+  `slain` int(20) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`player_guid`,`quest_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `questlog` DISABLE KEYS */;
-/*!40000 ALTER TABLE `questlog` ENABLE KEYS */;
-
+--
+-- Table structure for table `server_settings`
+--
 
 DROP TABLE IF EXISTS `server_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `server_settings` (
   `setting_id` varchar(200) NOT NULL,
   `setting_value` int(50) NOT NULL,
   PRIMARY KEY (`setting_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `server_settings` DISABLE KEYS */;
-/*!40000 ALTER TABLE `server_settings` ENABLE KEYS */;
-
+--
+-- Table structure for table `serveurstats`
+--
 
 DROP TABLE IF EXISTS `serveurstats`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `serveurstats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `tagStat` int(11) NOT NULL,
@@ -966,12 +1116,16 @@ CREATE TABLE `serveurstats` (
   `accept` smallint(6) NOT NULL,
   `peak` smallint(6) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=369 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=428 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `serveurstats` DISABLE KEYS */;
-/*!40000 ALTER TABLE `serveurstats` ENABLE KEYS */;
+--
+-- Table structure for table `social_friends`
+--
 
 DROP TABLE IF EXISTS `social_friends`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `social_friends` (
   `character_guid` int(30) NOT NULL,
   `friend_guid` int(30) NOT NULL,
@@ -980,24 +1134,152 @@ CREATE TABLE `social_friends` (
   KEY `a` (`character_guid`),
   KEY `b` (`friend_guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `social_friends` DISABLE KEYS */;
-/*!40000 ALTER TABLE `social_friends` ENABLE KEYS */;
-
+--
+-- Table structure for table `social_ignores`
+--
 
 DROP TABLE IF EXISTS `social_ignores`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `social_ignores` (
   `character_guid` int(30) NOT NULL,
   `ignore_guid` int(30) NOT NULL,
   PRIMARY KEY (`character_guid`,`ignore_guid`),
   KEY `a` (`character_guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/*!40000 ALTER TABLE `social_ignores` DISABLE KEYS */;
-/*!40000 ALTER TABLE `social_ignores` ENABLE KEYS */;
+--
+-- Table structure for table `tournament_player_info`
+--
 
+DROP TABLE IF EXISTS `tournament_player_info`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tournament_player_info` (
+  `player_guid` int(10) unsigned NOT NULL DEFAULT '0',
+  `matches_won` int(10) unsigned NOT NULL DEFAULT '0',
+  `matches_played` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`player_guid`),
+  UNIQUE KEY `player_guid` (`player_guid`),
+  KEY `player_guid_2` (`player_guid`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tournament_player_reports`
+--
+
+DROP TABLE IF EXISTS `tournament_player_reports`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tournament_player_reports` (
+  `reporter_guid` int(10) unsigned NOT NULL DEFAULT '0',
+  `reported_guid` int(10) unsigned NOT NULL DEFAULT '0',
+  `abuse_count` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`reporter_guid`),
+  UNIQUE KEY `reporter_guid` (`reporter_guid`),
+  KEY `reporter_guid_2` (`reporter_guid`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tournament_players`
+--
+
+DROP TABLE IF EXISTS `tournament_players`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tournament_players` (
+  `team_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `player_guid` int(10) unsigned NOT NULL DEFAULT '0',
+  `tournament_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `is_pending_to_join_team` tinyint(1) unsigned NOT NULL DEFAULT '1',
+  `is_pending_to_accept_team_invite` tinyint(1) unsigned NOT NULL DEFAULT '1',
+  `strength_points` int(10) unsigned NOT NULL DEFAULT '0',
+  KEY `id` (`team_id`,`player_guid`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tournament_rewards`
+--
+
+DROP TABLE IF EXISTS `tournament_rewards`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tournament_rewards` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `tournament_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `team_ranking` int(10) unsigned NOT NULL DEFAULT '0',
+  `item_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `item_count` int(10) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tournament_settings`
+--
+
+DROP TABLE IF EXISTS `tournament_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tournament_settings` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `tournament_name` varchar(500) DEFAULT NULL,
+  `min_teams_to_start` int(10) unsigned NOT NULL DEFAULT '2',
+  `max_chars_per_team` int(10) unsigned NOT NULL DEFAULT '1',
+  `min_player_level_to_join` int(10) unsigned NOT NULL DEFAULT '1',
+  `max_player_level_to_join` int(10) unsigned NOT NULL DEFAULT '255',
+  `inscription_starts` int(10) NOT NULL DEFAULT '0',
+  `inscription_ends` int(10) unsigned NOT NULL DEFAULT '1262307661',
+  `tournament_starts` int(10) NOT NULL DEFAULT '1262307661',
+  `teams_per_account` int(10) unsigned NOT NULL DEFAULT '1',
+  `cur_match_round` int(10) unsigned NOT NULL DEFAULT '0',
+  `max_teams` int(10) unsigned NOT NULL DEFAULT '1000000',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`),
+  KEY `id_2` (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tournament_team_settings`
+--
+
+DROP TABLE IF EXISTS `tournament_team_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tournament_team_settings` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `tournament_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `team_leader_guid` int(10) unsigned NOT NULL DEFAULT '0',
+  `team_name` varchar(500) DEFAULT NULL,
+  `leader_acc` int(10) unsigned NOT NULL DEFAULT '0',
+  `is_open_team` tinyint(1) unsigned NOT NULL DEFAULT '1',
+  `team_desc_public` varchar(500) DEFAULT NULL,
+  `team_desc_private` varchar(500) DEFAULT NULL,
+  `strength_ordering` int(10) unsigned NOT NULL DEFAULT '0',
+  `matches_won` int(10) unsigned NOT NULL DEFAULT '0',
+  `matches_won_total` int(10) unsigned NOT NULL DEFAULT '0',
+  `matches_finished` int(10) unsigned NOT NULL DEFAULT '0',
+  `team_passw` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`tournament_id`,`team_leader_guid`,`id`),
+  UNIQUE KEY `player_guid` (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tutorials`
+--
 
 DROP TABLE IF EXISTS `tutorials`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tutorials` (
   `playerId` bigint(20) unsigned NOT NULL DEFAULT '0',
   `tut0` int(10) unsigned NOT NULL DEFAULT '0',
@@ -1010,11 +1292,22 @@ CREATE TABLE `tutorials` (
   `tut7` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`playerId`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `worldstate_save_data`
+--
 
-/*!40000 ALTER TABLE `tutorials` DISABLE KEYS */;
-/*!40000 ALTER TABLE `tutorials` ENABLE KEYS */;
-
+DROP TABLE IF EXISTS `worldstate_save_data`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `worldstate_save_data` (
+  `setting_id` varchar(50) NOT NULL,
+  `setting_value` varchar(200) NOT NULL,
+  PRIMARY KEY (`setting_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -1022,4 +1315,6 @@ CREATE TABLE `tutorials` (
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2013-02-03 20:02:31

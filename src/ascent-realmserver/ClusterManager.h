@@ -19,12 +19,12 @@ struct Instance
 {
 	uint32 InstanceId;
 	uint32 MapId;
-	uint32 MapCount; //used for load balancing for things like battleground servers
+	uint32 MapCount; // Used for load balancing for things like battleground servers
 	WServer * Server;
 };
 
-#define IS_INSTANCE(a) (((a)>1)&&((a)!=530))
-#define IS_MAIN_MAP(a) (((a)<2)||((a)==530))
+#define IS_INSTANCE(a) (a > 1 && a != 530 && a != 571 && a != 609)
+#define IS_MAIN_MAP(a) (((a)<2)||((a)==530)||((a)==571)||((a)==609))
 
 class ClusterMgr : public Singleton<ClusterMgr>
 {

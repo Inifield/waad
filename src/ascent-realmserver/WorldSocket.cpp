@@ -181,7 +181,7 @@ OUTPACKET_RESULT WorldSocket::_OutPacket(uint16 opcode, size_t len, const void* 
 	// First, create the header.
 	ServerPktHeader Header;
 	Header.cmd = opcode;
-	Header.size = ntohs((uint16)len + 2);
+	Header.size = uint16(ntohs((u_short)len + 2));
     _crypt.EncryptSend((uint8*)&Header, sizeof (ServerPktHeader));
 
 	// Pass the header to our send buffer
@@ -310,18 +310,7 @@ void WorldSocket::InformationRetreiveCallback(WorldPacket & recvData, uint32 req
 	if(recvData.rpos() != recvData.wpos())
 		recvData.read((uint8*)lang.data(), 4);
 
-	Session * session = sClientMgr.CreateSession(AccountID);
-	if(!session)
-	{
-		/* we are already logged in. send auth failed. (if anyone has a better error lemme know :P) */
-		OutPacket(SMSG_AUTH_RESPONSE, 1, "\x0D");
-		printf("Duplicate client error.\n");
-		return;
-	}
-
-	m_session = session;
-	session->m_socket = this;
-    Sha1Hash sha;
+	Sha1Hash sha;
 
 	uint8 digest[20];
 	pAuthenticationPacket->read(digest, 20);
@@ -352,6 +341,17 @@ void WorldSocket::InformationRetreiveCallback(WorldPacket & recvData, uint32 req
 	}
 
 	// Allocate session
+	Session * session = sClientMgr.CreateSession(AccountID);
+	if(!session)
+	{
+		/* we are already logged in. send auth failed. (if anyone has a better error lemme know :P) */
+		OutPacket(SMSG_AUTH_RESPONSE, 1, "\x0D");
+		printf("Duplicate client error.\n");
+		return;
+	}
+
+	m_session = session;
+	m_session->m_socket = this;
 	m_session->m_accountFlags = AccountFlags;
 	m_session->m_GMPermissions = GMFlags;
 	m_session->m_accountId = AccountID;
@@ -359,6 +359,9 @@ void WorldSocket::InformationRetreiveCallback(WorldPacket & recvData, uint32 req
 	m_session->m_accountName = AccountName;
 	m_session->m_ClientBuild = mClientBuild;
 	//m_session->language = sLocalizationMgr.GetLanguageId(lang);
+
+	if(recvData.rpos() != recvData.wpos())
+		recvData >> m_session->m_muted;
 
 	Log.Notice("Auth", "%s from %s:%u [%ums]", AccountName.c_str(), GetRemoteIP().c_str(), GetRemotePort(), _latency);
 	Authenticate();
@@ -447,7 +450,7 @@ void WorldSocket::OnRead()
 		{
 		case CMSG_PING:
 			{
-				if(!m_session || !m_session->m_currentPlayer)
+				if(!m_session->m_currentPlayer)
 				{
 					_HandlePing(Packet);
 					delete Packet;

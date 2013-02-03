@@ -222,7 +222,7 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 	LocationVector LoginCoord;
 	Instance * dest;
 	//ASSERT(!m_currentPlayer);
-	if(!m_currentPlayer)
+	if(m_currentPlayer)
 		return;
 	uint64 guid;
 	pck >> guid;
@@ -274,6 +274,7 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 	}
 	else
 	{
+		Log.Error("CharacterHandler", "Le personnage n'existe pas dans la base de donnees!");
 		data << uint8(CHAR_LOGIN_NO_CHARACTER);
 		SendPacket(&data);
 		sClientMgr.DestroyRPlayerInfo((uint32)guid);
@@ -534,7 +535,7 @@ void Session::HandleCharacterDelete(WorldPacket & pck)
 
 		if(info->GuildId)
 		{
-			QueryResult * resultGuild = CharacterDatabase.Query("SELECT leaderGuid FROM guilds WHERE guid = %u", (uint32)guid);
+			QueryResult * resultGuild = CharacterDatabase.Query("SELECT leaderGuid FROM guilds WHERE leaderGuid = %u", (uint32)guid);
 			if(resultGuild)
 			{
 				Log.Warning("CHAR_DELETE","Le personnage est le chef de la Guilde : %u",info->GuildId);
