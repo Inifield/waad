@@ -338,22 +338,21 @@ void WServer::HandlePlayerTeleport(WorldPacket & pck)
 
 void WServer::HandleCreatePlayerResult(WorldPacket & pck)
 {
-	// Non, Non  ! La session existe déjà !
-	/*
 	uint32 accountid;
 	uint8 result;
 	pck >> accountid >> result;
 
-	Log.Debug("WServer", "Received ICMSG_CREATE_PLAYER, result %u", result);
-
+	Log.Warning("WServer", "Received ICMSG_CREATE_PLAYER, result %u", result);
 	
-	//ok, we need session by account id... gay
-	
+	//ok, we need session by account id... gay	
 	Session* s = sClientMgr.GetSessionByAccountId(accountid);
 	if (s == NULL)
+	{
+		Log.Error("WServer","La session n'existe pas. Reporter au dev");
 		return;
+	}
 
-	s->GetSocket()->OutPacket(SMSG_CHAR_CREATE, 1, &result);*/
+	s->GetSocket()->OutPacket(SMSG_CHAR_CREATE, 1, &result);
 }
 
 void WServer::HandlePlayerInfo(WorldPacket & pck)

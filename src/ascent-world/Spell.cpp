@@ -391,7 +391,9 @@ bool Spell::IsInvisibilitySpell()
 	return false;
 }
 
-/*void Spell::FillSpecifiedTargetsInArea( float srcx, float srcy, float srcz, uint32 ind, uint32 specification )
+/*
+//Note Randdrick : ancienne gestion des spells en 2.4.x
+void Spell::FillSpecifiedTargetsInArea( float srcx, float srcy, float srcz, uint32 ind, uint32 specification )
 {
     FillSpecifiedTargetsInArea( ind, srcx, srcy, srcz, GetRadius(ind), specification );
 }
@@ -421,9 +423,9 @@ void Spell::FillSpecifiedTargetsInArea(uint32 i,float srcx,float srcy,float srcz
 
         if(IsInrange(srcx,srcy,srcz,(*itr),r))
         {
-            if( u_caster != NULL )
+            if( m_caster->IsUnit() )
             {
-                if( isAttackable( u_caster, static_cast< Unit* >( *itr ),!(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)))
+                if( isAttackable( ((Unit *)m_caster), static_cast< Unit* >( *itr ),!(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)))
                 {
 					_AddTarget((static_cast< Unit* >(*itr)), i);
                 }
@@ -431,10 +433,10 @@ void Spell::FillSpecifiedTargetsInArea(uint32 i,float srcx,float srcy,float srcz
             }
             else //cast from GO
             {
-                if(g_caster && g_caster->GetUInt32Value(OBJECT_FIELD_CREATED_BY) && g_caster->m_summoner)
+                if(((GameObject *)m_caster) && ((GameObject *)m_caster)->GetUInt32Value(OBJECT_FIELD_CREATED_BY) && ((GameObject *)m_caster)->m_summoner)
                 {
                     //trap, check not to attack owner and friendly
-                    if(isAttackable(g_caster->m_summoner,static_cast< Unit* >(*itr),!(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)))
+                    if(isAttackable(((GameObject *)m_caster)->m_summoner,static_cast< Unit* >(*itr),!(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)))
                         _AddTarget((static_cast< Unit* >(*itr)), i);
                 }
                 else
@@ -479,19 +481,19 @@ void Spell::FillAllTargetsInArea(uint32 i,float srcx,float srcy,float srcz, floa
 		}
 		if( IsInrange( srcx, srcy, srcz, (*itr), r ) )
 		{
-			if( u_caster != NULL )
+			if( m_caster->IsUnit() )
 			{
-				if( isAttackable( u_caster, static_cast< Unit* >(*itr), !(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED) ) )
+				if( isAttackable( ((Unit *)m_caster), static_cast< Unit* >(*itr), !(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED) ) )
 				{
 					_AddTarget((static_cast< Unit* >(*itr)), i);
 				}
 			}
 			else //cast from GO
 			{
-				if( g_caster != NULL && g_caster->GetUInt32Value( OBJECT_FIELD_CREATED_BY ) && g_caster->m_summoner != NULL )
+				if( ((GameObject *)m_caster) != NULL && ((GameObject *)m_caster)->GetUInt32Value( OBJECT_FIELD_CREATED_BY ) && ((GameObject *)m_caster)->m_summoner != NULL )
 				{
 					//trap, check not to attack owner and friendly
-					if( isAttackable( g_caster->m_summoner, static_cast< Unit* >(*itr), !(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED) ) )
+					if( isAttackable( ((GameObject *)m_caster)->m_summoner, static_cast< Unit* >(*itr), !(m_spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED) ) )
 						_AddTarget((static_cast< Unit* >(*itr)), i);
 				}
 				else
@@ -526,19 +528,19 @@ void Spell::FillAllFriendlyInArea( uint32 i, float srcx, float srcy, float srcz,
 
 		if( IsInrange( srcx, srcy, srcz, (*itr), r ) )
 		{
-			if( u_caster != NULL )
+			if( m_caster->IsUnit() )
 			{
-				if( isFriendly( u_caster, static_cast< Unit* >(*itr) ) )
+				if( isFriendly( ((Unit *)m_caster), static_cast< Unit* >(*itr) ) )
 				{
 					_AddTarget((static_cast< Unit* >(*itr)), i);
 				}
 			}
 			else //cast from GO
 			{
-				if( g_caster != NULL && g_caster->GetUInt32Value( OBJECT_FIELD_CREATED_BY ) && g_caster->m_summoner != NULL )
+				if( ((GameObject *)m_caster) != NULL && ((GameObject *)m_caster)->GetUInt32Value( OBJECT_FIELD_CREATED_BY ) && ((GameObject *)m_caster)->m_summoner != NULL )
 				{
 					//trap, check not to attack owner and friendly
-					if( isFriendly( g_caster->m_summoner, static_cast< Unit* >(*itr) ) )
+					if( isFriendly( ((GameObject *)m_caster)->m_summoner, static_cast< Unit* >(*itr) ) )
 						_AddTargetForced((*itr)->GetGUID(), i);
 				}
 				else
@@ -2635,7 +2637,7 @@ void Spell::finish()
 	if( m_caster->IsPlayer() )
 	{
 		if( m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed() ) )
-			RemoveItems((Item *)m_owner);
+			RemoveItems();
 	}
 	
 	/*
@@ -6041,74 +6043,57 @@ uint8 Spell::CanCast(bool tolerate)
 	return SPELL_CANCAST_OK;
 }
 
-void Spell::RemoveItems(Item *Item_To_Remove)
+void Spell::RemoveItems()
 {
 	// Item Charges & Used Item Removal
-	if(!Item_To_Remove) return; // Pas possible, je dors ou quoi^^ (Brz)
+	if(m_caster->IsItem())
+	{
+		// Stackable Item -> remove 1 from stack
+		if(((Item *)m_caster)->GetUInt32Value(ITEM_FIELD_STACK_COUNT) > 1)
+		{
+			((Item *)m_caster)->ModUnsigned32Value(ITEM_FIELD_STACK_COUNT, -1);
+			((Item *)m_caster)->m_isDirty = true;
+		}
+		// Expendable Item
+		else if(((Item *)m_caster)->GetProto()->Spells[0].Charges < 0
+		     || ((Item *)m_caster)->GetProto()->Spells[1].Charges == -1) // hackfix for healthstones/mana gems/depleted items
+		{
+			// if item has charges remaining -> remove 1 charge
+			if(((int32)((Item *)m_caster)->GetUInt32Value(ITEM_FIELD_SPELL_CHARGES)) < -1)
+			{
+				((Item *)m_caster)->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, 1);
+				((Item *)m_caster)->m_isDirty = true;
+			}
+			// if item has no charges remaining -> delete item
+			else
+			{
+				((Item *)m_caster)->GetOwner()->GetItemInterface()->SafeFullRemoveItemByGuid(((Item *)m_caster)->GetGUID());
+				m_caster = NULL;
+			}
+		}
+		// Non-Expendable Item -> remove 1 charge
+		else if(((Item *)m_caster)->GetProto()->Spells[0].Charges > 0)
+		{
+			((Item *)m_caster)->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, -1);
+			((Item *)m_caster)->m_isDirty = true;
+		}
+	} 
 
-	// Stackable Item -> remove 1 from stack
-	if(Item_To_Remove->GetUInt32Value(ITEM_FIELD_STACK_COUNT) > 1)
+	// Ammo Removal
+	if( ((Player *)m_caster) && (m_spellInfo->attributesExB == ATTRIBUTESEXB_REQ_RANGED_WEAPON || m_spellInfo->attributesExC & ATTRIBUTESEXC_PLAYER_RANGED_SPELLS))
 	{
-			Item_To_Remove->ModUnsigned32Value(ITEM_FIELD_STACK_COUNT, -1);
-			Item_To_Remove->m_isDirty = true;
-	}
-	// Expendable Item
-	else if(Item_To_Remove->GetProto()->Spells[0].Charges < 0
-		     || Item_To_Remove->GetProto()->Spells[1].Charges == -1) // hackfix for healthstones/mana gems/depleted items
-	{
-		// if item has charges remaining -> remove 1 charge
-		if(((int32)Item_To_Remove->GetUInt32Value(ITEM_FIELD_SPELL_CHARGES)) < -1)
-		{
-			Item_To_Remove->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, 1);
-			Item_To_Remove->m_isDirty = true;
-		}
-		// if item has no charges remaining -> delete item
-		else
-		{
-			Item_To_Remove->GetOwner()->GetItemInterface()->SafeFullRemoveItemByGuid(Item_To_Remove->GetGUID());
-			m_caster = NULL;
-		}
-	}
-	// Non-Expendable Item -> remove 1 charge
-	else if(Item_To_Remove->GetProto()->Spells[0].Charges > 0)
-	{
-		Item_To_Remove->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, -1);
-		Item_To_Remove->m_isDirty = true;
+		Item *_item = (Item *)m_targets.m_target;
+		((Player *)m_caster)->GetItemInterface()->RemoveItemAmt_ProtectPointer(((Player *)m_caster)->GetUInt32Value(PLAYER_AMMO_ID), 1, & _item);
 	}
 
-	if(m_caster)
+	// Reagent Removal
+	for(uint32 i=0; i<8 ;i++)
 	{
-	 // Ammo Removal
-	 if( m_caster->IsPlayer() && 
-		((m_spellInfo->attributesExB == ATTRIBUTESEXB_REQ_RANGED_WEAPON) || (m_spellInfo->attributesExC & ATTRIBUTESEXC_PLAYER_RANGED_SPELLS) ))
-	 {
-		if(m_targets.m_target) // Secu
+		if( ((Player *)m_caster) && m_spellInfo->reagent[i])
 		{
-		 if(m_targets.m_target->IsItem())
-		 {
-		  Item *_item = (Item *)m_targets.m_target;
-		  ((Player *)m_caster)->GetItemInterface()->RemoveItemAmt_ProtectPointer(((Player *)m_caster)->GetUInt32Value(PLAYER_AMMO_ID), 1, &_item);
-		 }
+			Item *_item = (Item *)m_targets.m_target;
+			((Player *)m_caster)->GetItemInterface()->RemoveItemAmt_ProtectPointer(m_spellInfo->reagent[i], m_spellInfo->reagentCount[i], & _item);
 		}
-		//else Log.Error("[RemoveItems]","Weapon: m_target NULL <-- Report this to devs.");
-	 }
-
-	 // Reagent Removal
-	 for(uint32 i=0; i<8 ;i++)
-	 {
-	  if(m_targets.m_target) // Secu
-	  {
-		if( m_caster->IsPlayer() && m_spellInfo->reagent[i])
-		{
-		 if(m_targets.m_target->IsItem())
-		 {
-			 Item *_item = (Item *)m_targets.m_target;
-			((Player *)m_caster)->GetItemInterface()->RemoveItemAmt_ProtectPointer(m_spellInfo->reagent[i], m_spellInfo->reagentCount[i], &_item);
-		 }
-		}
-	  }
-	  //else { Log.Error("[RemoveItems]","Remove: m_target NULL <-- Report this to devs."); }
-	 }
 	}
 }
 
@@ -7686,7 +7671,72 @@ uint32 Spell::GetBestSchoolForSpell(Unit* pVictim)
 
 	return school;
 }
+/*
+//Note Randdrick : ancienne gestion des spells en 2.4.x
+void Spell::_AddTarget(Unit* target, uint32 effectid)
+{
+	SpellTargetList::iterator itr;
+	SpellTarget tgt;
 
+	// look for the target in the list already
+	for( itr = m_targetList.begin(); itr != m_targetList.end(); ++itr )
+	{
+		if( itr->Guid == target->GetGUID() )
+		{
+			// add the effect to it, hit result is already determined
+			itr->EffectMask |= (1 << effectid);
+			return;
+		}
+	}
+
+	// setup struct
+	tgt.Guid = target->GetGUID();
+	tgt.EffectMask = (1 << effectid);
+
+	// work out hit result (always true if we are a GO)
+	tgt.HitResult = (((GameObject *)m_caster) || (((GameObject *)m_caster) && ((GameObject *)m_caster)->GetByte(GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_TYPE_ID) != GAMEOBJECT_TYPE_TRAP) ) ? SPELL_DID_HIT_SUCCESS : DidHit(effectid,target);
+
+	// add to the list
+	m_targetList.push_back(tgt);
+
+	// add counter
+	if( tgt.HitResult == SPELL_DID_HIT_SUCCESS )
+		++m_objectsHit;
+	else
+		++m_objectsModerated;
+}
+
+void Spell::_AddTargetForced(const uint64& guid, const uint32 effectid)
+{
+	SpellTargetList::iterator itr;
+	SpellTarget tgt;
+
+	// look for the target in the list already
+	for( itr = m_targetList.begin(); itr != m_targetList.end(); ++itr )
+	{
+		if( itr->Guid == guid )
+		{
+			// add the effect to it, hit result is already determined
+			itr->EffectMask |= (1 << effectid);
+			return;
+		}
+	}
+
+	// setup struct
+	tgt.Guid = guid;
+	tgt.EffectMask = (1 << effectid);
+	tgt.HitResult = SPELL_DID_HIT_SUCCESS;
+
+	// add to the list
+	m_targetList.push_back(tgt);
+
+	// add counter
+	if( tgt.HitResult == SPELL_DID_HIT_SUCCESS )
+		++m_objectsHit;
+	else
+		++m_objectsModerated;
+}
+*/
 char *SpellCastErrorMsg(uint8 error_result)
 {
 	switch(error_result)
@@ -8052,5 +8102,4 @@ char *SpellEffectTxt(uint8 EffectNum)
       case SPELL_EFFECT_MILLING : return(" SPELL_EFFECT_MILLING "); //ArcEmu
       default : return(" SPELL_EFFECT_UNKNOWN ");
 	}
-		  
 };

@@ -232,8 +232,8 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	
 	spell->extra_cast_number=cn;
 	spell->m_glyphIndex = glyphIndex;
-	//spell->m_owner = tmpItem; // spell->m_caster = tmpItem; 
-	spell->m_caster = tmpItem;
+	spell->m_owner = tmpItem; // spell->m_caster = tmpItem; 
+	//spell->m_caster = tmpItem;
 
 	// Le LockMaterial de l'Item donne se qui est deverouillé 
 	//spell->g_caster = NULL;

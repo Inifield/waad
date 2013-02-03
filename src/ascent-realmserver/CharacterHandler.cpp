@@ -221,7 +221,9 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 	WorldPacket data(SMSG_CHARACTER_LOGIN_FAILED, 30);
 	LocationVector LoginCoord;
 	Instance * dest;
-	ASSERT(!m_currentPlayer);
+	//ASSERT(!m_currentPlayer);
+	if(!m_currentPlayer)
+		return;
 	uint64 guid;
 	pck >> guid;
 
@@ -382,8 +384,7 @@ void Session::HandleRealmSplitQuery(WorldPacket & pck)
 
 void Session::HandleCharacterCreate( WorldPacket & pck )
 {
-	CHECK_PACKET_SIZE(pck, 10);
-	WorldPacket data;
+	CHECK_PACKET_SIZE(pck, 10);	
 	std::string name;
 	uint8 race, class_;
 
@@ -480,17 +481,17 @@ void Session::HandleCharacterCreate( WorldPacket & pck )
 	
 	if (GetAccountId())
 	{
-	/* log the player into that WS */
-	data.SetOpcode(ISMSG_CREATE_PLAYER);
+		/* log the player into that WS */
+		WorldPacket data(ISMSG_CREATE_PLAYER, 4+6+pck.size());
 	
-	/* append Packet SMSG_CREATE_PLAYER information */
-	data << GetAccountId() << pck.GetOpcode() << uint32(pck.size());
-	data.resize(10 + pck.size());
-	memcpy((void*)(data.contents() + 10), pck.contents(), pck.size());
+		/* append Packet SMSG_CREATE_PLAYER information */
+		data << GetAccountId() << pck.GetOpcode() << uint32(pck.size());
+		data.resize(10 + pck.size());
+		memcpy((void*)(data.contents() + 10), pck.contents(), pck.size());
 
-	i->Server->SendPacket(&data);
-
-	OutPacket(SMSG_CHAR_CREATE, 1, "\x2F"); //CHAR_CREATE_SUCCESS
+		i->Server->SendPacket(&data);
+		
+		sLogonCommHandler.UpdateAccountCount(GetAccountId(), 1);
 	}
 	else
 	{
@@ -499,7 +500,6 @@ void Session::HandleCharacterCreate( WorldPacket & pck )
 		GetSocket()->OutPacket(SMSG_CHAR_CREATE, 1, "\x32");
 		return;
 	}
-
 }
 
 void Session::HandleCharacterDelete(WorldPacket & pck)

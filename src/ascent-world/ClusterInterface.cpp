@@ -675,6 +675,9 @@ void ClusterInterface::HandleCreatePlayer(WorldPacket & pck)
 	uint16 opcode;
 
 	pck >> accountid >> opcode >> size;
+	
+	if (_sessions[accountid] != NULL)
+		return;
 
 	sLog.outDetail("CMSG_CHAR_CREATE: accountid %u, opcode %u, size %u",accountid,opcode,size);
 
@@ -723,9 +726,9 @@ void ClusterInterface::HandleCreatePlayer(WorldPacket & pck)
 
 	// now lets send the info back, send accountid, we have no sessionid
 	// Le resultat doit être géré par le realmserver
-	/*WorldPacket result(ICMSG_CREATE_PLAYER, 5);
-	data << accountid << uint8(0x2F); //CHAR_CREATE_SUCCESS
-	SendPacket(&result);*/
+	WorldPacket result(ICMSG_CREATE_PLAYER, 5);
+	result << accountid << uint8(0x2F); //CHAR_CREATE_SUCCESS
+	SendPacket(&result);
 }
 
 void ClusterInterface::HandleDeletePlayer(WorldPacket & pck)

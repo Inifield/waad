@@ -823,8 +823,16 @@ void Aura::AddMod( uint32 t, int32 a, uint32 miscValue, uint32 index )
 		Log.Error("Aura::AddMod","No AddMod, Aura->m_spellProto NULL !");
 		return;
 	}
+	
+	if( m_modcount >= 3 || m_target == NULL || m_target->MechanicsDispels[GetMechanicOfEffect(index)])
+	{
+		Log.Error("AddMod","m_modcount overflow , Aura %u <--- Report this to devs.",t);
+		Log.Error("      ","Spell %u <--- Report this to devs.",m_spellProto->Id );
 
-	// Pas toucher SVP (Branruz)
+		return;
+	}
+
+	/* Pas toucher SVP (Branruz)
 	if( m_modcount > 3)  // Modcount: 1, 2 ou 3 Max
 	{
 		Log.Error("AddMod","m_modcount overflow , Aura %u <--- Report this to devs.",t);
@@ -849,6 +857,7 @@ void Aura::AddMod( uint32 t, int32 a, uint32 miscValue, uint32 index )
 		}
 		return;
 	} //-----------------------
+	*/
 
 	if(index > 2) // Index: de 0 à 2
 	{
@@ -7060,7 +7069,7 @@ void Aura::SpellAuraModPowerRegen(bool apply) // 85
 
 		Log.Warning("SpellAuraModPowerRegen","EventDrunkRegen: Type:%d , BasePoint:%d, Nb:%u",mod->m_miscValue,BasePoint,nb_fois);
 
-		sEventMgr.AddEvent(this, &Aura::EventDrunkRegen,this->GetSpellProto(),mod->m_miscValue,BasePoint,EVENT_DRUNK_REGEN,1000,nb_fois,EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
+		sEventMgr.AddEvent(this, &Aura::EventDrunkRegen,this->GetSpellProto(),mod->m_miscValue,BasePoint,EVENT_DRUNK_REGEN,1000,nb_fois,EVENT_FLAG_EXECUTE_IN_WORLD_CONTEXT);
 		
 	}   
 }

@@ -14531,6 +14531,22 @@ uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,u
    case EFF_TARGET_SELF			: // 1, Target=Player, deja init
 	   break;
 
+	case EFF_TARGET_PET: //5 - Target: Pet
+		{
+			if(_Caster->IsPlayer() && ((Player *)_Caster)->GetSummon())
+			{
+				uint64 guidPetTarget = ((Player *)_Caster)->GetSummon()->GetGUID();
+				Pet * pet = ((Player *)_Caster)->GetMapMgr()->GetPet(GET_LOWGUID_PART(guidPetTarget));
+				if(pet) targets->m_target = pet;				
+					else 
+					{
+						Log.Error("ConfirmPlayerTarget","Familier NULL, report this to devs.");
+						return(SPELL_FAILED_NO_PET);
+					}
+			}
+		}
+	return( SPELL_CANCAST_OK);
+
    //case EFF_TARGET_ALL_ENEMIES_AROUND_CASTER ://  22,
 	   // A CODER: Definir les cibles autours (seulement ennemi)
 	   // Recu coté SPELL_CAST
@@ -14591,7 +14607,6 @@ uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,u
 
     //----------- Non gerés ----------
    case EFF_TARGET_FRIENDLY : // 3, // this is wrong, its actually a friendly single target
-   case EFF_TARGET_PET				: // 5,
    case EFF_TARGET_SINGLE_ENEMY		: // 6,
    case EFF_TARGET_SCRIPTED_TARGET	: // 7,
    case EFF_TARGET_ALL_TARGETABLE_AROUND_LOCATION_IN_RADIUS : // 8,
