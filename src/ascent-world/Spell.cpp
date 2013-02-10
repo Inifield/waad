@@ -1780,55 +1780,48 @@ void Spell::cast(bool check)
 				uint32 channelDuration = GetDuration(INVOC_DURATION);
 				m_spellState = SPELL_STATE_CASTING;
 				SendChannelStart(channelDuration); // Barre d'incantation
-				// IMPOSSIBLEEEEE , p_caster et u_caster sont forcement les memes... (Branruz)
-				// En commentaire en attendant
-				/*
-				if( (p_caster != NULL) && (u_caster != NULL))
-				{
-				 //Use channel interrupt flags here
-				 if(m_targets.m_targetMask == TARGET_FLAG_DEST_LOCATION || m_targets.m_targetMask == TARGET_FLAG_SOURCE_LOCATION)
-				 {
-				  u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, p_caster->GetSelection());					
-				 }
-				 else if(p_caster->GetSelection() == m_caster->GetGUID())
-				 {
-				  if(p_caster->GetSummon())
-				  {
-				   u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, p_caster->GetSummon()->GetGUID());
-				  }
-				  else if(m_targets.m_target)
-				  {
-				   u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, m_targets.m_target->GetGUID());
-				  }
-				  else
-				  {
-				   u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, p_caster->GetSelection());
-				  }
-				 }
-				 else
-				 {
-				  if(p_caster->GetSelection())
-				  {
-				   if( m_spellInfo->Id == 60931 ) u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, p_caster->GetGUID());
-				   else                           u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, p_caster->GetSelection());
-				  }
-				  else if(p_caster->GetSummon()) u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, p_caster->GetSummon()->GetGUID());
-				  else if(m_targets.m_target)    u_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, m_targets.m_target->GetGUID());
-				  else
-				  {
-				   m_isCasting = false;
-				   cancel();
-				   return;
-				  }
-				 }
-				 if(u_caster->GetPowerType()==POWER_TYPE_MANA)
-				 {
-				  if(channelDuration <= 5000) u_caster->DelayPowerRegeneration(5000);
-				  else                        u_caster->DelayPowerRegeneration(channelDuration);
-				 }
-				}*/
-			} //---------------------------------------------------------
 
+				if( m_caster->IsPlayer() && ((Player *)m_caster)->GetSelection() )
+				{
+					//Use channel interrupt flags here
+					if(m_targets.m_targetMask == TARGET_FLAG_DEST_LOCATION || m_targets.m_targetMask == TARGET_FLAG_SOURCE_LOCATION)
+						((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSelection());
+					else if(((Player *)m_caster)->GetSelection() == m_caster->GetGUID())
+					{
+						if(((Player *)m_caster)->GetSummon())
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSummon()->GetGUID());
+						else if(m_targets.m_target)
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, m_targets.m_target->GetGUID());
+						else
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSelection());					}
+					else
+					{
+						if(((Player *)m_caster)->GetSelection())
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSelection());
+						else if(((Player *)m_caster)->GetSummon())
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSummon()->GetGUID());
+						else if(m_targets.m_target)
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, m_targets.m_target->GetGUID());
+						else
+						{
+							m_isCasting = false;
+							cancel(SPELL_FAILED_INTERRUPTED);
+							return;
+						}
+					}
+				}
+
+				if(((Unit *)m_caster) && ((Unit *)m_caster)->GetPowerType()==POWER_TYPE_MANA)
+				{
+					if(channelDuration <= 5000)
+						((Unit *)m_caster)->DelayPowerRegeneration(5000);
+					else
+						((Unit *)m_caster)->DelayPowerRegeneration(channelDuration);
+				}
+
+				if( ((Unit *)m_caster) != NULL )
+					((Unit *)m_caster)->SetCurrentSpell(this);
+			}
             //Rien ne va dans l'appel au getTradeItem car il attend un numero de slot ( 8 slots Max) ?
 			// Dans ce code, on passe le pointeur vers le m_targets......
 			// a revoir (Branruz)
@@ -1853,35 +1846,33 @@ void Spell::cast(bool check)
 
 		    for(; itr != m_targetList.end(); ++itr)
 		    {
-			 if( itr->HitResult != SPELL_DID_HIT_SUCCESS ) continue;
+				if( itr->HitResult != SPELL_DID_HIT_SUCCESS ) continue;
 
-			 // set target pointers
-			 _SetTargets(itr->Guid);
+				// set target pointers
+				_SetTargets(itr->Guid);
 
-			 // call effect handlers
-			 for( x = 0; x < 3; ++x ) 
-			 {
-			  switch (m_spellInfo->Effect[x])
-			  {
-			   //Don't handle effect now
-			   case SPELL_EFFECT_SUMMON:
-			   		{
-					 effects_done[x] = false;
-					 continue;
-					}
-					break;
-
-			   default:
+				// call effect handlers
+				for( x = 0; x < 3; ++x ) 
+				{
+					switch (m_spellInfo->Effect[x])
 					{
-					 if(itr->EffectMask & (1 << x))
-					 {
-					  //NewHandleEffects(x);
-					  HandleEffects(NULL, x, false);
-					  effects_done[x] = true;
-					 }
+						//Don't handle effect now
+						case SPELL_EFFECT_SUMMON:
+			   			{
+							effects_done[x] = false;
+							continue;
+						}break;
+
+						default:
+						{
+							if(itr->EffectMask & (1 << x))
+							{
+								//NewHandleEffects(x);
+								HandleEffects(NULL, x, false);
+								effects_done[x] = true;
+							}
+						}break;
 					}
-					break;
-			  }
 			 }
 			 // handle the rest of shit
 			 if( unitTarget != NULL )
@@ -1910,48 +1901,55 @@ void Spell::cast(bool check)
 		    //Handle remaining effects for which we did not find targets.
 		    for( x = 0; x < 3; ++x )
 			{
-			 if(!effects_done[x])
-			 {
-				switch (m_spellInfo->Effect[x])
+				if(m_spellInfo->Effect[x])
 				{
-					// Target ourself for these effects
-					case SPELL_EFFECT_TRIGGER_SPELL:
-					case SPELL_EFFECT_JUMP_MOVE:
-					case SPELL_EFFECT_SUMMON:
-					case SPELL_EFFECT_TRIGGER_MISSILE:
-					case SPELL_EFFECT_APPLY_GLYPH:
-					{
-						/*_SetTargets(m_caster->GetGUID());
-						NewHandleEffects(x);*/
-						HandleEffects(m_caster, x, false);
-					}break;
+					/*if(!CanHandleSpellEffect(x, m_spellInfo->NameHash))
+							continue;*/
 
-					// No Target required for these effects
-					case SPELL_EFFECT_PERSISTENT_AREA_AURA:
-					case SPELL_EFFECT_APPLY_AREA_AURA:
+					if(!effects_done[x])
 					{
-						//NewHandleEffects(x);
-						HandleEffects(NULL, x, false);
-					}break;
-				}
-			 }
+						switch (m_spellInfo->Effect[x])
+						{
+							// Target ourself for these effects
+							case SPELL_EFFECT_TRIGGER_SPELL:
+							case SPELL_EFFECT_JUMP_MOVE:
+							case SPELL_EFFECT_SUMMON:
+							case SPELL_EFFECT_TRIGGER_MISSILE:
+							case SPELL_EFFECT_APPLY_GLYPH:
+							{
+								/*_SetTargets(m_caster->GetGUID());
+								NewHandleEffects(x);*/
+								HandleEffects(m_caster, x, false);
+							}break;
+
+							// No Target required for these effects
+							case SPELL_EFFECT_PERSISTENT_AREA_AURA:
+							case SPELL_EFFECT_APPLY_AREA_AURA:
+							{
+								//NewHandleEffects(x);
+								HandleEffects(NULL, x, false);
+							}break;
+						}
+					}
+				}	
 			}
 
 		    // don't call HandleAddAura unless we actually have auras... - Burlex
-			// Si le player fait parti de la liste, les auras seront lancées une 2ieme fois  - Branruz
+			/* Si le player fait parti de la liste, les auras seront lancées une 2ieme fois  - Branruz
+			// Note Randdrick : ****** Obsolète suite changement de gestion des Auras *******
+			// A ce stade  l'aura a déjà été lancée par un Event. Si une autre aura est lancée, l'event s'en sera chargé.
 		    if( m_spellInfo->EffectApplyAuraName[0] != SPELL_AURA_NONE || 
 				m_spellInfo->EffectApplyAuraName[1] != SPELL_AURA_NONE ||
 		        m_spellInfo->EffectApplyAuraName[2] != SPELL_AURA_NONE)
-			{
-			 
-			 itr = m_targetList.begin();
-			 for(; itr != m_targetList.end(); ++itr)
-			 {
-			  //if( m_caster->GetGUID() == itr->Guid) continue; 
-			  if( itr->HitResult != SPELL_DID_HIT_SUCCESS ) continue;
-			  NewHandleAddAura(itr->Guid);
-			 }
-			}
+			{			 
+				itr = m_targetList.begin();
+				for(; itr != m_targetList.end(); ++itr)
+				{
+					//if( m_caster->GetGUID() == itr->Guid) continue; 
+					if( itr->HitResult != SPELL_DID_HIT_SUCCESS ) continue;
+					NewHandleAddAura(itr->Guid);
+				}
+			}*/
 
 			SpellTargetMap::iterator i;
 			
@@ -1998,13 +1996,13 @@ void Spell::cast(bool check)
 						{
 							if(m_targets.m_target) // Une seule cible existe
 							{
-							 this->_SetTargets(m_targets.m_target->GetGUID()); // On designe la cible, pas le caster (Branruz)
-                             HandleCastEffects(m_targets.m_target, x);  
+								this->_SetTargets(m_targets.m_target->GetGUID()); // On designe la cible, pas le caster (Branruz)
+								HandleCastEffects(m_targets.m_target, x);  
 							}
 							else
 							{ // Seulement AoE ou AoF ?? (Branruz)
-							 Log.Warning("[Spell::cast]","HandleCastEffects: (AoE) Cible = NULL, Pos:%u, Index:%u",x,m_spellInfo->Effect[x]);
-							 HandleCastEffects(NULL, x);
+								Log.Warning("[Spell::cast]","HandleCastEffects: (AoE) Cible = NULL, Pos:%u, Index:%u",x,m_spellInfo->Effect[x]);
+								HandleCastEffects(NULL, x);
 							}
 						}
 
@@ -2012,29 +2010,27 @@ void Spell::cast(bool check)
 
                         if(m_orderedObjects.size()) // Cible multiple
 						{
-						 for (std::vector<Object*>::iterator itr=m_orderedObjects.begin(); itr!=m_orderedObjects.end(); ++itr)
-						 {
-							i = m_spellTargets.find(*itr);
-							if (i != m_spellTargets.end() && i->second.HasEffect[x])
+							for (std::vector<Object*>::iterator itr=m_orderedObjects.begin(); itr!=m_orderedObjects.end(); ++itr)
 							{
-								//Log.Notice("[Spell::cast]","m_spellTargets envoyé %u - %u);",x,m_spellInfo->Effect[x]);
-								HandleCastEffects(i->first, x);
+								i = m_spellTargets.find(*itr);
+								if (i != m_spellTargets.end() && i->second.HasEffect[x])
+								{
+									//Log.Notice("[Spell::cast]","m_spellTargets envoyé %u - %u);",x,m_spellInfo->Effect[x]);
+									HandleCastEffects(i->first, x);
+								}
+								// Capt: The way this is done is NOT GOOD. Target code should be redone.
+								else if (m_spellInfo->Effect[x] == SPELL_EFFECT_TELEPORT_UNITS)
+								{
+									//Log.Notice("[Spell::cast]","SPELL_EFFECT_TELEPORT_UNITS envoyé %u - %u);",x,m_spellInfo->Effect[x]);
+									HandleCastEffects(m_caster,x);
+								}
+					     		else if (m_spellInfo->Effect[x] == SPELL_EFFECT_SUMMON_WILD)
+								{
+									//Log.Notice("[Spell::cast]","SPELL_EFFECT_SUMMON_WILD envoyé %u - %u);",x,m_spellInfo->Effect[x]);
+									HandleCastEffects(m_caster,x);
+								} 
 							}
-							// Capt: The way this is done is NOT GOOD. Target code should be redone.
-						    else if (m_spellInfo->Effect[x] == SPELL_EFFECT_TELEPORT_UNITS)
-						    {
-							 //Log.Notice("[Spell::cast]","SPELL_EFFECT_TELEPORT_UNITS envoyé %u - %u);",x,m_spellInfo->Effect[x]);
-							 HandleCastEffects(m_caster,x);
-						    }
-					     	 else if (m_spellInfo->Effect[x] == SPELL_EFFECT_SUMMON_WILD)
-						    {
-							//Log.Notice("[Spell::cast]","SPELL_EFFECT_SUMMON_WILD envoyé %u - %u);",x,m_spellInfo->Effect[x]);
-							 HandleCastEffects(m_caster,x);
-						    } 
-						 }
 						}
-
-						
 
 						//Handle reflected stuff
 						for (i=m_spellTargets.begin(); i!=m_spellTargets.end(); ++i)
@@ -2210,9 +2206,9 @@ void Spell::cast(bool check)
 					}
 				}
 			}
-				m_isCasting = false;
-				if (m_spellState != SPELL_STATE_CASTING)
-					finish();
+			m_isCasting = false;
+			if (m_spellState != SPELL_STATE_CASTING)
+				finish();
 		} 
 			/*else //this shit has nothing to do with instant, this only means it will be on NEXT melee hit
 			{
@@ -3809,6 +3805,7 @@ void Spell::SetSpellTargets(const uint64& guid)
 	_SetTargets(guid);
 }
 
+
 void Spell::_SetTargets(const uint64& guid)
 {
 	unitTarget = NULL;
@@ -3817,12 +3814,67 @@ void Spell::_SetTargets(const uint64& guid)
 	corpseTarget = NULL;
 	itemTarget = NULL;
 
-	if(guid == m_caster->GetGUID())
+	if(guid == 0)
+	{
+		if(!m_caster->IsInWorld())
+			return;
+
+		if(m_caster->IsPlayer())
+		{
+			if(m_targets.m_targetMask & TARGET_FLAG_ITEM)
+				itemTarget = ((Player *)m_caster)->GetItemInterface()->GetItemByGUID(m_targets.m_target->GetGUID());
+			if(m_targets.m_targetMask & TARGET_FLAG_TRADE_ITEM)
+			{
+				Player* p_trader = ((Player *)m_caster)->GetTradeTarget();
+				if(p_trader != NULL)
+					itemTarget = p_trader->getTradeItem((uint32)m_targets.m_target->GetGUID());
+			}
+		}
+
+		if(m_targets.m_targetMask & TARGET_FLAG_UNIT && m_targets.m_target->GetGUID())
+		{
+			MapMgr* mgr = m_caster->GetMapMgr();
+			switch(GET_TYPE_FROM_GUID(m_targets.m_target->GetGUID()))
+			{
+			case HIGHGUID_TYPE_VEHICLE:
+				unitTarget = mgr->GetVehicle(GET_LOWGUID_PART(m_targets.m_target->GetGUID()));
+				break;
+			case HIGHGUID_TYPE_UNIT:
+				unitTarget = mgr->GetCreature(GET_LOWGUID_PART(m_targets.m_target->GetGUID()));
+				break;
+			case HIGHGUID_TYPE_PET:
+				unitTarget = mgr->GetPet(GET_LOWGUID_PART(m_targets.m_target->GetGUID()));
+				break;
+			case HIGHGUID_TYPE_PLAYER:
+				{
+					unitTarget = mgr->GetPlayer((uint32)m_targets.m_target->GetGUID());
+					playerTarget = static_cast<Player *>(unitTarget);
+				}break;
+			case HIGHGUID_TYPE_GAMEOBJECT:
+				gameObjTarget = mgr->GetGameObject(GET_LOWGUID_PART(m_targets.m_target->GetGUID()));
+				break;
+			case HIGHGUID_TYPE_CORPSE:
+				corpseTarget = objmgr.GetCorpse((uint32)m_targets.m_target->GetGUID());
+				break;
+			}
+		}
+	}
+	else if(guid == m_caster->GetGUID())
 	{
 		if(m_caster->IsPlayer())    playerTarget = (Player *)m_caster;      // en 1ier
 		if(m_caster->IsUnit())      unitTarget = (Unit *)m_caster;          // en 2ieme , pas de 'else', Player est aussi Unit
 		else if(m_caster->IsGO())   gameObjTarget = (GameObject *)m_caster; // en 3ieme
-		else if(m_caster->IsItem()) itemTarget = (Item *)m_caster;          // en 4ieme
+		else if(m_caster->IsItem()) // en 4ieme
+		{
+			if(m_targets.m_targetMask & TARGET_FLAG_ITEM)
+				itemTarget = ((Player *)m_caster)->GetItemInterface()->GetItemByGUID(m_targets.m_target->GetGUID());
+			if(m_targets.m_targetMask & TARGET_FLAG_TRADE_ITEM)
+			{
+				Player* p_trader = ((Player *)m_caster)->GetTradeTarget();
+				if(p_trader != NULL)
+					itemTarget = p_trader->getTradeItem((uint32)m_targets.m_target->GetGUID());
+			} 
+		}
 	}
 	else
 	{
@@ -3913,7 +3965,7 @@ void Spell::NewHandleAddAura(uint64 guid)
 	if(!Target) return;
 
 	// Applying an aura to a flagged target will cause you to get flagged.
-    // self casting doesnt flag himself.
+	// self casting doesnt flag himself.
 	if(Target->IsPlayer() && m_caster->IsPlayer() && (((Player *)m_caster) != static_cast<Player *>(Target)) )
 	{
 		if(static_cast<Player *>(Target)->IsPvPFlagged())
@@ -3988,6 +4040,11 @@ void Spell::NewHandleAddAura(uint64 guid)
 		if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_THE_BEAST_WITHIN) )
 			((Unit *)m_caster)->CastSpell(((Unit *)m_caster), 34471, true);
 	}
+	else if( m_spellInfo->NameHash == SPELL_HASH_RAPID_KILLING )
+	{
+		if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_RAPID_RECUPERATION) )
+			m_spellInfo->Id = 56654;
+	}
 
 	switch( m_spellInfo->NameHash )
 	{
@@ -4010,22 +4067,20 @@ void Spell::NewHandleAddAura(uint64 guid)
 			spell->forced_basepoints[0] = Target->GetDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY)->EffectBasePoints[0];
 
 		SpellCastTargets targets(Target); // SpellCastTargets targets(Target->GetGUID());
-		spell->prepare(&targets);	
+		spell->prepare(&targets);
 	}
 
 	if( m_spellInfo->mechanics == 31 )
 		Target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_ENRAGE);
 
 	// avoid map corruption
-	if(Target->GetInstanceID()!=m_caster->GetInstanceID())
+	if(Target->GetInstanceID() != m_caster->GetInstanceID())
 		return;
 
-	if(!Target->tmpAura.size()) return; // tmpAura seulement sur Aura de spell (pas de SpellAura d'items) ? (Branruz)
-
-	std::map<uint32,Aura *>::iterator itr=Target->tmpAura.find(m_spellInfo->Id);
+	std::map<uint32,Aura* >::iterator itr=Target->tmpAura.find(GetSpellProto()->Id);
 	if(itr!=Target->tmpAura.end())
 	{
-		Aura *aura = itr->second;
+		Aura* aura = itr->second;
 		if(aura != NULL)
 		{
 			// did our effects kill the target?
@@ -4039,8 +4094,12 @@ void Spell::NewHandleAddAura(uint64 guid)
 				return;
 			}
 
+			//make sure bg/arena preparation aura's are positive.
+			if(m_spellInfo->Id == 32727 || m_spellInfo->Id == 44521)
+				aura->SetPositive(100);
+
 			Target->AddAura(aura, NULL);
-			if(!aura->m_deletedfromtmp)
+			if(!aura->m_deletedfromtmp && !Target->tmpAura.empty())
 				Target->tmpAura.erase(itr);
 		}
 	}

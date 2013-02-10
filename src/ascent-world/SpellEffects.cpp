@@ -1750,139 +1750,135 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 	std::map<uint32,Aura* >::iterator itr=unitTarget->tmpAura.find(m_spellInfo->Id);
 	if(itr==unitTarget->tmpAura.end()) 
 	{
-	 int32 Duration = GetDuration(INVOC_DURATION);
+		int32 Duration = GetDuration(INVOC_DURATION);
 
-	 if (m_spellInfo->channelInterruptFlags != 0 && m_caster->IsUnit())
-		Duration *= ((Unit *)m_caster)->GetFloatValue(UNIT_MOD_CAST_SPEED);
+		if (m_spellInfo->channelInterruptFlags != 0 && m_caster->IsUnit())
+			Duration *= ((Unit *)m_caster)->GetFloatValue(UNIT_MOD_CAST_SPEED);
 
 		// Handle diminishing returns, if it should be resisted, it'll make duration 0 here.
-	 if(!(m_spellInfo->attributes & ATTRIBUTES_PASSIVE)) // Passive
-		::ApplyDiminishingReturnTimer(&Duration, unitTarget, m_spellInfo);
+		if(!(m_spellInfo->attributes & ATTRIBUTES_PASSIVE)) // Passive
+			::ApplyDiminishingReturnTimer(&Duration, unitTarget, m_spellInfo);
 
-	 if(Duration == 0)
-	 {
-		//maybe add some resist messege to client here ?
-		SendCastResult(SPELL_FAILED_IMMUNE);
-		return;
-	 }
+		if(Duration == 0)
+		{
+			//maybe add some resist messege to client here ?
+			SendCastResult(SPELL_FAILED_IMMUNE);
+			return;
+		}
 		
-	 if(m_caster->IsGO() && ((GameObject *)m_caster)->GetUInt32Value(OBJECT_FIELD_CREATED_BY) && ((GameObject *)m_caster)->m_summoner)
+		if(m_caster->IsGO() && ((GameObject *)m_caster)->GetUInt32Value(OBJECT_FIELD_CREATED_BY) && ((GameObject *)m_caster)->m_summoner)
 			caster = ((GameObject *)m_caster)->m_summoner;
-	 else
+		else
 			caster = m_caster;
 		
-	 //--------------------
-	 // Création de l'aura
-	 pAura = new Aura(m_spellInfo, Duration, INVOC_DURATION, caster, unitTarget);
-	 if(pAura == NULL) return;
+		//--------------------
+		// Création de l'aura
+		pAura = new Aura(m_spellInfo, Duration, INVOC_DURATION, caster, unitTarget);
+		if(pAura == NULL) return;
 	
-	 // -----------------------------------------------------------
-	 // Recherche si ya pas deja une aura d'un meme groupe de spell
-	 Aura* oldaura = NULL;
-	 // Le UniqueGroupe2 est global. Par exemple, cible les auras genre 'Aspect' 
-	 if (m_spellInfo->UniqueGroup2 != 0)
-	 {
-		Log.Warning("[SpellEffectApplyAura]","Spell: %u (%s), Aura %u -> UniqueGroupe2 : %u",
-			m_spellInfo->Id,m_spellInfo->Name,m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueGroup2);
-		/* 
-		// Pourquoi l'aura serait-elle seulement positive ? ou est-ce un toggle ? (On/Off/On)
-		// Et pourquoi virer toute les auras avec le meme groupe2 ? (devrait etre fait sur m_aurascast plutot)
-		// A voir si on s'en sert plus tard, franchement la tout d'suite, je vois pas l'interet
-		// ( - Branruz - )
-		for(uint32 x=0; x < MAX_POSITIVE_AURAS; ++x)
+		// -----------------------------------------------------------
+		// Recherche si ya pas deja une aura d'un meme groupe de spell
+		Aura* oldaura = NULL;
+		// Le UniqueGroupe2 est global. Par exemple, cible les auras genre 'Aspect' 
+		if (m_spellInfo->UniqueGroup2 != 0)
 		{
-			if(unitTarget->m_auras[x] && 
-				unitTarget->m_auras[x]->m_spellProto->UniqueGroup2 == m_spellInfo->UniqueGroup2)
+			Log.Warning("[SpellEffectApplyAura]","Spell: %u (%s), Aura %u -> UniqueGroupe2 : %u",
+				m_spellInfo->Id,m_spellInfo->Name,m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueGroup2);
+			/* 
+			// Pourquoi l'aura serait-elle seulement positive ? ou est-ce un toggle ? (On/Off/On)
+			// Et pourquoi virer toute les auras avec le meme groupe2 ? (devrait etre fait sur m_aurascast plutot)
+			// A voir si on s'en sert plus tard, franchement la tout d'suite, je vois pas l'interet
+			// ( - Branruz - )
+			for(uint32 x=0; x < MAX_POSITIVE_AURAS; ++x)
 			{
-				unitTarget->m_auras[x]->m_wasremoved = true;
-				unitTarget->m_auras[x]->Remove();
-			}
-		}
-		*/
-	 }
-	 // Le UniqueGroupe est un filtre plus fin, genre par exemple, 'Aspect du guepard' ou ' Aspect du faucon'
-	 // Cette fois ci on remplace (enventuellement) oldaura par la nouvelle aura 
-	 if (m_spellInfo->UniqueGroup != 0)
-	 {
-		Log.Warning("[SpellEffectApplyAura]","Spell: %u (%s)",m_spellInfo->Id,m_spellInfo->Name);
-		Log.Warning("                      ","Aura %u -> UniqueGroupe      %u",m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueGroup);
-		Log.Warning("                      ","Aura %u -> UniqueTargetBased %u",m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueTargetBased);
-        
-		if (m_spellInfo->UniqueTargetBased == 0)
-		{
-			oldaura = unitTarget->FindAuraByUniqueGroup(m_spellInfo->UniqueGroup, m_caster->GetGUID());
-		} 
-		if(oldaura)
-		{
-			Log.Warning("                      ","oldAura : Spell %u",oldaura->GetSpellProto()->Id);
-		}
-		/*else 
-		{
-         // target based, on peut peut-etre l'ajouté aux autres auras
-		 if (m_spellInfo->UniqueTargetBased & 1) 
-		 {
-			oldaura = unitTarget->FindAuraByUniqueGroup(m_spellInfo->UniqueGroup);
-		 }
-         // ----------------------------------------------------------------------
-		 // Test si seulement 1 par caster, on vire l'aura
-		 // genre on passe de 'Aspect du guepard' à ' Aspect du faucon', car les 2 en meme temps ca le fait pas trop, ptdr... (Brz)
-		 
-		 if (m_spellInfo->UniqueTargetBased & 2) // only one aura can be alive from the caster at any time
-		 {
-			std::multimap<uint32, Aura*>::iterator itr = ((Unit *)m_caster)->m_aurascast.find(m_spellInfo->UniqueGroup);
-			if (itr != ((Unit *)m_caster)->m_aurascast.end())
-			{
-				if (oldaura == itr->second) 
+				if(unitTarget->m_auras[x] && 
+					unitTarget->m_auras[x]->m_spellProto->UniqueGroup2 == m_spellInfo->UniqueGroup2)
 				{
-				 oldaura = NULL; 
-				 //itr->second->Remove(); // A voir
+					unitTarget->m_auras[x]->m_wasremoved = true;
+					unitTarget->m_auras[x]->Remove();
 				}
-				itr->second->Remove();
 			}
-		 }
-		 // ----------------------------------------------------------------------
-		}*/
+			*/
+		}
+		// Le UniqueGroupe est un filtre plus fin, genre par exemple, 'Aspect du guepard' ou ' Aspect du faucon'
+		// Cette fois ci on remplace (enventuellement) oldaura par la nouvelle aura 
+		if (m_spellInfo->UniqueGroup != 0)
+		{
+			Log.Warning("[SpellEffectApplyAura]","Spell: %u (%s)",m_spellInfo->Id,m_spellInfo->Name);
+			Log.Warning("                      ","Aura %u -> UniqueGroupe      %u",m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueGroup);
+			Log.Warning("                      ","Aura %u -> UniqueTargetBased %u",m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueTargetBased);
+        
+			if (m_spellInfo->UniqueTargetBased == 0)
+			{
+				oldaura = unitTarget->FindAuraByUniqueGroup(m_spellInfo->UniqueGroup, m_caster->GetGUID());
+			} 
+			if(oldaura)
+			{
+				Log.Warning("                      ","oldAura : Spell %u",oldaura->GetSpellProto()->Id);
+			}
+			/*else 
+			{
+				// target based, on peut peut-etre l'ajouté aux autres auras
+				if (m_spellInfo->UniqueTargetBased & 1) 
+				{
+					oldaura = unitTarget->FindAuraByUniqueGroup(m_spellInfo->UniqueGroup);
+				}
+				// ----------------------------------------------------------------------
+				// Test si seulement 1 par caster, on vire l'aura
+				// genre on passe de 'Aspect du guepard' à ' Aspect du faucon', car les 2 en meme temps ca le fait pas trop, ptdr... (Brz)
 		 
-	 }
+				if (m_spellInfo->UniqueTargetBased & 2) // only one aura can be alive from the caster at any time
+				{
+					std::multimap<uint32, Aura*>::iterator itr = ((Unit *)m_caster)->m_aurascast.find(m_spellInfo->UniqueGroup);
+					if (itr != ((Unit *)m_caster)->m_aurascast.end())
+					{
+						if (oldaura == itr->second) 
+						{
+							oldaura = NULL; 
+							//itr->second->Remove(); // A voir
+						}
+						itr->second->Remove();
+					}
+				}
+				// ----------------------------------------------------------------------
+			}*/
 
-	 /*
-	 //different spell, we have to remove the old aura
-	 if (oldaura != NULL && m_spellInfo->Id != oldaura->m_spellProto->Id)
-     {
-	  unitTarget->RemoveAura(oldaura);
-	  oldaura = NULL; //this makes it so we use a new aura :P
-	 }
-	 else if (m_spellInfo->cumulativeAura == 0) oldaura=unitTarget->FindAura(m_spellInfo->Id, caster->GetGUID());
-	 else                                       oldaura=unitTarget->FindAura(m_spellInfo->Id); //this aura IS UNIQUE
-	 */
-     //-----------
-     // 
-	
-	 if( (oldaura != NULL) && (Duration > 0)) // && (Duration > 0) test (Branruz)
-	 {
-	  //Log.Notice("[SpellEffectApplyAura]","Echec: Spell %u, oldaura non null: %d sec",m_spellInfo->Id,(oldaura->GetDuration(INVOC_DURATION)));
-	  oldaura->SetDuration(Duration,INVOC_DURATION);
-	  oldaura->HandleStackAdd();
-	  m_auraTargets.insert(unitTarget);
-	   Log.Warning("[SpellEffectApplyAura]","Out: Aura insert target: %u",unitTarget->GetEntry());
-	 return;
-	 }
-	 
-	 pAura->pSpellId = pSpellId; //this is required for triggered spells
-	 unitTarget->tmpAura[m_spellInfo->Id] = pAura; // equiv insert
+			if( (oldaura != NULL) && (Duration > 0)) // && (Duration > 0) test (Branruz)
+			{
+				//Log.Notice("[SpellEffectApplyAura]","Echec: Spell %u, oldaura non null: %d sec",m_spellInfo->Id,(oldaura->GetDuration(INVOC_DURATION)));
+				oldaura->SetDuration(Duration,INVOC_DURATION);
+				oldaura->HandleStackAdd();
+				m_auraTargets.insert(unitTarget);
+				Log.Warning("[SpellEffectApplyAura]","Out: Aura insert target: %u",unitTarget->GetEntry());
+				return;
+			}
+		}
+		
+		pAura->pSpellId = pSpellId; //this is required for triggered spells
 
+		//Note Randdrick : Si la même aura est appliquée sur la cible par un caster, si elle n'est pas terminée
+		// et si elle n'est pas cummulative, alors on la supprime avant de la poser à nouveau.
+		oldaura = unitTarget->FindAura(m_spellInfo->Id);
+		if( (oldaura != NULL) && (Duration > 0) && (m_spellInfo->cumulativeAura == 0) )
+		{
+			Log.Notice("[SpellEffectApplyAura]","L'aura pour le Spell %u n'est pas cummulative. Elle existe deja: %d msec",m_spellInfo->Id,(oldaura->GetDuration(INVOC_DURATION)));
+			unitTarget->RemoveAura(oldaura);
+			oldaura = NULL;
+		}
+
+		unitTarget->tmpAura[m_spellInfo->Id] = pAura; // equiv insert
+		m_spellScript->AddRef(pAura);
+		sEventMgr.AddEvent(this, &Spell::NewHandleAddAura, unitTarget->GetGUID(), EVENT_SPELL_HIT, 100, 1, 0);
 	}
 	else
 	{
-		 pAura=itr->second;
+		pAura=itr->second;
 	} 
 	miscValue = m_spellInfo->EffectMiscValue[i];
 
 	if(((Item *)m_caster) && m_caster->IsPlayer() && m_spellInfo->EffectApplyAuraName[i]==SPELL_AURA_PROC_TRIGGER_SPELL)
 		miscValue = ((Player *)m_caster)->GetItemInterface()->GetInventorySlotByGuid( ((Item *)m_caster)->GetGUID() ); // Need to know on which hands attacks spell should proc
 
-
-	bool hasmodifier = false;
 	bool boss = false;
 		
 	if (unitTarget->IsCreature())
@@ -1905,10 +1901,9 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 			}
 		}
 	}
-
-	hasmodifier = true;
-
-	if (m_caster->IsUnit() && !m_caster->IsPlayer() && (!hasmodifier || boss)) // Aura sur la ligne du bas (Debuff Player), finalement pas bien sur (Brz)
+	
+	// Randdrick : On n'applique pas les auras ci-dessus si il s'agit d'un Elite
+	if (m_caster->IsUnit() && !m_caster->IsPlayer() && boss) 
 	{
 		m_auraTargets.insert(unitTarget);
 		//SendCastResult(SPELL_FAILED_IMMUNE);
@@ -1916,30 +1911,26 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 		pAura = NULL;
 		Log.Notice("[SpellEffectApplyAura]","Suppression Ok, plus d'aura");
 		return;
-	}
-
-    
-	pAura->AddMod(m_spellInfo->EffectApplyAuraName[i],damage,miscValue,i);
-	if(pAura->m_modList[i].m_type)
-	{
-	 Log.Warning("[SpellEffectApplyAura]","Spell %u Aura %u ModList[%u] => Aura : %u, Misc : %u",m_spellInfo->Id,
-		m_spellInfo->EffectApplyAuraName[i],i,pAura->m_modList[i].m_type,pAura->m_modList[i].m_miscValue);
-	}
-	// Note randdrick : On ajoute un Event et on utilise le NewhaddleAura à la place du HanddleAura. 
-	sEventMgr.AddEvent(this, &Spell::NewHandleAddAura, unitTarget->GetGUID(), EVENT_SPELL_HIT, 100, 1, 0);
-
-	//Note Randdrick : remplacé par sEventMgr.AddEvent(this, &Spell::NewHandleAddAura, unitTarget->GetGUID(), EVENT_SPELL_HIT, 100, 1, 0);
-/*
-	else // Aura sur la ligne du haut (Buff player)
-	{
+	}	
+	
+/*		
+		//Ancienne gestion
+		//Note Randdrick : remplacé par sEventMgr.AddEvent(this, &Spell::NewHandleAddAura, unitTarget->GetGUID(), EVENT_SPELL_HIT, 100, 1, 0);
 		if (m_spellScript != NULL) m_spellScript->AddRef(pAura);
 		m_auraTargets.insert(unitTarget);
 		m_auras.insert(pAura);
 		//add the aura
 		HandleAddAura(unitTarget, pAura);
 		hadEffect=true;
-	}
+
 */
+    
+	pAura->AddMod(m_spellInfo->EffectApplyAuraName[i],damage,miscValue,i);
+	if(pAura->m_modList[i].m_type)
+	{
+		Log.Warning("[SpellEffectApplyAura]","Spell %u Aura %u ModList[%u] => Aura : %u, Misc : %u",m_spellInfo->Id,
+			m_spellInfo->EffectApplyAuraName[i],i,pAura->m_modList[i].m_type,pAura->m_modList[i].m_miscValue);		
+	}
 
 	/*Log.Notice("[SpellEffectApplyAura]","Aura %u ModList[%u] => Aura : %u, Type : %u",
 		m_spellInfo->EffectApplyAuraName[i],i,pAura->m_modList[i].index,pAura->m_modList[i].m_type);*/
@@ -5433,33 +5424,16 @@ void Spell::SpellEffectCharge(uint32 i)
 	uint32 time = uint32( (m_caster->CalcDistance(unitTarget) / ((((Unit *)m_caster)->m_runSpeed * 3.5) * 0.001f)) + 0.5);
 
 	((Unit *)m_caster)->GetAIInterface()->SendMoveToPacket(x, y, z, alpha, time, MONSTER_MOVE_FLAG_RUN);
-	/*WorldPacket data(SMSG_MONSTER_MOVE, 50);
-	data << m_caster->GetNewGUID();
-	data << uint8(0);
-	data << m_caster->GetPositionX();
-	data << m_caster->GetPositionY();
-	data << m_caster->GetPositionZ();
-	data << getMSTime();
-	data << uint8(0x00);
-	data << uint32(0x00001000);
-	data << time;
-	data << uint32(1);
-	data << x << y << z;*/
 	if(unitTarget->GetTypeId() == TYPEID_UNIT)
 		unitTarget->GetAIInterface()->StopMovement(2000);
-
-	// u_caster->SendMessageToSet(&data, true);
 	
 	((Unit *)m_caster)->SetPosition(x,y,z,alpha,true);
-	if (isHostile(((Unit *)m_caster), unitTarget))
+	((Unit *)m_caster)->addStateFlag(UF_ATTACKING);
+	((Unit *)m_caster)->smsg_AttackStart( unitTarget );
+	if( m_caster->IsPlayer() )
 	{
-		((Unit *)m_caster)->addStateFlag(UF_ATTACKING);
-		((Unit *)m_caster)->smsg_AttackStart( unitTarget );
-		if( m_caster->IsPlayer() )
-		{
-			((Player *)m_caster)->EventAttackStart();
-			((Player *)m_caster)->ResetHeartbeatCoords();
-		}
+		((Player *)m_caster)->EventAttackStart();
+		((Player *)m_caster)->ResetHeartbeatCoords();
 	}
 	((Unit *)m_caster)->setAttackTimer(time, false);
 	((Unit *)m_caster)->setAttackTimer(time, true);
