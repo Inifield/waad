@@ -877,7 +877,7 @@ public:
 
 	
 
-	ASCENT_INLINE void AddProcFnc(uint32 type, ProcFnc* p) { m_procfuncs.insert(std::make_pair<uint32, ProcFnc*>(type, p)); }
+	ASCENT_INLINE void AddProcFnc(uint32 type, ProcFnc* p) { m_procfuncs.insert(std::pair<uint32, ProcFnc*>(type, p)); }
 	/*
 	all optional, no creator or proctype will erase all,
 	creator will erase by creator, proctype will erase by proctype,

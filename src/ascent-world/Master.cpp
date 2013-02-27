@@ -322,7 +322,7 @@ bool Master::Run(int argc, char ** argv)
 				uint32 sqlrev;
 				char garbage[1024];
 				sscanf(find_data.cFileName, "%u_%s", &sqlrev, &garbage);
-				database_updates.insert(std::make_pair<uint32, std::string>(sqlrev, std::string(find_data.cFileName)));
+				database_updates.insert(std::pair<uint32, std::string>(sqlrev, std::string(find_data.cFileName)));
 			}
 			while (FindNextFile(fhandle, &find_data));
 

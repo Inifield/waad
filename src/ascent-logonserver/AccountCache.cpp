@@ -149,7 +149,7 @@ void AccountMgr::AddAccount(Field* field)
 		bn.SetHexStr( EncryptedPassword.c_str() );
 		if( EncryptedPassword.size() != 40 )
 		{
-			printf("Le compte `%s` a un nombre incorrecte d'octets dans le mot de passe code! Deactive.\n", Username.c_str(), bn.GetNumBytes());
+			printf("Le compte `%s` a un nombre %u incorrecte d'octets dans le mot de passe code! Deactive.\n", Username.c_str(), bn.GetNumBytes());
 			memset(acct->SrpHash, 0, 20);
 		}
 		else
@@ -231,7 +231,7 @@ void AccountMgr::UpdateAccount(Account * acct, Field * field)
 		bn.SetHexStr( EncryptedPassword.c_str() );
 		if( EncryptedPassword.size() != 40 )
 		{
-			printf("Le compte `%s` a un nombre incorrecte d'octets dans le mot de passe code! Deactive.\n", Username.c_str(), bn.GetNumBytes());
+			printf("Le compte `%s` a un nombre %u incorrecte d'octets dans le mot de passe code! Deactive.\n", Username.c_str(), bn.GetNumBytes());
 			memset(acct->SrpHash, 0, 20);
 		}
 		else

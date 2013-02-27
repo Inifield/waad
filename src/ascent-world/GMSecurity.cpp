@@ -64,7 +64,7 @@ void GMSecurityMgr::Init()
 	if (itr == m_Groups.end())
 	{
 		GMGroup* grp = NULL;
-		m_Groups.insert(make_pair<uint8,GMGroup*>(255, grp = new GMGroup(255)));
+		m_Groups.insert(pair<uint8,GMGroup*>(255, grp = new GMGroup(255)));
 		grp->m_Inherits = m_Flags;
 	}
 	else
@@ -113,7 +113,7 @@ GMFlags* GMSecurityMgr::DefineInheritedFlags(char k)
 {
 	GMFlags* set = GetInheritedFlags(k);
 	if (set == NULL)
-		m_FlagsMap->insert(make_pair<char, GMFlags*>(k, set = new GMFlags()));
+		m_FlagsMap->insert(pair<char, GMFlags*>(k, set = new GMFlags()));
 	return set;
 }
 
@@ -197,7 +197,7 @@ GMGroup* GMSecurityMgr::DefineGroup(const uint8 arg)
 {
 	GMGroup* grp = GetGroup(arg);
 	if (!grp)
-		m_Groups.insert(make_pair<uint8,GMGroup*>(arg, grp = new GMGroup(arg)));
+		m_Groups.insert(pair<uint8,GMGroup*>(arg, grp = new GMGroup(arg)));
 	return grp;
 }
 

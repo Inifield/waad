@@ -468,7 +468,7 @@ bool Spell::AddTarget(uint32 i, uint32 TargetType, Object* obj)
 				s.HasEffect[i] = false;
 				s.TargetModType = hitresult;
 				s.ExtendedTargetModType = extended;
-				m_spellTargets.insert(std::make_pair<Object*, SpellTargetEntry>(obj, s));
+				m_spellTargets.insert(std::pair<Object*, SpellTargetEntry>(obj, s));
 				++m_objectsModerated;
 			}
 			return false;
@@ -544,7 +544,7 @@ bool Spell::AddTarget(uint32 i, uint32 TargetType, Object* obj)
 		}
 		if (obj->IsUnit())
 			s.EffectPoints[i] = CalculateEffect(i, static_cast<Unit *>(obj));
-		m_spellTargets.insert(std::make_pair<Object *, SpellTargetEntry>(obj, s));
+		m_spellTargets.insert(std::pair<Object *, SpellTargetEntry>(obj, s));
 		m_orderedObjects.push_back(obj);
 		++m_objectsHit;
 	}

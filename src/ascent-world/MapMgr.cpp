@@ -2026,7 +2026,7 @@ Vehicle* MapMgr::CreateVehicle(uint32 entry)
 	v->Init();
 	//ASSERT( v->GetTypeFromGUID() == HIGHGUID_TYPE_VEHICLE );
 	if(v->GetTypeFromGUID() != HIGHGUID_TYPE_VEHICLE) return NULL;
-	m_VehicleStorage.insert( make_pair< const uint32, Vehicle* >(v->GetUIdFromGUID(), v));
+	m_VehicleStorage.insert( pair< const uint32, Vehicle* >(v->GetUIdFromGUID(), v));
 	return v;
 }
 

@@ -58,14 +58,14 @@ public:
 	ASCENT_INLINE void AddSessionRPInfo(Session* s, RPlayerInfo* p)
 	{
 		m_lock.AcquireWriteLock();
-		m_sessionsbyinfo.insert(std::make_pair<RPlayerInfo*, Session*>(p, s));
+		m_sessionsbyinfo.insert(std::pair<RPlayerInfo*, Session*>(p,s));
 		m_lock.ReleaseWriteLock();
 	}
 
 	ASCENT_INLINE void AddStringPlayerInfo(RPlayerInfo* p)
 	{
 		m_lock.AcquireWriteLock();
-		m_stringclients.insert(std::make_pair<std::string, RPlayerInfo*>(p->Name, p));
+		m_stringclients.insert(std::pair<std::string, RPlayerInfo*>(p->Name, p));
 		m_lock.ReleaseWriteLock();
 	}
 
