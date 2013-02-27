@@ -1793,7 +1793,8 @@ void Spell::cast(bool check)
 						else if(m_targets.m_target)
 							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, m_targets.m_target->GetGUID());
 						else
-							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSelection());					}
+							((Unit *)m_caster)->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,((Player *)m_caster)->GetSelection());	
+					}
 					else
 					{
 						if(((Player *)m_caster)->GetSelection())
@@ -2633,7 +2634,7 @@ void Spell::finish()
 	if( m_caster->IsPlayer() )
 	{
 		if( m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed() ) )
-			RemoveItems();
+			RemoveItems((Item *)m_owner);
 	}
 	
 	/*
@@ -6102,39 +6103,39 @@ uint8 Spell::CanCast(bool tolerate)
 	return SPELL_CANCAST_OK;
 }
 
-void Spell::RemoveItems()
+void Spell::RemoveItems(Item *Item_To_Remove)
 {
 	// Item Charges & Used Item Removal
-	if(m_caster->IsItem())
+	if(Item_To_Remove)
 	{
 		// Stackable Item -> remove 1 from stack
-		if(((Item *)m_caster)->GetUInt32Value(ITEM_FIELD_STACK_COUNT) > 1)
+		if(Item_To_Remove->GetUInt32Value(ITEM_FIELD_STACK_COUNT) > 1)
 		{
-			((Item *)m_caster)->ModUnsigned32Value(ITEM_FIELD_STACK_COUNT, -1);
-			((Item *)m_caster)->m_isDirty = true;
+			Item_To_Remove->ModUnsigned32Value(ITEM_FIELD_STACK_COUNT, -1);
+			Item_To_Remove->m_isDirty = true;
 		}
 		// Expendable Item
-		else if(((Item *)m_caster)->GetProto()->Spells[0].Charges < 0
-		     || ((Item *)m_caster)->GetProto()->Spells[1].Charges == -1) // hackfix for healthstones/mana gems/depleted items
+		else if(Item_To_Remove->GetProto()->Spells[0].Charges < 0
+		     || Item_To_Remove->GetProto()->Spells[1].Charges == -1) // hackfix for healthstones/mana gems/depleted items
 		{
 			// if item has charges remaining -> remove 1 charge
-			if(((int32)((Item *)m_caster)->GetUInt32Value(ITEM_FIELD_SPELL_CHARGES)) < -1)
+			if(((int32)Item_To_Remove->GetUInt32Value(ITEM_FIELD_SPELL_CHARGES)) < -1)
 			{
-				((Item *)m_caster)->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, 1);
-				((Item *)m_caster)->m_isDirty = true;
+				Item_To_Remove->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, 1);
+				Item_To_Remove->m_isDirty = true;
 			}
 			// if item has no charges remaining -> delete item
 			else
 			{
-				((Item *)m_caster)->GetOwner()->GetItemInterface()->SafeFullRemoveItemByGuid(((Item *)m_caster)->GetGUID());
+				Item_To_Remove->GetOwner()->GetItemInterface()->SafeFullRemoveItemByGuid(((Item *)m_caster)->GetGUID());
 				m_caster = NULL;
 			}
 		}
 		// Non-Expendable Item -> remove 1 charge
-		else if(((Item *)m_caster)->GetProto()->Spells[0].Charges > 0)
+		else if(Item_To_Remove->GetProto()->Spells[0].Charges > 0)
 		{
-			((Item *)m_caster)->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, -1);
-			((Item *)m_caster)->m_isDirty = true;
+			Item_To_Remove->ModUnsigned32Value(ITEM_FIELD_SPELL_CHARGES, -1);
+			Item_To_Remove->m_isDirty = true;
 		}
 	} 
 

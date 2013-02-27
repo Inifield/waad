@@ -2031,7 +2031,7 @@ public:
     uint8 CanCast(bool);
 	uint8 CanCastSpell(void); // Nouvelle fonction (Recodage des spells)
     // Removes reagents, ammo, and items/charges
-    void RemoveItems();
+    void RemoveItems(Item *Item_To_Remove);
     // Calculates the i'th effect value
     int32 CalculateEffect(uint32, Unit *target);
     // Handles Teleport function
