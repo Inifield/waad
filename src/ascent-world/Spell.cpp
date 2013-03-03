@@ -6127,7 +6127,7 @@ void Spell::RemoveItems(Item *Item_To_Remove)
 			// if item has no charges remaining -> delete item
 			else
 			{
-				Item_To_Remove->GetOwner()->GetItemInterface()->SafeFullRemoveItemByGuid(((Item *)m_caster)->GetGUID());
+				Item_To_Remove->GetOwner()->GetItemInterface()->SafeFullRemoveItemByGuid(((Item *)Item_To_Remove)->GetGUID());
 				m_caster = NULL;
 			}
 		}
