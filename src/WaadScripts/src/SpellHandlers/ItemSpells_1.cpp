@@ -256,13 +256,19 @@ bool ForemansBlackjack(uint32 i, Spell *pSpell)
 	target->SendChatMessage(CHAT_MSG_MONSTER_SAY, LANG_UNIVERSAL, msg);
 
 	Creature* c_target = (Creature*)target;
-	if(!c_target) return true;
+	if(c_target->GetEntry() != 10556 || !c_target->HasAura(17743))
+		return true;
 
-	uint32 creatureID = c_target->GetEntry();
+	// Le pnj peut se déplacer
+	if(target->GetAIInterface())
+		target->GetAIInterface()->StopMovement(0);
 
-  // check to see that we have the correct creature and increment the quest log
-	if(creatureID == 10556) // __Turtle_Scale_Leggings (le spell)
-		sQuestMgr.OnPlayerKill(((Player *)pSpell->m_caster), c_target);
+	// On enlève les auras du pnj
+	c_target->RemoveAllAuras();
+
+	// Ajout d'un timer sur les péons qui se rendorment après 5-10 minutes
+	SpellEntry* pSpellEntry = dbcSpell.LookupEntry(17743);
+	sEventMgr.AddEvent(target , &Unit::EventCastSpell , target , pSpellEntry , EVENT_UNK, 300000 + RandomUInt(300000) , 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 
 	return true;
 }
