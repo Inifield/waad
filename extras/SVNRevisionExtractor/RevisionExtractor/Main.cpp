@@ -17,7 +17,7 @@ int main()
 	/* For now let's just try with to get the revision from "svn info"
 	*/
 
-	FILE* entries = fopen("../.svn/entries", "r");
+	FILE * entries = fopen("../.svn/entries", "r");
 
 	if (entries == NULL)
 	{
@@ -25,10 +25,10 @@ int main()
 		if (svninfoOutput != NULL)
 		{
 			int character;
-			//the revision number is at 6th line so stop after that. "5" is the count of "\n" to skip
-			const int revisionLine = 5;
+			//the revision number is at 6th line so stop after that. "6" is the count of "\n" to skip
+			const int revisionLine = 6;
 			int line = 0;
-			char revisionNumber[5];
+			char revisionNumber[6];
 			memset(revisionNumber, 0, sizeof(revisionNumber));
 			int revisionDigits = 0;
 

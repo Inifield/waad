@@ -107,10 +107,9 @@ void ClusterInterface::ConnectionDropped()
 void ClusterInterface::ConnectToRealmServer()
 {
 	_lastConnectTime = UNIXTIME;
-	string hostname;
+	string hostname, strkey;
 	int port;
-	string strkey = Config.MainConfig.GetStringDefault("Cluster", "Key","r3m0t3");
-	if(!Config.MainConfig.GetString("Cluster", "RSHostName", &hostname) || !Config.MainConfig.GetInt("Cluster", "RSPort", &port) /*|| !Config.MainConfig.GetString("Cluster", "Key", &strkey)*/)
+	if(!Config.MainConfig.GetString("Cluster", "RSHostName", &hostname) || !Config.MainConfig.GetInt("Cluster", "RSPort", &port) || !Config.MainConfig.GetString("Cluster", "RSPassword", &strkey))
 	{
 		Log.Error("ClusterInterface", "Ne peut pas obtenir des champs nécessaires du fichier de config. S'il vous plaît, corrigez et rehash.");
 		return;

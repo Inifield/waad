@@ -24,21 +24,15 @@ LogonCommHandler::LogonCommHandler()
 {
 	idhigh = 1;
 	next_request = 1;
-	string strkey = Config.ClusterConfig.GetStringDefault("Cluster", "Key", "r3m0t3b5d");
+	string logon_pass;
 	pings = !Config.RealmConfig.GetBoolDefault("LogonServer", "DisablePings", false);
-	string logon_pass = Config.RealmConfig.GetStringDefault("LogonServer", "RemotePassword", "r3m0t3");
+	Config.RealmConfig.GetString("LogonServer", "RemotePassword", &logon_pass);
 	
 	// sha1 hash it
 	Sha1Hash hash;
 	hash.UpdateData(logon_pass);
 	hash.Finalize();
-	memcpy(sql_passhash, hash.GetDigest(), 20);
-	
-	/* hash the cluster key */
-	Sha1Hash k;
-	k.UpdateData(strkey);
-	k.Finalize();
-	memcpy(key, k.GetDigest(), 20);
+	memcpy(sql_passhash, hash.GetDigest(), 20);	
 }
 
 LogonCommHandler::~LogonCommHandler()
