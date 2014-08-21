@@ -121,12 +121,22 @@ void InstanceMgr::Shutdown()
 	{
 		if(m_instances[i])
 		{
-			for(itr = m_instances[i]->begin(); itr != m_instances[i]->end(); ++itr)
+			/*for(itr = m_instances[i]->begin(); itr != m_instances[i]->end(); ++itr)
 			{
 				if(itr->second->m_mapMgr)
 					itr->second->m_mapMgr->KillThread();
 
 				delete itr->second;
+			}*/
+			itr = m_instances[i]->begin();
+			while ( itr != m_instances[i]->end() )
+			{
+				if(itr->second->m_mapMgr)
+				{
+					delete itr->second;
+					itr = m_instances[i]->erase(itr);
+				}
+				else ++itr;
 			}
 
 			delete m_instances[i];

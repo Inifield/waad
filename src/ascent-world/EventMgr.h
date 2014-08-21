@@ -240,6 +240,8 @@ enum EventTypes
 	EVENT_BEACON_REMOVE,
 	//EVENT_UNPOSSESS,
 	EVENT_PLAYER_AVENGING_WRATH,
+	EVENT_REGAIN_FLIGHT,
+	EVENT_RESET_REDIRECT_THREAT,
 	EVENT_CHECK_CURRENCIES // Toujours le dernier celui-la Plz! (Brz)
 };
 
@@ -251,7 +253,12 @@ enum EventFlags
 	EVENT_FLAG_FIRE_ON_DELETE					= 0x4,
 	EVENT_FLAG_MOVE_TO_WORLD_CONTEXT			= 0x8
 };
-
+enum EventRepeat
+{
+	EVENT_PERMANENT	= 0,
+	EVENT_ONE_SHOT	= 1
+};
+	
 class EventableObject;
 
 struct SERVER_DECL TimedEvent

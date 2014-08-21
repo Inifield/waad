@@ -523,7 +523,10 @@ enum School
     SCHOOL_NATURE = 3,
     SCHOOL_FROST  = 4,
     SCHOOL_SHADOW = 5,
-    SCHOOL_ARCANE = 6
+    SCHOOL_ARCANE = 6,
+	SCHOOL_NOFIRE = 7,
+	SCHOOL_MAGIC  = 8,
+	SCHOOL_ALL	  = 9
 };
 
 enum SchoolMask
@@ -548,6 +551,7 @@ enum SchoolMask
 																	   // __Arcane_Breath___4 61079
 	SCHOOL_MASK_ARCSHAD      = SCHOOL_MASK_ARCANE | SCHOOL_MASK_SHADOW, // __Psychic_Scream___4 43432
 	SCHOOL_MASK_NOFIRE       = 0x7B, // __PvP_Vehicle_Health_Regen_Suppression 52455
+	SCHOOL_MASK_MAGIC		 = 0x7E, // Magic 
 	SCHOLL_MASK_ALL          = 0x7F, // __Physical_Debuffs_2   31966
 	                                 // __Flames_of_Chaos___1  39055             
 	                                 // __Rain_of_Chaos___2    40948
@@ -558,7 +562,7 @@ enum SchoolMask
 };
 
 // converting schools for 2.4.0 client
-static const uint32 g_spellSchoolConversionTable[SCHOOL_ARCANE+7] = 
+static const uint32 g_spellSchoolConversionTable[SCHOOL_ALL+7] = 
 {
 	1,				// SCHOOL_NORMAL
 	2,				// SCHOOL_HOLY
@@ -573,6 +577,9 @@ static const uint32 g_spellSchoolConversionTable[SCHOOL_ARCANE+7] =
 	48, 			// SCHOOL_SHADOW +  SCHOOL_FROST - Par randdrick - Source WoWWiki
 	64,				// SCHOOL_ARCANE
 	68,				// SCHOOL_ARCANE + SCHOOL_FIRE - Par randdrick - Source WoWWiki
+	123,			// SCHOOL_NOFIRE
+	126,			// SCHOOL_MAGIC
+	127				// SCHOOL_ALL
 };
 
 enum ReplenishType
@@ -1467,8 +1474,9 @@ public:
 	 {
 	  if(target->IsPlayer())    m_targetMask = TARGET_FLAG_SELF;
 	  else if(target->IsUnit()) m_targetMask = TARGET_FLAG_UNIT;
+	  else if(target->IsItem()) m_targetMask = TARGET_FLAG_ITEM;
+	  //else if(target->IsItem()) m_targetMask = TARGET_FLAG_OBJECT; Note Randdrick : Pourquoi le falg du TargetMask serait-il un Objet ?
 	  else if(target->IsGO())   m_targetMask = TARGET_FLAG_OBJECT;
-	  else if(target->IsItem()) m_targetMask = TARGET_FLAG_OBJECT;
 	  else                      m_targetMask = 0;
 	 }
 	 else m_targetMask = 0;
@@ -2110,7 +2118,9 @@ public:
     void SpellEffectLearnSpell(uint32 i);
     void SpellEffectSpellDefense(uint32 i);
     void SpellEffectDispel(uint32 i);
+	void SpellEffectLanguage(uint32 i);
     void SpellEffectSkillStep(uint32 i);
+	void SpellEffectDetect(uint32 i);
     void SpellEffectSummonObject(uint32 i);
     void SpellEffectEnchantItem(uint32 i);
     void SpellEffectEnchantItemTemporary(uint32 i);
@@ -2125,6 +2135,7 @@ public:
     void SpellEffectHealMaxHealth(uint32 i);
     void SpellEffectInterruptCast(uint32 i);
     void SpellEffectDistract(uint32 i);
+	void SpellEffectPull(uint32 i);
     void SpellEffectPickpocket(uint32 i);
     void SpellEffectAddFarsight(uint32 i);
     void SpellEffectHealMechanical(uint32 i);
@@ -2174,6 +2185,7 @@ public:
     void SpellEffectAddHonor(uint32 i);
     void SpellEffectSpawn(uint32 i);
     void SpellEffectApplyAura128(uint32 i);
+	void SpellEffectRedirectThreat(uint32 i);
 	void SpellEffectTriggerSpellWithValue(uint32 i);
 	void SpellEffectPlayMusic(uint32 i);
 	void SpellEffectForgetSpecialization(uint32 i);
@@ -2189,10 +2201,21 @@ public:
 	void SpellEffectActivateSpec(uint32 i);
 	void SpellEffectRestoreHealthPct(uint32 i);
 	void SpellEffectRestoreManaPct(uint32 i);
+	void SpellEffectDisengage(uint32);
 	void SpellEffectTitanGrip(uint32 i);
+	void SpellEffectApplyDemonAura( uint32 i );
+	void SpellEffectActivateRune(uint32 i);
+	void SpellEffectFailQuest(uint32 i);
+	void SpellEffectStartQuest(uint32 i);
+	void SpellEffectCreatePet(uint32 i);
+	void SpellEffectAddPrismaticSocket(uint32 i);
+	void SpellEffectAllowPetRename( uint32 i );
+	void SpellEffectActivateTalentSpec(uint32 i);
+	void SpellEffectRemoveAura(uint32 i);
 	// GoDestructible
 	void SpellEffectWMODamage(uint32 i);
 	void SpellEffectWMORepair(uint32 i);
+	void SpellEffectChangeWMOState(uint32 i);
 	// MegaBigBoss
 	void SpellEffectTeleportUnitsFaceCaster(uint32 i);
 
@@ -2206,6 +2229,7 @@ public:
 	void AddRaidTargets(uint32 i, uint32 TargetType, float r, uint32 maxtargets, bool partylimit = false);
 	void AddChainTargets(uint32 i, uint32 TargetType, float r, uint32 maxtargets);
 	void AddConeTargets(uint32 i, uint32 TargetType, float r, uint32 maxtargets);
+	void AddScriptedOrSpellFocusTargets(uint32 i, uint32 TargetType, float r, uint32 maxtargets);
 
     void Heal(int32 amount, bool ForceCrit = false);
 	//void Heal(int32 amount);

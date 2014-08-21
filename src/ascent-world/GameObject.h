@@ -686,10 +686,26 @@ public:
 	uint32 GetGOReqSkill();
 	MapCell * m_respawnCell;
 
+//	custom functions for scripting
+	void SetState(uint8 state) { SetByte(GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_STATE, state); }
+	uint8 GetState() { return GetByte(GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_STATE); }
+	void SetAnimProgress(uint32 animprogress) { SetByte( GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_ANIMPROGRESS, animprogress ); }
+	uint32 GetAnimProgress() { return GetByte( GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_ANIMPROGRESS ); }
+	void SetFlags(uint32 flags) { SetUInt32Value(GAMEOBJECT_FLAGS, flags ); }
+	uint32 GetFlags() { return GetUInt32Value( GAMEOBJECT_FLAGS ); }
+	void SetType(uint8 type) { SetByte( GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_TYPE_ID, type ); }
+	uint8 GetType() { return GetByte( GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_TYPE_ID ); }
+	void SetLevel(uint32 level) { SetUInt32Value( GAMEOBJECT_LEVEL, level ); }
+	uint32 GetLevel() { return GetUInt32Value( GAMEOBJECT_LEVEL ); }
+	void SetDisplayId(uint32 id) { SetUInt32Value( GAMEOBJECT_DISPLAYID, id ); }
+	uint32 GetDisplayId() { return GetUInt32Value( GAMEOBJECT_DISPLAYID ); }
+
 	uint32 Health;
 	uint32 HealthMax;
 	uint32 HealthMid;
 	void TakeDamage(uint32 ammount);
+	void Damage();
+	void Destroy();
 	void Rebuild();
 
 protected:

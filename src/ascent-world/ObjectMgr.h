@@ -62,6 +62,21 @@ struct ProfessionDiscovery
 	float Chance;
 };
 
+struct RandomItemCreation
+{
+	uint32 SpellId;
+	uint32 ItemToCreate;
+	uint32 Skill;
+	uint32 Chance;
+};
+
+struct RandomCardCreation
+{
+	uint32 SpellId;
+	uint32 ItemId[32];
+	uint32 itemcount;
+};
+
 struct ZoneGuardEntry
 {
 	uint32 ZoneID;

@@ -752,6 +752,8 @@ Unfriendly	    3,000	 Cannot buy, sell or interact.
 Hostile	        3,000	 You will always be attacked on sight
 Hated	        36,000 
 */
+static const uint8 baseRunes[6] = {RUNE_TYPE_BLOOD,RUNE_TYPE_BLOOD,RUNE_TYPE_FROST,RUNE_TYPE_FROST,RUNE_TYPE_UNHOLY,RUNE_TYPE_UNHOLY};
+
 enum FactionRating
 {
 	HATED,
@@ -1038,11 +1040,25 @@ public:
 	uint8 m_runemask;
 	uint32 m_timesync;
 
+	uint8 GetRune(uint32 index)
+	{
+		return m_runes[index];
+	}
+	uint8 GetBaseRune(uint8 index)
+	{
+		return baseRunes[index];
+	}
+	void SetRune(uint8 index, uint8 value)
+	{
+		m_runes[index] = value;
+	}
+
 	void ScheduleRuneRefresh(uint8 index, bool forceDeathRune = false);
 
 	bool CanUseRunes(uint8 RuneBlood, uint8 RuneFrost, uint8 RuneUnholy);
 	void UseRunes(uint8 RuneBlood, uint8 RuneFrost, uint8 RuneUnholy, SpellEntry * pSpell = NULL);
 	uint8 TheoreticalUseRunes(uint8 RuneBlood, uint8 RuneFrost, uint8 RuneUnholy);
+	void ClearRuneCooldown(uint8 index);
 
 	uint32 m_deathRuneMasteryChance;
 	

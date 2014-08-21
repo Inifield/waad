@@ -47,6 +47,8 @@ const char * gWorldMapInfoFormat						= "uuuuufffusuuuuuuuufuuu";
 const char * gZoneGuardsFormat							= "uuu";
 const char * gAchievementRewardFormat					= "uuuu"; // HearthStone
 const char * gProfessionDiscoveryFormat					= "uuuu"; // HearthStone
+const char * gRandomItemCreationFormat					= "uuuu"; // HearthStone
+const char * gRandomCardCreationFormat					= "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"; // HearthStone
 
 /** SQLStorage symbols
  */
@@ -67,6 +69,8 @@ SERVER_DECL SQLStorage<TeleportCoords, HashMapStorageContainer<TeleportCoords> >
 SERVER_DECL SQLStorage<FishingZoneEntry, HashMapStorageContainer<FishingZoneEntry> >		FishingZoneStorage;
 SERVER_DECL SQLStorage<MapInfo, ArrayStorageContainer<MapInfo> >							WorldMapInfoStorage;
 SERVER_DECL SQLStorage<ZoneGuardEntry, HashMapStorageContainer<ZoneGuardEntry> >			ZoneGuardStorage;
+SERVER_DECL SQLStorage<RandomItemCreation, HashMapStorageContainer<RandomItemCreation> >	RandomItemCreationStorage; // HearthStone
+SERVER_DECL SQLStorage<RandomCardCreation, HashMapStorageContainer<RandomCardCreation> >	RandomCardCreationStorage; // HearthStone
 
 SERVER_DECL set<string> ExtraMapCreatureTables;
 SERVER_DECL set<string> ExtraMapGameObjectTables;
@@ -540,6 +544,8 @@ void Storage_FillTaskList(TaskList & tl)
 	make_task(ZoneGuardStorage, ZoneGuardEntry, HashMapStorageContainer, "zoneguards", gZoneGuardsFormat);
 	make_task(AchievementRewardStorage, AchievementReward, HashMapStorageContainer, "achievement_rewards", gAchievementRewardFormat); // HearthStone
 	make_task(ProfessionDiscoveryStorage, ProfessionDiscovery, HashMapStorageContainer, "professiondiscoveries", gProfessionDiscoveryFormat); // HearthStone
+	make_task(RandomItemCreationStorage, RandomItemCreation, HashMapStorageContainer, "randomitemcreation", gRandomItemCreationFormat); // HearthStone
+	make_task(RandomCardCreationStorage, RandomCardCreation, HashMapStorageContainer, "randomcardcreation", gRandomCardCreationFormat); // HearthStone
 }
 
 void Storage_Cleanup()

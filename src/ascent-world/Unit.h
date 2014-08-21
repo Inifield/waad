@@ -1631,7 +1631,11 @@ public:
 	void SetPNJIsSpeaker(bool _m_speaker) { m_speaker = _m_speaker; }
 	bool IsSpeaker(void) { return(m_speaker); }
 	void SearchBestResponse(Player* plr,string texte_player);
-	
+	void EventRegainFlight();
+	void SetRedirectThreat(Unit * target, float amount, uint32 Duaration);
+	void EventResetRedirectThreat();
+	void knockback(int32 basepoint, uint32 miscvalue, bool disengage = false );
+
 protected:
 	Unit ();
 

@@ -2633,8 +2633,15 @@ void Spell::finish()
 	
 	if( m_caster->IsPlayer() )
 	{
-		if( m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed() ) )
-			RemoveItems((Item *)m_owner);
+		if( hadEffect || m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed() ) )
+		{
+			if(m_owner && m_owner->IsItem()) // Normalement c'est un Item
+				RemoveItems((Item *)m_owner); 
+			else
+				Log.Error("[Spell::finish()]","Remove: pas un Item <---- Report this to devs.");
+		}		// Attention: L'owner n'est pas forcement definie directement (trames reseaux)
+				// en tout cas, bien verifier que l'item stack se decompte correctement via un SpellEffect si m_owner est NULL
+				//else Log.Error("[Spell::finish()]","Remove: m_owner NULL <---- Report this to devs."); // N'arrive jamais non plus, sauf via SpellEffect (Brz)
 	}
 	
 	/*
@@ -3587,7 +3594,7 @@ void Spell::HandleCastEffects(Object* obj, uint32 i, bool reflected)
 	}
 	else
 	{
-		if(!m_caster->IsInWorld() || m_targets.m_targetMask & (TARGET_FLAG_TRADE_ITEM | TARGET_FLAG_TRADE_ITEM))
+		if(!m_caster->IsInWorld() || m_targets.m_targetMask & TARGET_FLAG_TRADE_ITEM )
 		{
 			HandleEffects(obj, i, reflected);
 			return;

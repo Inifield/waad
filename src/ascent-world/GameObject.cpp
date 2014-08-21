@@ -931,6 +931,31 @@ void GameObject::TakeDamage(uint32 ammount)
 	*/
 }
 
+void GameObject::Damage()
+{
+	SetFlags(GO_FLAG_DAMAGED_20);
+	if(pInfo->destructibleBuilding.DestructibleData != 0)
+	{
+		DestructibleModelDataEntry * display = dbcDestructibleModelDataEntry.LookupEntry( pInfo->destructibleBuilding.DestructibleData );
+		SetDisplayId(display->GetDisplayId(1));
+	}
+	else
+		SetDisplayId(pInfo->destructibleBuilding.DisplayId_50PCT);
+}
+
+void GameObject::Destroy()
+{
+	RemoveFlag(GAMEOBJECT_FLAGS,GO_FLAG_DAMAGED_20);
+	SetFlags(GO_FLAG_DAMAGED_40);
+	if(pInfo->destructibleBuilding.DestructibleData != 0)
+	{
+		DestructibleModelDataEntry * display = dbcDestructibleModelDataEntry.LookupEntry( pInfo->destructibleBuilding.DestructibleData );
+		SetDisplayId(display->GetDisplayId(3));
+	}
+	else
+		SetDisplayId(pInfo->destructibleBuilding.DisplayId_Detruit);
+}
+
 void GameObject::Rebuild()
 {
 	SetUInt32Value(GAMEOBJECT_DISPLAYID, pInfo->DisplayID);

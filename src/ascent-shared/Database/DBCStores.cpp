@@ -84,6 +84,7 @@ SERVER_DECL DBCStorage<WorldSafeLocsStoreEntry> dbcWorldSafeLocsStore;
 SERVER_DECL DBCStorage<CurrencyTypesEntry> dbcCurrencyTypes;
 SERVER_DECL DBCStorage<QuestXPLevel> dbcQuestXPLevel;
 SERVER_DECL DBCStorage<QuestFactionRewardEntry> dbcQuestFactionReward;
+SERVER_DECL DBCStorage<DestructibleModelDataEntry> dbcDestructibleModelDataEntry;
 // Arcemu
 SERVER_DECL DBCStorage<AreaTableEntry> dbcWMOAreaTable;
 
@@ -194,6 +195,7 @@ const char* spellentryFormat   = "uuuuuuuuuuuxuxuxuuuuuuuuuuuuuuuuuuuuiuuuuiuuuu
 //                                                                                                                                   11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222   
 const char* XpQuestformat = "uxuuuuuuuux";
 const char* QuestFactRewformat = "uuuuuuuuuuu";
+const char* DestructibleModelDataFormat = "uxxuxxxuxxxuxxxuxxx";
 // Arcemu
 const char* wmoareaformat = "uiiixxxxxuuxxxxxxxxxxxxxxxxx";
 //---------------
@@ -302,6 +304,7 @@ bool LoadDBCs()
 	LOAD_DBC(_DBCPath,"Vehicle.dbc", VehicleEntryFormat, true, dbcVehicle, true);
 	LOAD_DBC(_DBCPath,"VehicleSeat.dbc", vehicleseatentryFormat, true, dbcVehicleSeat, true);
 	LOAD_DBC(_DBCPath,"WorldMapOverlay.dbc", WorldMapOverlayfmt, true, dbcWorldMapOverlay, true);
+	LOAD_DBC(_DBCPath,"DestructibleModelData.dbc",DestructibleModelDataFormat, true, dbcDestructibleModelDataEntry, false);
 	//-----------
 	// Mangos
 	LOAD_DBC(_DBCPath,"QuestXP.dbc", XpQuestformat, true, dbcQuestXPLevel, false );

@@ -1,0 +1,41 @@
+-- ----------------------------
+-- Table structure for randomcardcreation
+-- ----------------------------
+DROP TABLE IF EXISTS `randomcardcreation`;
+CREATE TABLE `randomcardcreation` (
+  `SpellId` int(10) unsigned NOT NULL default '0',
+  `ItemId0` int(10) unsigned NOT NULL default '0',
+  `ItemId1` int(10) unsigned NOT NULL default '0',
+  `ItemId2` int(10) unsigned NOT NULL default '0',
+  `ItemId3` int(10) unsigned NOT NULL default '0',
+  `ItemId4` int(10) unsigned NOT NULL default '0',
+  `ItemId5` int(10) unsigned NOT NULL default '0',
+  `ItemId6` int(10) unsigned NOT NULL default '0',
+  `ItemId7` int(10) unsigned NOT NULL default '0',
+  `ItemId8` int(10) unsigned NOT NULL default '0',
+  `ItemId9` int(10) unsigned NOT NULL default '0',
+  `ItemId10` int(10) unsigned NOT NULL default '0',
+  `ItemId11` int(10) unsigned NOT NULL default '0',
+  `ItemId12` int(10) unsigned NOT NULL default '0',
+  `ItemId13` int(10) unsigned NOT NULL default '0',
+  `ItemId14` int(10) unsigned NOT NULL default '0',
+  `ItemId15` int(10) unsigned NOT NULL default '0',
+  `ItemId16` int(10) unsigned NOT NULL default '0',
+  `ItemId17` int(10) unsigned NOT NULL default '0',
+  `ItemId18` int(10) unsigned NOT NULL default '0',
+  `ItemId19` int(10) unsigned NOT NULL default '0',
+  `ItemId20` int(10) unsigned NOT NULL default '0',
+  `ItemId21` int(10) unsigned NOT NULL default '0',
+  `ItemId22` int(10) unsigned NOT NULL default '0',
+  `ItemId23` int(10) unsigned NOT NULL default '0',
+  `ItemId24` int(10) unsigned NOT NULL default '0',
+  `ItemId25` int(10) unsigned NOT NULL default '0',
+  `ItemId26` int(10) unsigned NOT NULL default '0',
+  `ItemId27` int(10) unsigned NOT NULL default '0',
+  `ItemId28` int(10) unsigned NOT NULL default '0',
+  `ItemId29` int(10) unsigned NOT NULL default '0',
+  `ItemId30` int(10) unsigned NOT NULL default '0',
+  `ItemId31` int(10) unsigned NOT NULL default '0',
+  `ItemCount` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`SpellId`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;

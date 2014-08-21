@@ -19,7 +19,7 @@
 #include "StdAfx.h"
 UpdateMask Player::m_visibleUpdateMask;
 #define COLLISION_MOUNT_CHECK_INTERVAL 1000
-static const uint8 baseRunes[6] = {0,0,1,1,2,2};
+
 // Taxi du DK, Full Azeroth et Kalimdor
 static const uint32 DKNodesMask[NUM_TAXI_FIELDS] = 
 {
@@ -14166,6 +14166,13 @@ uint8 Player::TheoreticalUseRunes(uint8 RuneBlood, uint8 RuneFrost, uint8 RuneUn
 const char* Player::GetObjectName()
 {
 	return GetName();
+}
+
+void Player::ClearRuneCooldown(uint8 index)
+{
+	WorldPacket data(SMSG_ADD_RUNE_POWER, 4);
+	data << uint32(1 << index);
+	GetSession()->SendPacket(&data);
 }
 
 void Player::OnPositionChange() // Déplacement des joueurs dans les vehicules 

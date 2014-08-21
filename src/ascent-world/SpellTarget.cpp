@@ -125,9 +125,14 @@ void Spell::FillTargetMap(uint32 i)
 		Log.Error("FillTargetMap","SpellInfo leak! (Index: %u)",i);
 		return;
 	}
+	
+	if(!m_caster->IsInWorld())
+		return;
+		
+	uint32 TargetType = SPELL_TARGET_NONE;
 
-	uint32 TargetType = 0;
-	TargetType = GetTargetType(m_spellInfo->EffectImplicitTargetA[i], i);
+	// Get our info from A regardless of nullity
+	TargetType |= GetTargetType(m_spellInfo->EffectImplicitTargetA[i], i);
 
 	//never get info from B if it is 0 :P
 	if (m_spellInfo->EffectImplicitTargetB[i] != 0)
@@ -136,7 +141,7 @@ void Spell::FillTargetMap(uint32 i)
 	SpellTargetMap* t=&m_spellTargets;
 
 	//always add this guy :P
-	if (!(TargetType & (SPELL_TARGET_AREA | SPELL_TARGET_AREA_SELF | SPELL_TARGET_AREA_CURTARGET | SPELL_TARGET_AREA_CONE)))
+	if(!(TargetType & (SPELL_TARGET_AREA | SPELL_TARGET_AREA_SELF | SPELL_TARGET_AREA_CURTARGET | SPELL_TARGET_AREA_CONE | SPELL_TARGET_OBJECT_SELF | SPELL_TARGET_OBJECT_PETOWNER)))
 		AddTarget(i, TargetType, m_targets.m_target);
 	
 	if (TargetType & SPELL_TARGET_OBJECT_SELF) 
@@ -184,6 +189,9 @@ void Spell::FillTargetMap(uint32 i)
 	//target cone
 	if (TargetType & SPELL_TARGET_AREA_CONE)
 		AddConeTargets(i, TargetType, GetRadius(i), m_spellInfo->MaxTargets);
+	
+	if(TargetType & SPELL_TARGET_OBJECT_SCRIPTED)
+		AddScriptedOrSpellFocusTargets(i, TargetType, GetRadius(i), m_spellInfo->MaxTargets);
 		
 	if ((TargetType & SPELL_TARGET_AREA_CURTARGET) && (m_targets.m_target != NULL))
 	{
@@ -729,7 +737,8 @@ void Spell::GenerateTargets(SpellCastTargets* t)
 
 	for (uint32 i=0; i<3; ++i)
 	{
-
+		if(m_spellInfo->Effect[i] == 0)
+			continue;
 		uint32 TargetType = 0;
 		TargetType |= GetTargetType(m_spellInfo->EffectImplicitTargetA[i], i);
 
@@ -742,7 +751,121 @@ void Spell::GenerateTargets(SpellCastTargets* t)
 			t->m_targetMask |= TARGET_FLAG_UNIT;
 			t->m_target = m_caster;
 		}
-
+		
+		if (TargetType & SPELL_TARGET_NO_OBJECT)
+		{
+			t->m_targetMask = TARGET_FLAG_SELF;
+		}
+		
+		if(!(TargetType & (SPELL_TARGET_AREA | SPELL_TARGET_AREA_SELF | SPELL_TARGET_AREA_CURTARGET | SPELL_TARGET_AREA_CONE)))
+		{
+			if (TargetType & SPELL_TARGET_ANY_OBJECT)
+			{
+				if(m_caster->GetUInt64Value(UNIT_FIELD_TARGET))
+				{
+					//generate targets for things like arcane missiles trigger, tame pet, etc
+					Object* target = m_caster->GetMapMgr()->_GetObject(m_caster->GetUInt64Value(UNIT_FIELD_TARGET));
+					if(target != NULL)
+					{
+						if(target->IsUnit())
+						{
+							t->m_targetMask |= TARGET_FLAG_UNIT;
+							t->m_target = target;
+						}
+						else if(target->IsGO())
+						{
+							t->m_targetMask |= TARGET_FLAG_OBJECT;
+							t->m_target = target;
+						}
+					}
+				}
+			}
+			
+			if (TargetType & SPELL_TARGET_REQUIRE_ATTACKABLE)
+			{		
+				if (m_caster->GetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT))
+				{
+					//generate targets for things like arcane missiles trigger, tame pet, etc
+					Object *target = m_caster->GetMapMgr()->_GetObject(m_caster->GetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT));
+					if (target != NULL)
+					{
+						if (target->IsUnit())
+						{
+							t->m_targetMask |= TARGET_FLAG_UNIT;
+							t->m_target = target;
+						}
+						else if (target->IsGO())
+						{
+							t->m_targetMask |= TARGET_FLAG_OBJECT;
+							t->m_target = target;
+						}
+					}
+				}
+				else if (!m_caster->IsPlayer() && ((Unit *)m_caster)->GetAIInterface()->GetNextTarget() != NULL)
+				{
+					t->m_targetMask |= TARGET_FLAG_UNIT;
+					t->m_target = ((Unit *)m_caster)->GetAIInterface()->GetNextTarget();
+				}
+				else if(m_caster->GetUInt64Value(UNIT_FIELD_TARGET))
+				{
+					//generate targets for things like arcane missiles trigger, tame pet, etc
+					Object* target = m_caster->GetMapMgr()->_GetObject(m_caster->GetUInt64Value(UNIT_FIELD_TARGET));
+					if(target != NULL)
+					{
+						if(target->IsUnit())
+						{
+							t->m_targetMask |= TARGET_FLAG_UNIT;
+							t->m_target = target;
+						}
+						else if(target->IsGO())
+						{
+							t->m_targetMask |= TARGET_FLAG_OBJECT;
+							t->m_target = target;
+						}
+					}
+				}
+				else
+				{
+					if (TargetType & SPELL_TARGET_PLAYER_SELECTION) // Player
+					{ // Seul un player peut avoir ce flag. (Cf: GenerateTarget(...))
+						Creature *target = ((Player *)m_caster)->GetMapMgr()->GetCreature( GET_LOWGUID_PART(((Player *)m_caster)->GetSelection()) );
+						if (target != NULL)
+						{
+							t->m_targetMask |= TARGET_FLAG_DEST_LOCATION; // TARGET_FLAG_UNIT
+							t->m_target = target;
+							t->m_destX = target->GetPositionX();
+							t->m_destY = target->GetPositionY();
+							t->m_destZ = target->GetPositionZ()+target->GetSize();
+						}
+					}
+					else
+					{
+						Unit *target = m_caster->GetMapMgr()->GetUnit(GetSinglePossibleEnemy(i));
+						if (target != NULL)
+						{
+							t->m_targetMask |= TARGET_FLAG_UNIT;
+							t->m_target = target;
+						}
+					}				
+				}
+			}
+			
+			if (TargetType & SPELL_TARGET_REQUIRE_FRIENDLY && !(TargetType & (SPELL_TARGET_AREA | SPELL_TARGET_AREA_SELF | SPELL_TARGET_AREA_CURTARGET | SPELL_TARGET_AREA_CONE)))
+			{
+				Unit *target = m_caster->GetMapMgr()->GetUnit(GetSinglePossibleFriend(i));
+				if (target != NULL)
+				{
+					t->m_targetMask |= TARGET_FLAG_UNIT;
+					t->m_target = target;
+				}
+				else
+				{
+					t->m_targetMask |= TARGET_FLAG_UNIT;
+					t->m_target = m_caster;
+				}
+			}
+		}
+		
 		if (TargetType & SPELL_TARGET_AREA_RANDOM)
 		{
 			//we always use radius(0) for some reason
@@ -773,77 +896,8 @@ void Spell::GenerateTargets(SpellCastTargets* t)
                 CheckInLOS = false;
 #endif
 			} while (!CheckInLOS);
-		}
-
-		if( (TargetType & SPELL_TARGET_REQUIRE_ATTACKABLE) && 
-		   !(TargetType & (SPELL_TARGET_AREA | SPELL_TARGET_AREA_SELF | SPELL_TARGET_AREA_CURTARGET | SPELL_TARGET_AREA_CONE)))
-		{
-			if (m_caster->GetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT))
-			{
-				//generate targets for things like arcane missiles trigger, tame pet, etc
-				Object *target = m_caster->GetMapMgr()->_GetObject(m_caster->GetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT));
-				if (target != NULL)
-				{
-					if (target->IsUnit())
-					{
-						t->m_targetMask |= TARGET_FLAG_UNIT;
-						t->m_target = target;
-					}
-					else if (target->IsGO())
-					{
-						t->m_targetMask |= TARGET_FLAG_OBJECT;
-						t->m_target = target;
-					}
-				}
-			}
-			else if (!m_caster->IsPlayer() && ((Unit *)m_caster)->GetAIInterface()->GetNextTarget() != NULL)
-			{
-				t->m_targetMask |= TARGET_FLAG_UNIT;
-				t->m_target = ((Unit *)m_caster)->GetAIInterface()->GetNextTarget();
-			}
-			else
-			{
-				if(TargetType & SPELL_TARGET_PLAYER_SELECTION) // Player
-				{ // Seul un player peut avoir ce flag. (Cf: GenerateTarget(...))
-				 Creature *target = ((Player *)m_caster)->GetMapMgr()->GetCreature( GET_LOWGUID_PART(((Player *)m_caster)->GetSelection()) );
-				 if (target != NULL)
-				 {
-				  t->m_targetMask |= TARGET_FLAG_DEST_LOCATION; // TARGET_FLAG_UNIT;
-				  t->m_target = target;
-				  /*t->m_destX = target->GetPositionX();
-			      t->m_destY = target->GetPositionY();
-			      t->m_destZ = target->GetPositionZ()+target->GetSize();*/
-				 }
-				}
-				else
-				{
-				 Unit *target = m_caster->GetMapMgr()->GetUnit(GetSinglePossibleEnemy(i));
-				 if (target != NULL)
-				 {
-				  t->m_targetMask |= TARGET_FLAG_UNIT;
-				  t->m_target = target;
-				 }
-				}
-
-				
-			}
-		}
-
-		if (TargetType & SPELL_TARGET_REQUIRE_FRIENDLY && !(TargetType & (SPELL_TARGET_AREA | SPELL_TARGET_AREA_SELF | SPELL_TARGET_AREA_CURTARGET | SPELL_TARGET_AREA_CONE)))
-		{
-			Unit *target = m_caster->GetMapMgr()->GetUnit(GetSinglePossibleFriend(i));
-			if (target != NULL)
-			{
-				t->m_targetMask |= TARGET_FLAG_UNIT;
-				t->m_target = target;
-			}
-			else
-			{
-				t->m_targetMask |= TARGET_FLAG_UNIT;
-				t->m_target = m_caster;
-			}
-		}
-		if (TargetType & SPELL_TARGET_AREA) //targetted aoe
+		}		
+		else if (TargetType & SPELL_TARGET_AREA) //targetted aoe
 		{
 			//spells like blizzard, rain of fire
 			if (m_caster->GetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT))
@@ -919,6 +973,29 @@ void Spell::GenerateTargets(SpellCastTargets* t)
 		   }
 		}
 */		
+	}
+}
+
+void Spell::AddScriptedOrSpellFocusTargets(uint32 i, uint32 TargetType, float r, uint32 maxtargets)
+{
+	for(ObjectSet::iterator itr = m_caster->GetInRangeSetBegin(); itr != m_caster->GetInRangeSetEnd(); ++itr)
+	{
+		Object* o = *itr;
+
+		if(!o->IsGO())
+			continue;
+
+		GameObject* go = static_cast<GameObject*>(o);
+
+		if(go->GetInfo()->spellFocus.focusId == m_spellInfo->requiresSpellFocus)
+		{
+			if(!m_caster->isInRange(go, r))
+				continue;
+
+			bool success = AddTarget(i, TargetType, go);
+			if(success)
+				return;
+		}
 	}
 }
 

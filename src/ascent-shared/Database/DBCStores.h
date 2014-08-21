@@ -1497,6 +1497,29 @@ struct AreaTableEntry
 	//uint32 nameflags;
 };
 
+struct DestructibleModelDataEntry
+{
+	uint32 entry; //Unknown9 from gameobject_names
+	uint32 displayId[5];
+
+	uint32 GetDisplayId(uint8 state)
+	{
+		if(state > 5)
+			return 0;
+
+		if(!displayId[state])
+		{
+			for(int32 i = state-1; i > -1; --i)
+			{
+				if(displayId[i])
+					return displayId[i];
+			}
+		}
+
+		return displayId[state];
+	}
+};
+
 #pragma pack(pop)
 
 ASCENT_INLINE float GetScale(CreatureDisplayInfo *Scale)
@@ -1979,6 +2002,7 @@ extern SERVER_DECL DBCStorage<AchievementCriteriaEntry> dbcAchivementCriteria;
 extern SERVER_DECL DBCStorage<VehicleEntry> dbcVehicle;
 extern SERVER_DECL DBCStorage<VehicleSeatEntry> dbcVehicleSeat;
 extern SERVER_DECL DBCStorage<WorldMapOverlayEntry> dbcWorldMapOverlay;
+extern SERVER_DECL DBCStorage<DestructibleModelDataEntry> dbcDestructibleModelDataEntry;
 //-----------
 
 // Mangos
