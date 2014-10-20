@@ -44,7 +44,7 @@ void SpellCastTargets::read( WorldPacket & data, Object* caster )
 
 	Log.Warning("SpellCastTargets","targetMask:0x%04X, MaskExtended:0x%04X",m_targetMask,m_targetMaskExtended);
 
-	if( m_targetMask == TARGET_FLAG_SELF )
+	if( m_targetMask == TARGET_FLAG_SELF || m_targetMask & TARGET_FLAG_GLYPH )
 	{
 		m_target = caster;
 	}
@@ -1424,7 +1424,7 @@ void Spell::cancel(uint8 result)
                                 ((Player *)m_caster)->GetSummonedObject()->GetTypeId(),TYPEID_GAMEOBJECT);
 					}
 				}
-				if (m_timer > 0)
+				if (m_timer > 0 )
 					((Player *)m_caster)->setAttackTimer(1000, false);
 				    //((Player *)m_caster)->delayAttackTimer(-m_timer);
 			 }
@@ -1432,7 +1432,11 @@ void Spell::cancel(uint8 result)
 		SendChannelUpdate(0); // Suppression Barre d'incantation 
 	}
 	// Ensure the item gets consumed once the channel has started
-	if (m_timer > 0) m_ForceConsumption = true;
+	if (m_owner)
+	{
+		if (m_timer > 0 && m_owner->IsItem())
+			m_ForceConsumption = true;
+	}
 
 	//m_spellState = SPELL_STATE_FINISHED;
 
@@ -1445,11 +1449,11 @@ void Spell::cancel(uint8 result)
 
 void Spell::AddCooldown()
 {
-	Log.Warning("AddCooldown","Attention: Inoperant....");
-	/* i_caster et p_caster impossible ensemble
-	if( m_caster->IsPlayer())
-		((Player *)m_caster)->Cooldown_Add( m_spellInfo, i_caster );
-		*/
+	// Log.Warning("AddCooldown","Attention: Inoperant....");
+	/* Le caster est un item mais on considère que l'on ajoute le cooldown au player*/
+	if( m_caster->IsItem())
+		((Player *)m_caster)->Cooldown_Add( m_spellInfo, ((Item *)m_caster) );
+		
 }
 
 void Spell::AddStartCooldown()
@@ -1537,7 +1541,6 @@ void Spell::cast(bool check)
 			return;
 		}
 		else
-		//if( !m_projectileWait )
 		{
 			if(!TakePower() && !m_triggeredSpell) //not enough mana
 			{
@@ -1561,16 +1564,36 @@ void Spell::cast(bool check)
 
 				FillTargetMap(i);
 			}
-//			if( GetProto()->Effect[i] && GetProto()->Effect[i] != SPELL_EFFECT_PERSISTENT_AREA_AURA) // Test
-//				FillTargetMap(i);
         }
 
-		// start cooldown handler
-		if( m_caster->IsPlayer() && !((Player *)m_caster)->CastTimeCheat && !m_triggeredSpell )
+		if (!m_filledTargetMap)
 		{
-			AddStartCooldown();
+			for(uint32 i=0;i<3;i++)
+			{
+				if((m_targets.m_targetMask != TARGET_FLAG_DEST_LOCATION) && (m_spellInfo->Effect[i] != 0))
+				{
+					//Log.Warning("FillTargetMap","Call02");
+					FillTargetMap(i);
+				}
+			}
 		}
 
+		SendCastResult(cancastresult);
+		if(cancastresult != SPELL_CANCAST_OK)
+		{
+			finish();
+			return;
+		}
+
+		m_isCasting = true;		
+
+		// start cooldown handler
+		if(!m_triggeredSpell) 
+			AddCooldown();
+
+		if( m_caster->IsPlayer() && !((Player *)m_caster)->CastTimeCheat && !m_triggeredSpell )
+			AddStartCooldown();
+		
 		if( !m_caster->IsItem() )
 		{
 			if( m_caster->IsPlayer() )
@@ -1587,83 +1610,51 @@ void Spell::cast(bool check)
 		}
 
 		
-		if (!m_filledTargetMap)
+
+		if (m_caster->IsUnit())
 		{
-			for(uint32 i=0;i<3;i++)
-			{
-				if((m_targets.m_targetMask != TARGET_FLAG_DEST_LOCATION) && (m_spellInfo->Effect[i] != 0))
-				{
-					//Log.Warning("FillTargetMap","Call02");
-					FillTargetMap(i);
-				}
-			}
+			if (((Unit *)m_caster)->IsStealth() && !(m_spellInfo->attributesEx & ATTRIBUTESEX_NOT_BREAK_STEALTH) && !m_triggeredSpell)
+				((Unit *)m_caster)->RemoveStealth();
 		}
 
-/*		if(m_magnetTarget){ // Spell was redirected - Note randdrick : en attente d'implémentation
-				// Grounding Totem gets destroyed after redirecting 1 spell
-				if ( m_magnetTarget && m_magnetTarget->IsCreature()){
-					CreaturePointer MagnetCreature = TO_CREATURE(m_magnetTarget);
-					if(MagnetCreature->IsTotem()){
-						sEventMgr.ModifyEventTimeLeft(MagnetCreature, EVENT_TOTEM_EXPIRE, 0);
-					}
-				}
+
+		if( m_caster->IsPlayer()) //-------------------------------
+		{
+			if( m_spellInfo->NameHash == SPELL_HASH_SLAM)
+			{
+				/* slam - reset attack timer */
+				((Player *)m_caster)->setAttackTimer( 0, true );
+				((Player *)m_caster)->setAttackTimer( 0, false );
 			}
 
-			if(p_caster && m_spellInfo->c_is_flags & SPELL_FLAG_ON_ONLY_ONE_TARGET &&
-			   m_targetList.size() == 1)
+			else if( m_spellInfo->NameHash == SPELL_HASH_VICTORY_RUSH ) // Test
 			{
-				SpellTargetList::iterator itr = m_targetList.begin();
-				p_caster->CheckSpellUniqueTargets(m_spellInfo, itr->Guid);
+				((Player *)m_caster)->RemoveFlag(UNIT_FIELD_AURASTATE,AURASTATE_FLAG_LASTKILLWITHHONOR);
+			}            
+
+			// Arathi Basin opening spell, remove stealth, invisibility, etc. 
+			// hacky but haven't found a better way that works
+			// Note: Same stuff but for picking flags is over AddAura
+			if (((Player *)m_caster)->m_bg && m_spellInfo->Id == 21651)
+			{
+				((Player *)m_caster)->RemoveStealth();
+				((Player *)m_caster)->RemoveInvisibility();
+				((Player *)m_caster)->RemoveAllAuraByNameHash(SPELL_HASH_ICE_BLOCK);
+				((Player *)m_caster)->RemoveAllAuraByNameHash(SPELL_HASH_DIVINE_SHIELD);
+				((Player *)m_caster)->RemoveAllAuraByNameHash(SPELL_HASH_BLESSING_OF_PROTECTION);
 			}
-*/
-			m_isCasting = true;
-
-			if(!m_triggeredSpell) AddCooldown();
-
-			if (m_caster->IsUnit())
-			{
-				if (((Unit *)m_caster)->IsStealth() && !(m_spellInfo->attributesEx & ATTRIBUTESEX_NOT_BREAK_STEALTH) && !m_triggeredSpell)
-					((Unit *)m_caster)->RemoveStealth();
-			}
-
-
-			if( m_caster->IsPlayer()) //-------------------------------
-			{
-				if( m_spellInfo->NameHash == SPELL_HASH_SLAM)
-				{
-					/* slam - reset attack timer */
-					((Player *)m_caster)->setAttackTimer( 0, true );
-					((Player *)m_caster)->setAttackTimer( 0, false );
-				}
-
-				else if( m_spellInfo->NameHash == SPELL_HASH_VICTORY_RUSH ) // Test
-				{
-					((Player *)m_caster)->RemoveFlag(UNIT_FIELD_AURASTATE,AURASTATE_FLAG_LASTKILLWITHHONOR);
-				}            
-
-				// Arathi Basin opening spell, remove stealth, invisibility, etc. 
-				// hacky but haven't found a better way that works
-				// Note: Same stuff but for picking flags is over AddAura
-				if (((Player *)m_caster)->m_bg && m_spellInfo->Id == 21651)
-				{
-					((Player *)m_caster)->RemoveStealth();
-					((Player *)m_caster)->RemoveInvisibility();
-					((Player *)m_caster)->RemoveAllAuraByNameHash(SPELL_HASH_ICE_BLOCK);
-					((Player *)m_caster)->RemoveAllAuraByNameHash(SPELL_HASH_DIVINE_SHIELD);
-					((Player *)m_caster)->RemoveAllAuraByNameHash(SPELL_HASH_BLESSING_OF_PROTECTION);
-				}
 
 			
-			   if( m_spellInfo->NameHash == SPELL_HASH_HOLY_LIGHT || m_spellInfo->NameHash == SPELL_HASH_FLASH_OF_LIGHT)
-			   {                               
+			if( m_spellInfo->NameHash == SPELL_HASH_HOLY_LIGHT || m_spellInfo->NameHash == SPELL_HASH_FLASH_OF_LIGHT)
+			{                               
                 if( ((Player *)m_caster)->HasAura( __Infusion_of_Light ) ) // 53672 
 				    ((Player *)m_caster)->RemoveAura(__Infusion_of_Light); // 53672
                 if( ((Player *)m_caster)->HasAura( __Infusion_of_Light_Rank_2____0 ))   // 54149
 				    ((Player *)m_caster)->RemoveAura(__Infusion_of_Light_Rank_2____0 ); // 54149
-			   }
+			}
 
 
-			// Ne devrais pas etre fait dans la gestion du BG ? (Branruz)
+			// Ne devrait-il pas être fait dans la gestion du BG ? (Branruz)
             /*
 			if(p_caster->m_bg) // Test (HearthStone)
 			{
@@ -1735,7 +1726,7 @@ void Spell::cast(bool check)
 			}//-------- BG
 			*/
 			
-		    } //-------------------------------
+		} //-------------------------------
 
 		/*SpellExtraInfo* sp = objmgr.GetSpellExtraData(m_spellInfo->Id);
 		if(sp)
@@ -1823,22 +1814,7 @@ void Spell::cast(bool check)
 				if( ((Unit *)m_caster) != NULL )
 					((Unit *)m_caster)->SetCurrentSpell(this);
 			}
-            //Rien ne va dans l'appel au getTradeItem car il attend un numero de slot ( 8 slots Max) ?
-			// Dans ce code, on passe le pointeur vers le m_targets......
-			// a revoir (Branruz)
-/*		    if (p_caster)
-		    {
-			 if (m_targets.m_targetMask & TARGET_FLAG_TRADE_ITEM)
-			 {
-				Player *plr = p_caster->GetTradeTarget();
-				if(plr) itemTarget = plr->getTradeItem((uint32)m_targets.m_itemTarget);
-			 } 
-			 else if (m_targets.m_targetMask & TARGET_FLAG_ITEM)
-			 {
-				itemTarget = p_caster->GetItemInterface()->GetItemByGUID(m_targets.m_itemTarget);
-			 }
-		    }
-*/
+
             // if the spell is not reflected
 		    SpellTargetList::iterator itr = m_targetList.begin();
 		    uint32 x;
@@ -2211,14 +2187,23 @@ void Spell::cast(bool check)
 			if (m_spellState != SPELL_STATE_CASTING)
 				finish();
 		} 
-			/*else //this shit has nothing to do with instant, this only means it will be on NEXT melee hit
-			{
+		else //this shit has nothing to do with instant, this only means it will be on NEXT melee hit
+		{
 			// we're much better to remove this here, because otherwise spells that change powers etc,
 			// don't get applied.
 
-			if(u_caster && !m_triggeredSpell && !m_triggeredByAura)
-				u_caster->RemoveAurasByInterruptFlagButSkip(AURA_INTERRUPT_ON_CAST_SPELL, m_spellInfo->Id);
+			if(((Unit *)m_caster) && !m_triggeredSpell && !m_triggeredByAura)
+				((Unit *)m_caster)->RemoveAurasByInterruptFlagButSkip(AURA_INTERRUPT_ON_CAST_SPELL, m_spellInfo->Id);
+						
+			m_isCasting = false;
+			SendCastResult(cancastresult);
+			if(((Unit *)m_caster) != NULL)
+				((Unit *)m_caster)->SetOnMeleeSpell(GetSpellProto()->Id, extra_cast_number);
 
+			finish();
+			return;
+		}
+			/*
              damn fireball! stuff..
 			if(p_caster)
 			{
@@ -2244,6 +2229,7 @@ void Spell::cast(bool check)
 		// cancast failed
 		Log.Warning("Cast","Cast failed!");
 		SendCastResult(cancastresult);
+		SendInterrupted(cancastresult);
 		finish();
 	} //-----------------------------------
 }
@@ -2593,12 +2579,12 @@ void Spell::finish()
 		m_spellInfo->Effect[2] == SPELL_EFFECT_SUMMON_OBJECT)
 		if( m_caster->IsPlayer() )
 			((Player *)m_caster)->SetSummonedObject(NULL);		
-	/* 
-	Set cooldown on item
-	*/
+
 
 	if( m_caster->IsItem())
 	{
+			 
+		/*Set cooldown on item*/	
 		if( ((Item *)m_caster)->GetOwner() && (cancastresult == SPELL_CANCAST_OK) && (!GetSpellFailed()) )
 	    {
 			uint32 x;
@@ -2611,6 +2597,15 @@ void Spell::finish()
 			 }
 		    }
 		    ((Item *)m_caster)->GetOwner()->Cooldown_AddItem( ((Item *)m_caster)->GetProto() , x );
+		}
+
+		/* Suppression de la charge de l'Item ou de l'Item utilisé dans le sort */
+		if( m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) )
+		{
+			Log.Notice("[Spell::finish()]","Suppression de la charge de l'Item ou de l'Item utilise dans le sort");
+			RemoveItems((Item *)m_owner);	// Normalement c'est un Item
+											// Attention: L'owner n'est pas forcement definie directement (trames reseaux)
+											// en tout cas, bien verifier que l'item stack se decompte correctement via un SpellEffect si m_owner est NULL
 		}
 	}
 	/*
@@ -2631,17 +2626,17 @@ void Spell::finish()
 		sHookInterface.OnPostSpellCast( ((Player *)m_caster), GetSpellProto(), unitTarget );
 	}
 	
-	if( m_caster->IsPlayer() )
+	if( m_caster->IsPlayer() ) 
 	{
-		if( hadEffect || m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed() ) )
+		// En principe, le caster ne devrait pas être player si le m_owner est un item. 
+		//Cependant, on considère dans ce cas là, que le caster est le player et le déclencheur, l'item.
+		if( (m_owner && m_owner->IsItem()) && (m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) ) )
 		{
-			if(m_owner && m_owner->IsItem()) // Normalement c'est un Item
-				RemoveItems((Item *)m_owner); 
-			else
-				Log.Error("[Spell::finish()]","Remove: pas un Item <---- Report this to devs.");
-		}		// Attention: L'owner n'est pas forcement definie directement (trames reseaux)
-				// en tout cas, bien verifier que l'item stack se decompte correctement via un SpellEffect si m_owner est NULL
-				//else Log.Error("[Spell::finish()]","Remove: m_owner NULL <---- Report this to devs."); // N'arrive jamais non plus, sauf via SpellEffect (Brz)
+			Log.Notice("[Spell::finish()]","Suppression de la charge de l'Item ou de l'Item utilise par le joueur");
+			RemoveItems((Item *)m_owner);	// Normalement c'est un Item
+											// Attention: L'owner n'est pas forcement definie directement (trames reseaux)
+											// en tout cas, bien verifier que l'item stack se decompte correctement via un SpellEffect si m_owner est NULL
+		}
 	}
 	
 	/*

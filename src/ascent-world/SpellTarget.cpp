@@ -959,20 +959,20 @@ void Spell::GenerateTargets(SpellCastTargets* t)
 				t->m_destZ = ((Unit *)m_caster)->GetAIInterface()->GetNextTarget()->GetPositionZ();
 			}
 		}
-/*
+
 		if(TargetType & SPELL_TARGET_PLAYER_SELECTION) // Player
-		{ // Seul un player peut avoir ce flag. (Cf: GenerateTarget(...))
-		   Creature *target = ((Player *)m_caster)->GetMapMgr()->GetCreature( GET_LOWGUID_PART(((Player *)m_caster)->GetSelection()) );
-		   if (target != NULL)
-		   {
-			t->m_targetMask |= TARGET_FLAG_DEST_LOCATION; // TARGET_FLAG_UNIT;
-		    t->m_target = target;
-			t->m_destX = target->GetPositionX();
-			t->m_destY = target->GetPositionY();
-			t->m_destZ = target->GetPositionZ()+target->GetSize();
+		{ 
+			// Seul un player peut avoir ce flag. (Cf: GenerateTarget(...))
+			Creature *target = ((Player *)m_caster)->GetMapMgr()->GetCreature( GET_LOWGUID_PART(((Player *)m_caster)->GetSelection()) );
+			if (target != NULL)
+			{
+				t->m_targetMask |= TARGET_FLAG_DEST_LOCATION; // TARGET_FLAG_UNIT;
+				t->m_target = target;
+				t->m_destX = target->GetPositionX();
+				t->m_destY = target->GetPositionY();
+				t->m_destZ = target->GetPositionZ()+target->GetSize();
 		   }
-		}
-*/		
+		}	
 	}
 }
 

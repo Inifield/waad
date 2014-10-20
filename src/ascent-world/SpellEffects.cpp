@@ -4624,6 +4624,7 @@ void Spell::SpellEffectTriggerSpell(uint32 i) // Trigger Spell
 	if(!unitTarget || !m_caster)
 		return;
 
+	WoWGuid guid;
 	SpellEntry *spe = NULL;
 	spe = dbcSpell.LookupEntryForced(GetSpellProto()->EffectTriggerSpell[i]);
 	if(spe == NULL )
@@ -4636,7 +4637,7 @@ void Spell::SpellEffectTriggerSpell(uint32 i) // Trigger Spell
 
 	Log.Warning("SpellEffectTriggerSpell", "La cible est %u",unitTarget->GetGUID());
 	
-	SpellCastTargets tgt( (spe->procFlags & PROC_TARGET_SELF) ? m_caster : unitTarget );
+	SpellCastTargets tgt( (spe->procFlags & PROC_TARGET_SELF) ? m_caster : unitTarget->GetMapMgr()->GetUnit(guid.GetOldGuid()) );
 	sp->prepare(&tgt);
 
 	//if(m_spellInfo->EffectTriggerSpell[i] != 0)

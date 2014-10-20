@@ -171,7 +171,7 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 
 	// Redefinition possible de la cible via les implicitTargets
     // Attention: A ce stade le m_target = Player par defaut, il s'agit ici d'un override eventuel (Brz)
-	uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->EffectImplicitTargetA[0]);
+	uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->Id,spellInfo->EffectImplicitTargetA[0]);
 	if(_result != SPELL_CANCAST_OK)
 	{
  	 p_User->SendCastResult(spellInfo->Id, _result, cn, 0); // A Finir: Parametre eventuel du spellFailure à definir (Branruz)
@@ -233,7 +233,6 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	spell->extra_cast_number=cn;
 	spell->m_glyphIndex = glyphIndex;
 	spell->m_owner = tmpItem; // spell->m_caster = tmpItem; 
-	//spell->m_caster = tmpItem;
 
 	// Le LockMaterial de l'Item donne se qui est deverouillé 
 	//spell->g_caster = NULL;
@@ -281,23 +280,23 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 			// Validation et recheche de la cible en fonction du spellEffect (Brz)
 			if(spellInfo->EffectImplicitTargetA[i])
 			{
-				uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->EffectImplicitTargetA[i]);
+				uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->Id,spellInfo->EffectImplicitTargetA[i]);
 				if(_result != SPELL_CANCAST_OK)
 				{
  					p_User->SendCastResult(spellInfo->Id, _result, cn, 0); // A Finir: Parametre eventuel du spellFailure à definir (Branruz)
 					return; // SpellFailure, on sort
 				}
 			}
-            /* On debug juste avec le ImplicitTargetA pour voir
+            
 			if(spellInfo->EffectImplicitTargetB[i])
 			{
-				uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->EffectImplicitTargetB[i]);
+				uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->Id,spellInfo->EffectImplicitTargetB[i]);
 				if(_result != SPELL_CANCAST_OK)
 				{
  					p_User->SendCastResult(spellInfo->Id, _result, cn, 0); // A Finir: Parametre eventuel du spellFailure à definir (Branruz)
 					return; // SpellFailure, on sort
 				} 
-			} */
+			} 
 
 			if(spellInfo->Effect[i]) 
 			{

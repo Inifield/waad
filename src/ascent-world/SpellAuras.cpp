@@ -3404,8 +3404,8 @@ void Aura::SpellAuraModStun(bool apply)
 		}
 
 		//warrior talent - second wind triggers on stun and immobilize. This is not used as proc to be triggered always !
-		if(p_target && m_spellProto->mechanics != MECHANIC_INCAPACIPATED)
-			p_target->EventStunOrImmobilize();
+		if(m_target->IsPlayer() && m_spellProto->mechanics != MECHANIC_INCAPACIPATED)
+			static_cast< Player* >( m_target )->EventStunOrImmobilize();
 	}
 	else
 	{

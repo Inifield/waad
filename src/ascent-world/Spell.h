@@ -272,8 +272,8 @@ enum SpellCastTargetFlags
     TARGET_FLAG_ITEM                = 0x00010,
     TARGET_FLAG_SOURCE_LOCATION     = 0x00020,
     TARGET_FLAG_DEST_LOCATION       = 0x00040,
-    TARGET_FLAG_UNK6                = 0x00080,
-    TARGET_FLAG_UNK7                = 0x00100,
+    TARGET_FLAG_OBJECT_CASTER       = 0x00080,
+    TARGET_FLAG_CASTER              = 0x00100,
     TARGET_FLAG_CORPSE              = 0x00200,
     TARGET_FLAG_INERTE              = 0x00400,
     TARGET_FLAG_OBJECT              = 0x00800,
@@ -281,7 +281,7 @@ enum SpellCastTargetFlags
     TARGET_FLAG_STRING              = 0x02000,
     TARGET_FLAG_ITEM2               = 0x04000,
     TARGET_FLAG_CORPSE2             = 0x08000,
-//	TARGET_FLAG_UNK10				= 0x10000,
+	TARGET_FLAG_UNK5				= 0x10000,
 	TARGET_FLAG_GLYPH				= 0x20000,
 };
 
@@ -1409,7 +1409,7 @@ public:
 	void write ( StackPacket & data);
     void write ( WorldPacket & data);
 	void read ( WorldPacket & data, Object* obj );
-	void read ( WorldPacket & data,uint64 caster );	
+	void read ( WorldPacket & data, uint64 caster );	
 
  
 
@@ -1472,12 +1472,11 @@ public:
 	 // NB: Le GenerateTarget doit etre utilisé apres l'appel dans ce cas
 	 if(target)
 	 {
-	  if(target->IsPlayer())    m_targetMask = TARGET_FLAG_SELF;
-	  else if(target->IsUnit()) m_targetMask = TARGET_FLAG_UNIT;
-	  else if(target->IsItem()) m_targetMask = TARGET_FLAG_ITEM;
-	  //else if(target->IsItem()) m_targetMask = TARGET_FLAG_OBJECT; Note Randdrick : Pourquoi le falg du TargetMask serait-il un Objet ?
-	  else if(target->IsGO())   m_targetMask = TARGET_FLAG_OBJECT;
-	  else                      m_targetMask = 0;
+		if(target->IsPlayer())    m_targetMask = TARGET_FLAG_SELF;
+		else if(target->IsUnit()) m_targetMask = TARGET_FLAG_UNIT;
+		else if(target->IsItem()) m_targetMask = TARGET_FLAG_ITEM;
+		else if(target->IsGO())   m_targetMask = TARGET_FLAG_OBJECT;
+		else                      m_targetMask = 0;
 	 }
 	 else m_targetMask = 0;
 
@@ -2005,7 +2004,7 @@ public:
     void FillAllFriendlyInArea(uint32 i, float srcx,float srcy,float srcz, float range);
     //get single Enemy as target
     uint64 GetSinglePossibleEnemy(uint32 i, float prange=0);
-    //get single Enemy as target
+    //get single Friend as target
     uint64 GetSinglePossibleFriend(uint32 i, float prange=0);
     //generate possible target list for a spell. Use as last resort since it is not acurate
     void GenerateTargets(SpellCastTargets *store_buff);
