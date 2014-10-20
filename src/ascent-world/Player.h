@@ -1312,7 +1312,7 @@ public:
 	void SetSelection(const uint64 &guid) { m_curSelection = guid; }
 	void SetTarget(const uint64 &guid) { m_curTarget = guid; }
 	// Confirm target vs ImplicitTarget ( Spell Item et Go )
-	uint8 ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,uint32 _EffectImplicitTarget );
+	uint8 ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,uint32 _Id, uint32 _EffectImplicitTarget );
 	
     /************************************************************************/
     /* Spells                                                               */

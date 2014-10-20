@@ -14523,19 +14523,27 @@ uint32 Player::GetBGQueueSlotByBGType(uint32 type)
 	return 0;
 }
 //----------------------------------------------------
-uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,uint32 _EffectImplicitTarget )
+uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,uint32 _Id, uint32 _EffectImplicitTarget )
 {
- uint32 PlayerTargetEffect = _EffectImplicitTarget;
+	uint32 PlayerTargetEffect = _EffectImplicitTarget;
+	uint32 spellId = _Id;
+	SpellEntry *spellInfo = dbcSpell.LookupEntryForced(spellId);
+	if (!spellInfo)
+	{
+		Log.Error("HandleUseItemOpcode","Unknown spell id %i\n", spellId);
+		return(SPELL_FAILED_SPELL_UNAVAILABLE);
+	}
+
 
  switch(PlayerTargetEffect)
  {
 
-   case EFF_TARGET_NONE			: // 0, , Cible pas necessaire (Concerne directement le caster et/ou AoE global)
+	case EFF_TARGET_NONE			: // 0, , Cible pas necessaire (Concerne directement le caster et/ou AoE global)
 	   Log.Warning("[ConfirmPlayerTarget]","EFF_TARGET_NONE, Target <<= _Caster (%d)",_Caster->GetEntry());
        targets->m_target = _Caster; // On tente (Branruz)
 	   break;
 
-   case EFF_TARGET_SELF			: // 1, Target=Player, deja init
+	case EFF_TARGET_SELF			: // 1, Target=Player, deja init
 	   break;
 
 	case EFF_TARGET_PET: //5 - Target: Pet
@@ -14554,11 +14562,71 @@ uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,u
 		}
 	return( SPELL_CANCAST_OK);
 
-   //case EFF_TARGET_ALL_ENEMIES_AROUND_CASTER ://  22,
-	   // A CODER: Definir les cibles autours (seulement ennemi)
-	   // Recu coté SPELL_CAST
-   //   return(SPELL_FAILED_TRY_AGAIN); // "Echec de la tentative");
+	case EFF_TARGET_ALL_ENEMY_IN_AREA_INSTANT :// 16
+	case EFF_TARGET_ALL_ENEMIES_AROUND_CASTER :// 22,
+	case EFF_TARGET_IN_FRONT_OF_CASTER: //24,
+	case EFF_TARGET_ALL_ENEMY_IN_AREA_CHANNELED: //28,
+		{
 
+			float r = spellInfo->base_range_or_radius_sqr;
+
+			if( _Caster->IsPlayer() )
+			{
+				uint64 guidTarget = ((Player *)_Caster)->GetSelection();
+				if(guidTarget == 0) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
+				Creature *unit = ((Player *)_Caster)->GetMapMgr()->GetCreature(GET_LOWGUID_PART(guidTarget));
+
+				if(!unit)              return(SPELL_FAILED_BAD_TARGETS); //  "Cible incorrect" "Cet objet n'est pas une cible autorisée"
+				if(!unit->IsInWorld()) return(SPELL_FAILED_CANT_CAST_ON_TAPPED); // "Cible indisponible"
+
+				Unit *selected = ((Player *)_Caster)->GetMapMgr()->GetUnit(((Player *)_Caster)->GetSelection());
+
+				if(isAttackable(((Player *)_Caster),selected,!(spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)) && selected != ((Player *)_Caster))
+					targets->m_target = unit;
+			}
+			else if( _Caster->IsUnit() )
+			{
+				if(	((Unit *)_Caster)->GetAIInterface()->GetNextTarget() &&
+					isAttackable(((Unit *)_Caster),((Unit *)_Caster)->GetAIInterface()->GetNextTarget(),!(spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)) &&
+					((Unit *)_Caster)->GetDistanceSq(((Unit *)_Caster)->GetAIInterface()->GetNextTarget()) <= r)
+				{
+					uint64 guidTarget = ((Unit *)_Caster)->GetAIInterface()->GetNextTarget()->GetGUID();
+					if(guidTarget == 0) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
+					Creature *unit = ((Unit *)_Caster)->GetMapMgr()->GetCreature(GET_LOWGUID_PART(guidTarget));
+
+					if(!unit)              return(SPELL_FAILED_BAD_TARGETS); //  "Cible incorrect" "Cet objet n'est pas une cible autorisée"
+					if(!unit->IsInWorld()) return(SPELL_FAILED_CANT_CAST_ON_TAPPED); // "Cible indisponible"
+
+					targets->m_target = unit;
+				}
+				if(((Unit *)_Caster)->GetAIInterface()->getAITargetsCount())
+				{
+					//try to get most hated creature
+					TargetMap *m_aiTargets = ((Unit *)_Caster)->GetAIInterface()->GetAITargets();
+					TargetMap::iterator itr;
+					for(itr = m_aiTargets->begin(); itr != m_aiTargets->end();itr++)
+					{
+						if( //m_caster->GetMapMgr()->GetUnit(itr->first->GetGUID()) &&// itr->first->GetMapMgr() == m_caster->GetMapMgr() && 
+							itr->first->isAlive() &&
+							((Unit *)_Caster)->GetDistanceSq(itr->first) <= r &&
+							isAttackable(((Unit *)_Caster),itr->first,!(spellInfo->c_is_flags & SPELL_FLAG_IS_TARGETINGSTEALTHED)))
+						{
+							uint64 guidTarget = itr->first->GetGUID();
+							if(guidTarget == 0) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
+							Creature *unit = ((Unit *)_Caster)->GetMapMgr()->GetCreature(GET_LOWGUID_PART(guidTarget));
+
+							if(!unit)              return(SPELL_FAILED_BAD_TARGETS); //  "Cible incorrect" "Cet objet n'est pas une cible autorisée"
+							if(!unit->IsInWorld()) return(SPELL_FAILED_CANT_CAST_ON_TAPPED); // "Cible indisponible"
+
+							targets->m_target = unit;
+							break;
+						}
+					}
+				}
+			}
+		}
+		return( SPELL_CANCAST_OK);
+		
    case EFF_TARGET_AoF              : // 2
    case EFF_TARGET_TO_SELECT  		: // 25, // Meilleur nom, anciennement EFF_TARGET_DUEL (Branruz)
 	   // La cible est celle que le player à selectionné
@@ -14575,42 +14643,75 @@ uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,u
 	   return( SPELL_CANCAST_OK);
 
    case EFF_TARGET_GAMEOBJECT		 : // 23,
-      if(_Caster->IsPlayer())
-	  {
-          uint64 guidTarget = ((Player *)_Caster)->GetSelection();
+	   {
+			if(_Caster->IsPlayer())
+			{
+				uint64 guidTarget = ((Player *)_Caster)->GetSelection();
 		  
-	      if(guidTarget == 0) 
-		  {   // On cherche le GO le plus pret si ya pas de selection reel (click droit sur un item puis click sur le Gob)
-			  GameObject *GObj = NULL;
+				if(guidTarget == 0) 
+				{   // On cherche le GO le plus pret si ya pas de selection reel (click droit sur un item puis click sur le Gob)
+					GameObject *GObj = NULL;
 
-	          std::set<Object*>::iterator Itr = ((Player *)_Caster)->GetInRangeSetBegin();
-	          std::set<Object*>::iterator Itr2 = ((Player *)_Caster)->GetInRangeSetEnd();
-	          float cDist = 9999.0f;
-	          float nDist = 0.0f;
-			  for( ; Itr != Itr2; Itr++ )
-		      {
-			   if( (*Itr)->GetTypeId() == TYPEID_GAMEOBJECT )
-			   {
-				if( (nDist = ((Player *)_Caster)->CalcDistance( *Itr )) < cDist )
-				{
-					cDist = nDist;
-					nDist = 0.0f;
-					GObj = (GameObject*)(*Itr);
+					std::set<Object*>::iterator Itr = ((Player *)_Caster)->GetInRangeSetBegin();
+					std::set<Object*>::iterator Itr2 = ((Player *)_Caster)->GetInRangeSetEnd();
+					float cDist = 9999.0f;
+					float nDist = 0.0f;
+					for( ; Itr != Itr2; Itr++ )
+					{
+						if( (*Itr)->GetTypeId() == TYPEID_GAMEOBJECT )
+						{
+							if( (nDist = ((Player *)_Caster)->CalcDistance( *Itr )) < cDist )
+							{
+								cDist = nDist;
+								nDist = 0.0f;
+								GObj = (GameObject*)(*Itr);
+							}
+						}
+					}
+					if(GObj == NULL) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
+						targets->m_target = GObj;			  
 				}
-			   }
-			  }
-			  if(GObj == NULL) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
-			  targets->m_target = GObj;
-			  
-		  }
-		  else // On prend la selection
-		  {
-			  GameObject *GObj = ((Player *)_Caster)->GetMapMgr()->GetGameObject(GET_LOWGUID_PART(guidTarget));
-			  if(GObj == NULL) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
-			  targets->m_target = GObj;
-		  }
-	  }
-      return( SPELL_CANCAST_OK);
+				else // On prend la selection
+				{
+					GameObject *GObj = ((Player *)_Caster)->GetMapMgr()->GetGameObject(GET_LOWGUID_PART(guidTarget));
+					if(GObj == NULL) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
+						targets->m_target = GObj;
+				}
+			}
+	   }
+	   return( SPELL_CANCAST_OK);
+
+	case EFF_TARGET_SCRIPTED_GAMEOBJECT	:// 40,
+	case EFF_TARGET_TOTEM_EARTH: //41,
+	case EFF_TARGET_TOTEM_WATER: //42,
+	case EFF_TARGET_TOTEM_AIR: //43,
+	case EFF_TARGET_TOTEM_FIRE:// Totem
+		{
+			for(uint32 i=0;i < 3;i++)
+			{
+				if(spellInfo->EffectImplicitTargetB[i])
+				{
+					if( ((Player *)_Caster)->IsPlayer() )
+					{
+						SummonPropertiesEntry* summonprop = dbcSummonProperties.LookupEntryForced( spellInfo->EffectMiscValueB[i] );
+						if(!summonprop) return(SPELL_FAILED_SUMMON_PENDING);
+						uint32 slot = summonprop->slot;					
+
+						if(((Player *)_Caster)->m_summonslot[slot] != 0)
+						{
+							uint64 guidTarget = ((Player *)_Caster)->m_summonslot[slot]->GetGUID();
+							if(guidTarget == 0) return(SPELL_FAILED_BAD_IMPLICIT_TARGETS); //  "Vous n'avez pas de cible"
+							Creature *unit = ((Player *)_Caster)->GetMapMgr()->GetCreature(GET_LOWGUID_PART(guidTarget));
+
+							if(!unit)              return(SPELL_FAILED_BAD_TARGETS); //  "Cible incorrect" "Cet objet n'est pas une cible autorisée"
+							if(!unit->IsInWorld()) return(SPELL_FAILED_CANT_CAST_ON_TAPPED); // "Cible indisponible"
+							targets->m_target = unit;
+						}
+					}					
+				}	
+			}
+		}
+		return( SPELL_CANCAST_OK);
 
     //----------- Non gerés ----------
    case EFF_TARGET_FRIENDLY : // 3, // this is wrong, its actually a friendly single target
@@ -14619,15 +14720,15 @@ uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,u
    case EFF_TARGET_ALL_TARGETABLE_AROUND_LOCATION_IN_RADIUS : // 8,
    case EFF_TARGET_HEARTSTONE_LOCATION		 : // 9,
    case EFF_TARGET_ALL_ENEMY_IN_AREA		 : // 15,
-   case EFF_TARGET_ALL_ENEMY_IN_AREA_INSTANT : // 16,
+   // case EFF_TARGET_ALL_ENEMY_IN_AREA_INSTANT : // 16,
    case EFF_TARGET_TELEPORT_LOCATION	    : // 17,
    case EFF_TARGET_LOCATION_TO_SUMMON	    : // 18,
    case EFF_TARGET_ALL_PARTY_AROUND_CASTER	: // 20,
    case EFF_TARGET_SINGLE_FRIEND			:// 21,  
-   case EFF_TARGET_IN_FRONT_OF_CASTER : // 24,
+   // case EFF_TARGET_IN_FRONT_OF_CASTER : // 24,
    case EFF_TARGET_GAMEOBJECT_ITEM	: // 26,
    case EFF_TARGET_PET_MASTER		: // 27,
-   case EFF_TARGET_ALL_ENEMY_IN_AREA_CHANNELED: // 28,
+   // case EFF_TARGET_ALL_ENEMY_IN_AREA_CHANNELED: // 28,
    case EFF_TARGET_ALL_PARTY_IN_AREA_CHANNELED:	// 29,
    case EFF_TARGET_ALL_FRIENDLY_IN_AREA	: // 30,
    case EFF_TARGET_ALL_TARGETABLE_AROUND_LOCATION_IN_RADIUS_OVER_TIME: // 31,
@@ -14638,11 +14739,11 @@ uint8 Player::ConfirmPlayerTarget( SpellCastTargets * targets,Object * _Caster,u
    case EFF_TARGET_ALL_PARTY			://  37,
    case EFF_TARGET_SCRIPTED_OR_SINGLE_TARGET://  38,
    case EFF_TARGET_SELF_FISHING			://  39,
-   case EFF_TARGET_SCRIPTED_GAMEOBJECT	:// 40,
-   case EFF_TARGET_TOTEM_EARTH	:	//  41,
-   case EFF_TARGET_TOTEM_WATER	:	//  42,
-   case EFF_TARGET_TOTEM_AIR		://  43,
-   case EFF_TARGET_TOTEM_FIRE			://  44,
+   // case EFF_TARGET_SCRIPTED_GAMEOBJECT	:// 40,
+   // case EFF_TARGET_TOTEM_EARTH	:	//  41,
+   // case EFF_TARGET_TOTEM_WATER	:	//  42,
+   // case EFF_TARGET_TOTEM_AIR		://  43,
+   // case EFF_TARGET_TOTEM_FIRE			://  44,
    case EFF_TARGET_CHAIN					://  45,
    case EFF_TARGET_SCIPTED_OBJECT_LOCATION	://  46,
    case EFF_TARGET_DYNAMIC_OBJECT				://  47,//not sure exactly where is used
