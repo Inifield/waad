@@ -146,13 +146,6 @@ void AIInterface::Init(Unit *un, AIType at, MovementType mt)
 	m_sourceY = un->GetPositionY();
 	m_sourceZ = un->GetPositionZ();
 	m_guardTimer = getMSTime();
-
-	/*if (un->getLevel() > 50) //default is 50 yards, lets not lower :P
-	{
-		m_outOfCombatRange = un->getLevel() * un->getLevel();
-		if (un->IsCreature() && static_cast<Creature*>(un)->GetCreatureName() != NULL &&static_cast<Creature*>(un)->GetCreatureName()->Rank > 0)
-			m_outOfCombatRange = m_outOfCombatRange << 1; //multiply by 2
-	}*/	
 }
 
 AIInterface::~AIInterface()
@@ -320,7 +313,7 @@ void AIInterface::HandleEvent(uint32 event, Unit* pUnit, uint32 misc1)
 				if( pUnit->IsCreature() )
 					pUnit->RemoveNegativeAuras();
 				//cancel spells that we are casting. Should remove bug where creatures cast a spell after they died
-//				CancelSpellCast();
+				//CancelSpellCast();
 				// restart emote
 				if(m_Unit->GetTypeId() == TYPEID_UNIT)
 				{
@@ -608,6 +601,8 @@ void AIInterface::HandleEvent(uint32 event, Unit* pUnit, uint32 misc1)
 				m_aiCurrentAgent = AGENT_NULL;
 				m_runSpeed = 0.0f;
 				m_flySpeed = 0.0f;
+				m_last_target_x= 0.0f,
+				m_last_target_y= 0.0f,
 				UnitToFear = NULL;
 				firstLeaveCombat = true;
 				m_outOfCombatRange = 2500000;
@@ -677,6 +672,12 @@ void AIInterface::HandleEvent(uint32 event, Unit* pUnit, uint32 misc1)
 			{
 				MindControlChilds.erase(pUnit->GetGUID());
 			}break;
+		case EVENT_HOSTILEACTION:
+			{
+				m_returnX = m_Unit->GetPositionX();
+				m_returnY = m_Unit->GetPositionY();
+				m_returnZ = m_Unit->GetPositionZ();
+			}break;
 		
 		default:
 			{
@@ -693,9 +694,8 @@ void AIInterface::HandleEvent(uint32 event, Unit* pUnit, uint32 misc1)
  
 			m_Unit->RemoveAllAuras();
             
-			if( pUnit->m_CurrentVehicle) pUnit->m_CurrentVehicle->RemovePassenger(pUnit);
 
-            if( pUnit->m_CurrentVehicle )
+			if( pUnit->m_CurrentVehicle )
 				pUnit->m_CurrentVehicle->RemovePassenger(pUnit);
 
 			if( static_cast< Creature* >( m_Unit )->has_combat_text )
@@ -945,6 +945,9 @@ void AIInterface::_UpdateTargets()
 	if( m_Unit->IsPlayer() || (m_AIType != AITYPE_PET && disable_targeting )) return;
 
 	if( ( ( Creature* )m_Unit )->GetCreatureName() && ( ( Creature* )m_Unit )->GetCreatureName()->Type == CRITTER )
+		return;
+
+	if(m_Unit->GetMapMgr() == NULL)
 		return;
 
 	AssistTargetSet::iterator i, i2;
@@ -2318,6 +2321,10 @@ Unit* AIInterface::FindTargetForSpell(AI_Spell *sp)
 
 bool AIInterface::FindFriends(float dist)
 {
+
+	if(m_Unit->GetMapMgr() == NULL)
+		return false;
+
 	bool result = false;
 	TargetMap::iterator it;
 	uint32 guardid;
@@ -2450,7 +2457,7 @@ bool AIInterface::FindFriends(float dist)
 				return result;
 			}
 			
-			sEventMgr.AddEvent(guard, &Creature::SetGuardWaypoints, EVENT_UNK, 10000, 1,0);
+			sEventMgr.AddEvent(guard, &Creature::SetGuardWaypoints, EVENT_UNK, 10000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 			sEventMgr.AddEvent(guard, &Creature::SafeDelete, EVENT_CREATURE_SAFE_DELETE, 60*5*1000, 1,EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 			spawned++;
 		}
@@ -2462,7 +2469,7 @@ bool AIInterface::FindFriends(float dist)
 float AIInterface::_CalcAggroRange(Unit* target)
 {
 	//float baseAR = 15.0f; // Base Aggro Range
-					  //   -8	  -7	 -6	    -5	   -4	  -3	 -2	    -1	    0	  +1	 +2	    +3	   +4	  +5	 +6	    +7	  +8
+	//                    -8     -7     -6      -5    -4      -3     -2     -1     0      +1     +2     +3    +4     +5     +6     +7    +8
 	//float baseAR[17] = {29.0f, 27.5f, 26.0f, 24.5f, 23.0f, 21.5f, 20.0f, 18.5f, 17.0f, 15.5f, 14.0f, 12.5f, 11.0f,  9.5f,  8.0f,  6.5f, 5.0f};
 	float baseAR[17] = {19.0f, 18.5f, 18.0f, 17.5f, 17.0f, 16.5f, 16.0f, 15.5f, 15.0f, 14.5f, 12.0f, 10.5f, 8.5f,  7.5f,  6.5f,  6.5f, 5.0f};
 	// Lvl Diff -8 -7 -6 -5 -4 -3 -2 -1 +0 +1 +2  +3  +4  +5  +6  +7  +8
@@ -2536,7 +2543,15 @@ void AIInterface::_CalcDestinationAndMove(Unit *target, float dist)
 		float ResY = target->GetPositionY();
 		float ResZ = target->GetPositionZ();
 
-		float angle = m_Unit->calcAngle(m_Unit->GetPositionX(), m_Unit->GetPositionY(), ResX, ResY) * float(M_PI) / 180.0f;
+		//avoid eating bandwidth with useless movement packets when target did not move since last position
+		//this will work since it turned into a common myth that when you pull mob you should not move :D
+		if(abs(m_last_target_x - ResX) < DISTANCE_TO_SMALL_TO_WALK
+		        && abs(m_last_target_y - ResY) < DISTANCE_TO_SMALL_TO_WALK && m_creatureState == MOVING)
+			return;
+		m_last_target_x = ResX;
+		m_last_target_y = ResY;
+
+		float angle = m_Unit->calcAngle(m_Unit->GetPositionX(), m_Unit->GetPositionY(), ResX, ResY) *  float(M_PI) / 180.0f;
 		float x = dist * cosf(angle);
 		float y = dist * sinf(angle);
 
@@ -2901,14 +2916,18 @@ void AIInterface::UpdateMove()
 	if(m_Unit->GetTypeId() == TYPEID_UNIT)
 	{
 		Creature *creature = static_cast<Creature*>(m_Unit);
-		// check if we're returning to our respawn location. if so, reset back to default
-		// orientation
-		if(creature->GetSpawnX() == m_destinationX &&
-			creature->GetSpawnY() == m_destinationY)
+
+		float angle = 0.0f;
+		float c_reach =GetUnit()->GetFloatValue(UNIT_FIELD_COMBATREACH);
+
+		// check if we're returning to our respawn location. if so, reset back to default orientation.
+		if(creature->GetSpawnX() == m_destinationX && creature->GetSpawnY() == m_destinationY)
 		{
-			float o = creature->GetSpawnO();
-			creature->SetOrientation(o);
-		} else {
+			angle = m_Unit->GetOrientation();
+			creature->SetOrientation(angle);
+		}
+		else
+		{
 			// Calculate the angle to our next position
 
 			float dx = (float)m_destinationX - m_Unit->GetPositionX();
@@ -3172,7 +3191,9 @@ bool AIInterface::showWayPoints(Player* pPlayer, bool Backwards)
 			wp = *itr;
 
 			//Create
-			Creature* pWayPoint = new Creature((uint64)HIGHGUID_TYPE_WAYPOINT << 32 | wp->id);
+			Creature* pWayPoint = NULL;
+			pWayPoint = new Creature((uint64)HIGHGUID_TYPE_WAYPOINT << 32 | wp->id);
+			pWayPoint->Init();
 			pWayPoint->CreateWayPoint(wp->id,pPlayer->GetMapId(),wp->x,wp->y,wp->z,0);
 			pWayPoint->SetUInt32Value(OBJECT_FIELD_ENTRY, 300000);
 			pWayPoint->SetFloatValue(OBJECT_FIELD_SCALE_X, 0.5f);
@@ -3377,12 +3398,6 @@ void AIInterface::_UpdateMovement(uint32 p_time)
  			if(m_timeMoved == m_timeToMove) //reached destination
 #endif
 			{
-/*				if(m_fastMove)
-				{
-					m_Unit->UpdateSpeed();
-					m_fastMove = false;
-				}*/
-
 				if(m_moveType == MOVEMENTTYPE_WANTEDWP)//We reached wanted wp stop now
 					m_moveType = MOVEMENTTYPE_DONTMOVEWP;
 
@@ -3545,22 +3560,22 @@ void AIInterface::_UpdateMovement(uint32 p_time)
 			int destpoint = -1;
 
 			// If creature has no waypoints just wander aimlessly around spawnpoint
-			if(GetWayPointsCount()==0) //no waypoints
+			if(GetWayPointsCount() == 0) //no waypoints
 			{
 				/*	if(m_moveRandom)
 				{
-				if((rand()%10)==0)																																	
-				{																																								  
-				float wanderDistance = rand()%4 + 2;
-				float wanderX = ((wanderDistance*rand()) / RAND_MAX) - wanderDistance / 2;																											   
-				float wanderY = ((wanderDistance*rand()) / RAND_MAX) - wanderDistance / 2;																											   
-				float wanderZ = 0; // FIX ME ( i dont know how to get apropriate Z coord, maybe use client height map data)																											 
+				if((rand()%10)== 0)
+				{
+					float wanderDistance = rand()%4 + 2;
+					float wanderX = ((wanderDistance*rand()) / RAND_MAX) - wanderDistance / 2;
+					float wanderY = ((wanderDistance*rand()) / RAND_MAX) - wanderDistance / 2;
+					float wanderZ = 0; // FIX ME ( I don't know how to get appropriate Z coord, maybe use client height map data)
 
-				if(m_Unit->CalcDistance(m_Unit->GetPositionX(), m_Unit->GetPositionY(), m_Unit->GetPositionZ(), ((Creature*)m_Unit)->respawn_cord[0], ((Creature*)m_Unit)->respawn_cord[1], ((Creature*)m_Unit)->respawn_cord[2])>15)																		   
-				{   
-				//return home																																				 
-				MoveTo(((Creature*)m_Unit)->respawn_cord[0],((Creature*)m_Unit)->respawn_cord[1],((Creature*)m_Unit)->respawn_cord[2],false);
-				}   
+				if(m_Unit->CalcDistance(m_Unit->GetPositionX(), m_Unit->GetPositionY(), m_Unit->GetPositionZ(), ((Creature*)m_Unit)->respawn_cord[0], ((Creature*)m_Unit)->respawn_cord[1], ((Creature*)m_Unit)->respawn_cord[2])>15)
+				{
+					//return home
+					MoveTo(((Creature*)m_Unit)->respawn_cord[0],((Creature*)m_Unit)->respawn_cord[1],((Creature*)m_Unit)->respawn_cord[2],false);
+				}
 				else
 				{
 				MoveTo(m_Unit->GetPositionX() + wanderX, m_Unit->GetPositionY() + wanderY, m_Unit->GetPositionZ() + wanderZ,false);
@@ -3660,14 +3675,21 @@ void AIInterface::_UpdateMovement(uint32 p_time)
 			float Fz;
 			// Calculate new angle to target.
 			float Fo = m_Unit->calcRadAngle(UnitToFear->GetPositionX(), UnitToFear->GetPositionY(), m_Unit->GetPositionX(), m_Unit->GetPositionY());
-			double fAngleAdd = RandomDouble(((M_PI/2) * 2)) - (M_PI/2);
-			Fo += (float)fAngleAdd;
-			
+			Fo += RandomFloat(M_PI / 2);
+
 			float dist = m_Unit->CalcDistance(UnitToFear);
 			if(dist > 30.0f || (Rand(25) && dist > 10.0f))	// not too far or too close
 			{
-				Fx = m_Unit->GetPositionX() - (RandomFloat(15.f)+5.0f)*cosf(Fo);
-				Fy = m_Unit->GetPositionY() - (RandomFloat(15.f)+5.0f)*sinf(Fo);
+				if(m_Unit->GetMapId() == 572 || m_Unit->GetMapId() == 562 || m_Unit->GetMapId() == 559)   //GET MAP ID
+				{
+					Fx = m_Unit->GetPositionX();
+					Fy = m_Unit->GetPositionY();
+				}
+				else
+				{
+					Fx = m_Unit->GetPositionX() - (RandomFloat(15.f) + 5.0f) * cosf(Fo);
+					Fy = m_Unit->GetPositionY() - (RandomFloat(15.f) + 5.0f) * sinf(Fo);
+				}
 			}
 			else
 			{
@@ -3792,10 +3814,10 @@ void AIInterface::_UpdateMovement(uint32 p_time)
 					if (dist > (FollowDistance*FollowDistance)) //if out of range
 					{
 						m_AIState = STATE_FOLLOWING;
-						
+
 						if(dist > 25.0f) //25 yard away lets run else we will loose the them
 							m_moveRun = true;
-						else 
+						else
 							m_moveRun = false;
 
 						if(m_AIType == AITYPE_PET || UnitToFollow == m_formationLinkTarget) //Unit is Pet/formation
@@ -4385,7 +4407,6 @@ Unit *AIInterface::GetMostHated()
 			continue;
 		}
 
-
 		if (itr->first->m_auracount[SPELL_AURA_IGNORE_ENEMY] > 0 && m_aiTargets.size() > 1)
 			continue;
 
@@ -4452,42 +4473,71 @@ bool AIInterface::modThreatByPtr(Unit* obj, int32 mod)
 {
 	if(obj == NULL)
 		return false;
-	int32 newthreat = 0;
-		
-	TargetMap::iterator it = m_aiTargets.find(obj);
-	if(it != m_aiTargets.end())
-	{
-		it->second += mod;
-		//mod threat cant remove from combat, remove threat can
-		if (it->second < 1)
-			it->second = 1;
 
-		newthreat = it->second;
-	}
-	else
+	if( obj->mThreatRTarget && mod > 0)
 	{
-		m_aiTargets.insert(TargetMap::value_type(obj, mod >= 1? mod : 1)); //threat is minimum 1
-		newthreat = mod >= 1? mod : 1;
-	}
-
-	//dist threat mod :P
-	float distmod = 1.0f;
-	if (m_Unit->CalcDistance(obj) > _CalcCombatRange(obj, false) + 5.0f)
-		distmod = 1.1f;
-	else
-		distmod = 1.25f;
-
-	if((newthreat + obj->GetThreatModifyer()) > m_currentHighestThreat * distmod)
-	{
-		// new target!
-		if(!isTaunted)
+		int32 partmod = float2int32(mod * obj->mThreatRAmount);
+		mod -= partmod;
+		Unit* robj = obj->mThreatRTarget;
+		if( partmod && robj && robj->isAlive() && obj->GetDistanceSq(robj) < 1600 )
 		{
-			m_currentHighestThreat = newthreat + obj->GetThreatModifyer();
-			SetNextTarget(obj);
+			TargetMap::iterator it = m_aiTargets.find(robj);
+			if(it != m_aiTargets.end())
+			{
+				it->second += partmod;
+				if((it->second + robj->GetThreatModifyer()) > m_currentHighestThreat)
+				{
+					// new target!
+					if(!isTaunted)
+					{
+						m_currentHighestThreat = it->second + robj->GetThreatModifyer();
+						SetNextTarget(robj);
+					}
+				}
+			}
+			else
+			{
+				m_aiTargets.insert( make_pair( robj, partmod ) );
+				if((partmod + robj->GetThreatModifyer()) > m_currentHighestThreat)
+				{
+					if(!isTaunted)
+					{
+						m_currentHighestThreat = partmod + robj->GetThreatModifyer();
+						SetNextTarget(robj);
+					}
+				}
+			}
 		}
 	}
 
-	if(obj == m_nextTarget && !isTaunted)
+	TargetMap::iterator it = m_aiTargets.find(obj);
+	if( it != m_aiTargets.end() )
+	{
+		it->second += mod;
+		if( (it->second + obj->GetThreatModifyer()) > m_currentHighestThreat )
+		{
+			// new target!
+			if( !isTaunted )
+			{
+				m_currentHighestThreat = it->second + obj->GetThreatModifyer();
+				SetNextTarget(obj);
+			}
+		}
+	}
+	else
+	{
+		m_aiTargets.insert( make_pair( obj, mod ) );
+		if( (mod + obj->GetThreatModifyer()) > m_currentHighestThreat )
+		{
+			if( !isTaunted )
+			{
+				m_currentHighestThreat = mod + obj->GetThreatModifyer();
+				SetNextTarget(obj);
+			}
+		}
+	}
+
+	if(obj == m_nextTarget)
 	{
 		// check for a possible decrease in threat.
 		if(mod < 0)
@@ -4499,10 +4549,6 @@ bool AIInterface::modThreatByPtr(Unit* obj, int32 mod)
 			SetNextTarget(m_nextTarget);
 		}
 	}
-
-	if (isTaunted && tauntedBy == obj && m_nextTarget != obj)
-		SetNextTarget(obj);
-	
 	return true;
 }
 
@@ -4510,18 +4556,21 @@ void AIInterface::RemoveThreatByPtr(Unit* obj)
 {
 	if(!obj)
 		return;
+
 	TargetMap::iterator it = m_aiTargets.find(obj);
 	if(it != m_aiTargets.end())
-		m_aiTargets.erase(it);
-
-	//no aitarget entry
-	if(obj==m_nextTarget)
 	{
-		m_nextTarget = GetMostHated();
-		//if there is no more new targets then we can walk back home ?
-		if(!m_nextTarget)
-			HandleEvent(EVENT_LEAVECOMBAT, m_Unit, 0);
-		SetNextTarget(m_nextTarget);
+		m_aiTargets.erase(it);
+		//check if we are in combat and need a new target
+		if(obj == m_nextTarget)
+		{
+			m_nextTarget = GetMostHated();
+			//if there is no more new targets then we can walk back home ?
+			if( !m_nextTarget )
+				HandleEvent(EVENT_LEAVECOMBAT, m_Unit, 0);
+			else
+				SetNextTarget(m_nextTarget);
+		}
 	}
 }
 

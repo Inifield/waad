@@ -1504,7 +1504,7 @@ struct DestructibleModelDataEntry
 
 	uint32 GetDisplayId(uint8 state)
 	{
-		if(state > 5)
+		/*if(state > 5)
 			return 0;
 
 		if(!displayId[state])
@@ -1514,6 +1514,12 @@ struct DestructibleModelDataEntry
 				if(displayId[i])
 					return displayId[i];
 			}
+		}*/
+
+		for(int32 i =0; i < state; ++i)
+		{
+				if(displayId[i])
+					return displayId[i];
 		}
 
 		return displayId[state];

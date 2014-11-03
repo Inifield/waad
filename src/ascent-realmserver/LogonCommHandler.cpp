@@ -73,10 +73,10 @@ void LogonCommHandler::RequestAddition(LogonCommClientSocket * Socket)
 void LogonCommHandler::Startup()
 {
 	// Try to connect to all logons.
-	sLog.outColor(TNORMAL, "\n >> loading realms and logon server definitions... ");
+	sLog.outColor(TNORMAL, "\n >> Chargement des définitions du Realm et Logon Serveur... ");
 	LoadRealmConfiguration();
 
-	sLog.outColor(TNORMAL, " >> attempting to connect to all logon servers... \n");
+	sLog.outColor(TNORMAL, " >> Tentative de connexion à tous les serveurs de Logon... \n");
 
 	for(set<LogonServer*>::iterator itr = servers.begin(); itr != servers.end(); ++itr)
 		Connect(*itr);
@@ -117,23 +117,23 @@ const string* LogonCommHandler::GetForcedPermissions(string& username)
 }
 void LogonCommHandler::Connect(LogonServer * server)
 {
-	sLog.outColor(TNORMAL, "	>> connecting to `%s` on `%s:%u`...", server->Name.c_str(), server->Address.c_str(), server->Port);
+	sLog.outColor(TNORMAL, "	>> Connexion à `%s` sur `%s:%u`...", server->Name.c_str(), server->Address.c_str(), server->Port);
 	server->RetryTime = (uint32)UNIXTIME + 10;
 	server->Registered = false;
 	LogonCommClientSocket * conn = ConnectToLogon(server->Address, server->Port);
 	logons[server] = conn;
 	if(conn == 0)
 	{
-		sLog.outColor(TRED, " fail!\n	   server connection failed. I will try again later.");
+		sLog.outColor(TRED, " Échec !\n	   échec de la connexion au serveur. Une nouvelle tentative sera faite ultérieurement.");
 		sLog.outColor(TNORMAL, "\n");
 		return;
 	}
 	sLog.outColor(TGREEN, " ok!\n");
-	sLog.outColor(TNORMAL, "        >> authenticating...\n");
+	sLog.outColor(TNORMAL, "        >> Authentification...\n");
 	sLog.outColor(TNORMAL, "        >> ");
 	uint32 tt = uint32(time(NULL) + 10);
 	conn->SendChallenge();
-	sLog.outColor(TNORMAL, "        >> result:");
+	sLog.outColor(TNORMAL, "        >> Résultat :");
 	while(!conn->authenticated)
 	{
 		if((uint32)UNIXTIME >= tt)
@@ -142,23 +142,23 @@ void LogonCommHandler::Connect(LogonServer * server)
 			return;
 		}
 
-		Sleep(50);
+		Sleep(10);
 	}
 
 	if(conn->authenticated != 1)
 	{
-		sLog.outColor(TRED, " failure.\n");
+		sLog.outColor(TRED, " Échec.\n");
 		logons[server] = 0;
 		conn->Disconnect();
 		return;
 	}
 	else
-		sLog.outColor(TGREEN, " ok!\n");
+		sLog.outColor(TGREEN, " Ok !\n");
 
 	// Send the initial ping
 	conn->SendPing();
 
-	sLog.outColor(TNORMAL, "        >> registering realms... ");
+	sLog.outColor(TNORMAL, "        >> Enregistrement du Realms... ");
 	conn->_id = server->ID;
 
 	RequestAddition(conn);
@@ -220,15 +220,17 @@ void LogonCommHandler::UpdateSockets()
 
             if(cs->IsDeleted() || !cs->IsConnected())
             {
+				Log.Error("LogonCommClient","Realm id %u a perdu la connexion.", (unsigned int)itr->first->ID);
                 cs->_id = 0;
                 itr->second = 0;
+				mapLock.Release();
                 continue;
             }
 
 			if(cs->last_pong < t && ((t - cs->last_pong) > 60))
 			{
 				// no pong for 60 seconds -> remove the socket
-				printf(" >> realm id %u connection dropped due to pong timeout.\n", (unsigned int)itr->first->ID);
+				Log.Error("LogonCommClient","Le Realm id %u a supprimé la connexion en raison du dépassement du délais du pong.", (unsigned int)itr->first->ID);
 				cs->_id = 0;
 				cs->Disconnect();
 				itr->second = 0;
@@ -257,12 +259,15 @@ void LogonCommHandler::ConnectionDropped(uint32 ID)
 {
 	mapLock.Acquire();
 	map<LogonServer*, LogonCommClientSocket*>::iterator itr = logons.begin();
+	LogonCommClientSocket * cs;
 	for(; itr != logons.end(); ++itr)
 	{
+		cs = itr->second;
 		if(itr->first->ID == ID && itr->second != 0)
 		{
 			sLog.outColor(TNORMAL, " >> realm id %u connection was dropped unexpectedly. reconnecting next loop.", ID);
 			sLog.outColor(TNORMAL, "\n");
+			cs->Disconnect();
 			itr->second = 0;
 			break;
 		}
@@ -275,7 +280,7 @@ uint32 LogonCommHandler::ClientConnected(string AccountName, WorldSocket * Socke
 	uint32 request_id = next_request++;
 	size_t i = 0;
 	const char * acct = AccountName.c_str();
-	printf( " >> sending request for account information: `%s` (request %u).", AccountName.c_str(), request_id);
+	printf( " >> Récupération des informations pour le compte : `%s` (request %u).\n", AccountName.c_str(), request_id);
 	//  sLog.outColor(TNORMAL, "\n");
 
 	// Send request packet to server.

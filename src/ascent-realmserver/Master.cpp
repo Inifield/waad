@@ -104,7 +104,7 @@ void Master::Rehash(bool load)
 	strncpy(RSDBCPath,Config.MainConfig.GetStringDefault("DataBaseClient", "DBCPath", "dbc").c_str(),MAX_PATH );
     if(strlen(RSDBCPath) >= MAX_PATH)
 	{
-		Log.Error("World.conf","Fatal: Le repertoire des DBCs est trop long! (%u caracteres max)",MAX_PATH-10);
+		Log.Error("World.conf","Fatal: Le nom du répertoire des DBCs est trop long ! (%u caracteres max)",MAX_PATH-10);
 		Log.Error("World.conf","       Retour au nom par defaut 'dbc'");
 	    strcpy(RSDBCPath,"dbc");
 	}
@@ -212,24 +212,24 @@ bool Master::Run(int argc, char ** argv)
 
 	/* Print Banner */
 	Log.Notice("Server", "============================================================");
-	Log.Notice("Server", "| AscentWaad Cluster System - Realm Server                  |");
-	Log.Notice("Server", "| Version 1.0, Revision %04u                                |", BUILD_REVISION);
+	Log.Notice("Server", "| AscentWaad Cluster System - Realm Serveur                 |");
+	Log.Notice("Server", "| Version 1.0, Révision %04u                                |", BUILD_REVISION);
 	Log.Notice("Server", "============================================================");
 	Log.Line();
 
 	if( do_check_conf )
 	{
-		Log.Notice( "Config", "Checking config file: %s", config_file );
+		Log.Notice( "Config", "Vérification du fichier de configuration : %s", config_file );
 		if( Config.ClusterConfig.SetSource(config_file, true ) )
-			Log.Success( "Config", "Passed without errors." );
+			Log.Success( "Config", "Chargement de la configuration avec succès." );
 		else
-			Log.Warning( "Config", "Encountered one or more errors." );
+			Log.Warning( "Config", "Le chargement de la configuration a rencontré une ou plusieurs erreurs." );
 
-		Log.Notice( "Config", "Checking config file: %s\n", realm_config_file );
+		Log.Notice( "Config", "Vérification du fichier de configuration : %s\n", realm_config_file );
 		if( Config.RealmConfig.SetSource( realm_config_file, true ) )
-			Log.Success( "Config", "Passed without errors.\n" );
+			Log.Success( "Config", "Chargement de la configuration avec succès.\n" );
 		else
-			Log.Warning( "Config", "Encountered one or more errors.\n" );
+			Log.Warning( "Config", "Le chargement de la configuration a rencontré une ou plusieurs erreurs.\n" );
 
 		/* test for die variables */
 		string die;
@@ -239,7 +239,7 @@ bool Master::Run(int argc, char ** argv)
 		return true;
 	}
 
-	printf( "The key combination <Ctrl-C> will safely shut down the server at any time.\n" );
+	printf( "La combinaison des touches <Ctrl-C> permettra l'arrêt du serveur en toute sécurité à n'importe quel moment.\n" );
 	Log.Line();
 
 	//use these log_level until we are fully started up.
@@ -257,7 +257,7 @@ bool Master::Run(int argc, char ** argv)
 
 	Log.Line();
 
-	Log.Notice( "Config", "Loading Config Files..." );
+	Log.Notice( "Config", "Chargement des fichiers de configuration..." );
 	if( Config.ClusterConfig.SetSource( config_file ) )
 		Log.Success( "Config", ">> %s", config_file );
 	else
@@ -290,7 +290,7 @@ bool Master::Run(int argc, char ** argv)
 		_UnhookSignals();
 		return false;
 	}
-	Log.Success("Database", "Connections established...");
+	Log.Success("Database", "Connexions établies...");
 
 	new ClusterMgr;
 	new ClientMgr;
@@ -300,15 +300,23 @@ bool Master::Run(int argc, char ** argv)
 	ThreadPool.ShowStats();
 	Log.Line();
 	
-	Log.Notice( "Storage", "Loading DBC files..." );
+	Log.Notice( "Storage", "Chargement des fichers DBC..." );
 	if( !LoadRSDBCs() )
 	{
 		Log.LargeErrorMessage(LARGERRORMESSAGE_ERROR, "One or more of the DBC files are missing.", "These are absolutely necessary for the server to function.", "The server will not start without them.", NULL);
 		return false;
 	}
 
-	Log.Success("Storage", "DBC Files Loaded...");
-	Storage_Load();
+	Log.Success("Storage", "Fichiers DBC chargés...");
+	//Storage_Load();
+	TaskList tl;
+
+	Storage_FillTaskList(tl);
+
+	// spawn worker threads (2 * number of cpus)
+	tl.spawn();
+
+	tl.wait();
 
 	Log.Line();
 
@@ -320,13 +328,13 @@ bool Master::Run(int argc, char ** argv)
 	new LogonCommHandler;
 	sLogonCommHandler.Startup();
 
-	Log.Success("Network", "Network Subsystem Started.");
+	Log.Success("Network", "Sous-système réseau démarré.");
 
-	Log.Notice("Network", "Opening Client Port...");
+	Log.Notice("Network", "Ouverture du port client...");
 	ListenSocket<WorldSocket> * wsl = new ListenSocket<WorldSocket>("0.0.0.0", 8129);
 	bool lsc = wsl->IsOpen();
 
-	Log.Notice("Network", "Opening Server Port...");
+	Log.Notice("Network", "Ouverture du port serveur...");
 	ListenSocket<WSSocket> * isl = new ListenSocket<WSSocket>("0.0.0.0", 11010);
 	bool ssc = isl->IsOpen();
 
@@ -346,7 +354,7 @@ bool Master::Run(int argc, char ** argv)
 	realCurrTime = realPrevTime = getMSTime();
 
 	LoadingTime = getMSTime() - LoadingTime;
-	Log.Success("Server","Ready for connections. Startup time: %ums\n", LoadingTime );
+	Log.Success("Server","Prêt à recevoir les connexions. Temps de démarrage: %ums\n", LoadingTime );
 
 	m_startTime = uint32(UNIXTIME);
 
@@ -429,7 +437,7 @@ bool Master::Run(int argc, char ** argv)
 		}
 	}
 	// begin server shutdown
-	Log.Notice( "Shutdown", "Initiated at %s", ConvertTimeStampToDataTime( (uint32)UNIXTIME).c_str() );
+	Log.Notice( "Fermeture", "Initialisée à %s", ConvertTimeStampToDataTime( (uint32)UNIXTIME).c_str() );
 	bServerShutdown = true;
 	
 	_UnhookSignals();
@@ -442,7 +450,7 @@ bool Master::Run(int argc, char ** argv)
 	delete ChannelMgr::getSingletonPtr();
 
 	delete LogonCommHandler::getSingletonPtr();
-	Log.Notice("~LogonComm", "LogonCommHandler shut down");
+	Log.Notice("~LogonComm", "Fermeture du LogonCommHandler");
 
 	sSocketMgr.CloseAll();
 #ifdef WIN32
@@ -454,20 +462,20 @@ bool Master::Run(int argc, char ** argv)
 	delete VoiceChatHandler::getSingletonPtr();
 #endif
 
-	Log.Notice( "~Network", "Deleting network subsystem..." );
+	Log.Notice( "~Network", "Suppression du sous-système réseau..." );
 	delete SocketGarbageCollector::getSingletonPtr();
 	delete SocketMgr::getSingletonPtr();
 
-	Log.Notice("~Network", "Closing Client Port...");
+	Log.Notice("~Network", "Fermeture du port client...");
 	delete wsl;
 
-	Log.Notice("~Network", "Closing Server Port...");
+	Log.Notice("~Network", "Fermeture du port serveur...");
 	delete isl;
 	
-	Log.Notice("~Network", "Network Subsystem shut down.");
+	Log.Notice("~Network", "Fermeture du sous-système réseau.");
 	
 	Storage_Cleanup();
-	Log.Notice("~Storage", "DBC Files Unloaded...");
+	Log.Notice("~Storage", "Fichiers DBC déchargés...");
 
 	delete ClusterMgr::getSingletonPtr();
 	delete ClientMgr::getSingletonPtr();
@@ -475,17 +483,23 @@ bool Master::Run(int argc, char ** argv)
 	CharacterDatabase.EndThreads();
 	WorldDatabase.EndThreads();
 	Database::CleanupLibs();
-	Log.Notice( "Database", "Closing Connections..." );
+	Log.Notice( "Database", "Fermeture des connexions..." );
 	_StopDB();
-	Log.Notice("~Database", "Shutdown complete.");
+	Log.Notice("~Database", "Fermeture des bases de données terminée.");
 	
-	Log.Notice("ThreadPool", "Shutting down thread pool");	
+	Log.Notice("ThreadPool", "Fermeture du thread pool");
+	Task * tache = tl.GetTask();	
+	while (tache)
+	{
+		tl.RemoveTask(tache);
+	} 
+	tl.kill();
 	ThreadPool.Shutdown();
 	
 	// remove pid
 	remove( "ascent-realmserver.pid" );
 
-	Log.Success( "Shutdown", "Shutdown complete." );
+	Log.Success( "Shutdown", "Fermeture terminée." );
 
 #ifdef WIN32
 	WSACleanup();
@@ -669,3 +683,134 @@ void OnCrash( bool Terminate )
 
 #endif
 
+void TaskList::AddTask(Task * task)
+{
+	queueLock.Acquire();
+	tasks.insert(task);
+	queueLock.Release();
+}
+
+Task * TaskList::GetTask()
+{
+	queueLock.Acquire();
+
+	Task* t = 0;
+	for(set<Task*>::iterator itr = tasks.begin(); itr != tasks.end(); itr++)
+	{
+		if(!(*itr)->in_progress)
+		{
+			t = (*itr);
+			t->in_progress = true;
+			break;
+		}
+	}
+	queueLock.Release();
+	return t;
+}
+
+void TaskList::spawn()
+{
+	running = true;
+	thread_count = 0;
+
+	uint32 threadcount;
+	if(Config.MainConfig.GetBoolDefault("Startup", "EnableMultithreadedLoading", true))
+	{
+		// get processor count
+#ifndef WIN32
+#if UNIX_FLAVOUR == UNIX_FLAVOUR_LINUX
+#ifdef X64
+		threadcount = 2;
+#else
+		long affmask;
+		sched_getaffinity(0, 4, (cpu_set_t*)&affmask);
+		threadcount = (BitCount8(affmask)) * 2;
+		if(threadcount > 8) threadcount = 8;
+		else if(threadcount <= 0) threadcount = 1;
+#endif
+#else
+		threadcount = 2;
+#endif
+#else
+		SYSTEM_INFO s;
+		GetSystemInfo(&s);
+		threadcount = s.dwNumberOfProcessors * 2;
+		if(threadcount > 8)
+			threadcount = 8;
+#endif
+	}
+	else
+		threadcount = 1;
+
+	Log.Notice("World", "Beginning %s server startup with %u thread(s).", (threadcount == 1) ? "progressive" : "parallel", threadcount);
+
+	for(uint32 x = 0; x < threadcount; ++x)
+		ThreadPool.ExecuteTask(new TaskExecutor(this));
+}
+
+void TaskList::wait()
+{
+	bool has_tasks = true;
+	time_t t;
+	while(has_tasks)
+	{
+		queueLock.Acquire();
+		has_tasks = false;
+		for(set<Task*>::iterator itr = tasks.begin(); itr != tasks.end(); itr++)
+		{
+			if(!(*itr)->completed)
+			{
+				has_tasks = true;
+				break;
+			}
+		}
+		queueLock.Release();
+
+		// keep updating time lol
+		t = time(NULL);
+		if( UNIXTIME != t )
+		{
+			UNIXTIME = t;
+			g_localTime = *localtime(&t);
+		}
+
+		Sleep(20);
+	}
+}
+
+void TaskList::kill()
+{
+	running = false;
+}
+
+void Task::execute()
+{
+	_cb->execute();
+}
+
+bool TaskExecutor::run()
+{
+	Task * t;
+	while(starter->running)
+	{
+		t = starter->GetTask();
+		if(t)
+		{
+			t->execute();
+			t->completed = true;
+			starter->RemoveTask(t);
+			delete t;
+		}
+		else
+			Sleep(20);
+	}
+	return true;
+}
+
+void TaskList::waitForThreadsToExit()
+{
+	while(thread_count)
+	{
+		Sleep(20);
+	}
+}

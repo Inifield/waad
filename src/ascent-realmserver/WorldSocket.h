@@ -45,7 +45,9 @@ public:
 	// vs8 fix - send null on empty buffer
 	ASCENT_INLINE void SendPacket(WorldPacket* packet) { if(!packet) return; OutPacket(packet->GetOpcode(), packet->size(), (packet->size() ? (const void*)packet->contents() : NULL)); }
 	ASCENT_INLINE void SendPacket(StackPacket * packet) { if(!packet) return; OutPacket(packet->GetOpcode(), packet->GetSize(), (packet->GetSize() ? (const void*)packet->GetBufferPointer() : NULL)); }
+	ASCENT_INLINE void QueuePacket(uint16 opcode, size_t len, const void* data) { WorldPacket* pack = new WorldPacket(opcode, len); if(len) pack->append((uint8*)data, len); QueuePacket(pack); }
 
+	void QueuePacket(WorldPacket* packet);
 	void __fastcall OutPacket(uint16 opcode, size_t len, const void* data);
 	OUTPACKET_RESULT __fastcall _OutPacket(uint16 opcode, size_t len, const void* data);
    
@@ -81,9 +83,12 @@ private:
 	string * m_fullAccountName;
 	WowCrypt _crypt;
 	uint32 _latency;
+	bool mQueued;
+	bool m_nagleEanbled;	
 
 	Session * m_session;
-	
+
+	FastQueue<WorldPacket*, DummyLock> _queue;
 	Mutex queueLock;
 };
 

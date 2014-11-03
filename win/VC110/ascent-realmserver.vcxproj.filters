@@ -81,6 +81,9 @@
     <ClCompile Include="..\..\src\ascent-realmserver\ChannelHandler.cpp">
       <Filter>Client\Chat</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ascent-realmserver\Opcodes.cpp">
+      <Filter>Worker Server</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ascent-realmserver\LogonCommClient.h">

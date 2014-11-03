@@ -84,7 +84,6 @@ void WSSocket::OnRead()
 			uint32 sid;
 			uint16 op;
 			uint32 sz;
-			
 
 			GetReadBuffer().Read(&sid, 4);
 			GetReadBuffer().Read(&op, 2);
@@ -144,24 +143,40 @@ void WSSocket::HandleRegisterWorker(WorldPacket & pck)
 {
 	uint32 build;
 	pck >> build;
+	WorldPacket data(ISMSG_REGISTER_RESULT, 10);
 
-	// TODO: Check the build of the server
-	WServer * new_server = sClusterMgr.CreateWorkerServer(this);
-    if(new_server == 0)
+	if(build == BUILD_REVISION)
 	{
-		WorldPacket data(ISMSG_REGISTER_RESULT, 10);
+		WServer * new_server = sClusterMgr.CreateWorkerServer(this);
+		
+		if(new_server == NULL)
+		{
+			data << uint32(0);
+			SendPacket(&data);
+			delete &pck;
+			return;
+		}
+	
+		// Log.Success("ClusterMgr", "Enregistrement du Worker Server %u", new_server->GetID());
+		data << uint32(1);
+		SendPacket(&data);
+
+		/* because we don't have any locks in the managers, this has to execute
+		   in the other thread. this is why I haven't deleted the packet yet
+		*/
+    	_ws = new_server;
+		pck.rpos(0);
+		_ws->QueuePacket(&pck);
+
+	}
+	else
+	{
+		Log.Error("ClusterMgr", "Supression du serveur pour cause de build incorrecte(%u/%u)", build, BUILD_REVISION);
 		data << uint32(0);
 		SendPacket(&data);
 		delete &pck;
 		return;
 	}
-
-	/* because we don't have any locks in the managers, this has to execute
-	   in the other thread. this is why I haven't deleted the packet yet
-	 */
-    _ws = new_server;
-	pck.rpos(0);
-	_ws->QueuePacket(&pck);
 }
 
 void WSSocket::SendPacket(WorldPacket * pck)

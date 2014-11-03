@@ -41,7 +41,7 @@ bool ChatHandler::HandleRenameAllCharacter(const char * args, WorldSession * m_s
 				if( pPlayer != NULL )
 				{
 					pPlayer->rename_pending = true;
-					pPlayer->GetSession()->SystemMessage("Votre personnage a eu une demande de changement de nom, vous serez incités à rebaptiser votre personnage à l'établissement de la connexion suivant dans la conformité avec des règles du serveur.");
+					pPlayer->GetSession()->SystemMessage("Votre personnage a eu une demande de changement de nom, vous serez incité à rebaptiser votre personnage à l'établissement de la connexion suivante dans la conformité avec les règles du serveur.");
 				}
 
 				CharacterDatabase.WaitExecute("UPDATE characters SET forced_rename_pending = 1 WHERE guid = %u", uGuid);
@@ -429,7 +429,6 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
 		pNewChar->AddSummonSpell(43000,43000);		// rune Impie 
 
 	}
-
 
 	pNewChar->SaveToDB(true);	
 
@@ -904,7 +903,7 @@ void WorldSession::FullLogin(Player * plr)
 		"UPDATE characters SET online = 1 WHERE guid = %u" , plr->GetLowGUID());
 
 	bool enter_world = true;
-#ifndef CLUSTERING
+
 	// Find our transporter and add us if we're on one.
 	//-- Pourquoi ce code etait en commentaire (Note: Branruz) 
 	if(plr->m_TransporterGUID != 0)
@@ -939,8 +938,7 @@ void WorldSession::FullLogin(Player * plr)
 			pTrans->AddPlayer(plr);
 		}
 	}
-#endif
-
+	
 	if(plr->GetTeam() == FACTION_HORDE)
 		sWorld.HordePlayers++;
 	else
@@ -1054,7 +1052,6 @@ void WorldSession::FullLogin(Player * plr)
 
 	//send the worldstates to the player	
 }
-
 bool ChatHandler::HandleRenameCommand(const char * args, WorldSession * m_session)
 {
 	// prevent buffer overflow

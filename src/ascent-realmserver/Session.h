@@ -28,6 +28,20 @@
 
 typedef void(Session::*SessionPacketHandler)(WorldPacket&);
 
+#ifndef _GAME
+
+#define SKIP_READ_PACKET(pckt) pckt.rpos(pckt.wpos())
+
+struct AccountDataEntry
+{
+	time_t Time;
+	char * data;
+	uint32 sz;
+	bool bIsDirty;
+};
+
+#endif
+
 struct OpcodeHandler
 {
 	uint16 status;
@@ -50,6 +64,7 @@ enum AccountFlags
 };
 
 extern OpcodeHandler Handlers[NUM_MSG_TYPES];
+extern NameTableEntry g_worldOpcodeNames[];
 
 class SERVER_DECL Session
 {
@@ -76,16 +91,19 @@ protected:
 	uint32 language;
 	static SessionPacketHandler Handlers[NUM_MSG_TYPES];
 	bool m_loadedPlayerData;
+	AccountDataEntry sAccountData[8];
 
 public:
-	bool deleted;
+	bool deleted;	
+	uint8 _updatecount;
 	static void InitHandlers();
 	void Update();
 	uint32 m_muted;
 	uint32 m_lastPing;
 
-	ASCENT_INLINE RPlayerInfo * GetPlayer() { return m_currentPlayer; }
+	ASCENT_INLINE void QueuePacket(WorldPacket* packet) { m_readQueue.Push(packet); }
 
+	ASCENT_INLINE RPlayerInfo * GetPlayer() { return m_currentPlayer; }
 	ASCENT_INLINE void ClearCurrentPlayer() { m_currentPlayer = 0; }
 	ASCENT_INLINE void ClearServers() { m_nextServer = m_server = 0; }
 	ASCENT_INLINE void SetNextServer() { m_server = m_nextServer; }
@@ -124,6 +142,26 @@ public:
 
 	bool HasFlag(uint32 flag) { return (m_accountFlags & flag) != 0; }
 
+	ASCENT_INLINE void SetAccountData(uint32 index, char* data, bool initial, uint32 sz)
+	{
+		ASSERT(index < 8);
+		if(sAccountData[index].data)
+			delete [] sAccountData[index].data;
+		sAccountData[index].data = data;
+		sAccountData[index].sz = sz;
+		sAccountData[index].Time = UNIXTIME;
+		if(!initial && !sAccountData[index].bIsDirty)		// Mark as "changed" or "dirty"
+			sAccountData[index].bIsDirty = true;
+		else if(initial)
+			sAccountData[index].bIsDirty = false;
+	}
+
+	ASCENT_INLINE AccountDataEntry* GetAccountData(uint32 index)
+	{
+		ASSERT(index < 8);
+		return &sAccountData[index];
+	}
+
 	void SendPacket(WorldPacket * data)
 	{
 		if(m_socket && m_socket->IsConnected())
@@ -149,12 +187,15 @@ public:
 	}
 
 	void HandlePlayerLogin(WorldPacket & pck);
+	//void HandleCharacterEnum(QueryResult * result);
 	void HandleCharacterEnum(WorldPacket & pck);
-	void HandleCharacterEnumProc();
+	void HandleCharacterEnumOpcode(WorldPacket & pck);
 
 	void HandleCharacterCreate(WorldPacket & pck);
 	void HandleCharacterDelete(WorldPacket & pck);
 	void HandleCharacterRename(WorldPacket & pck);
+	void HandleUpdateAccountData(WorldPacket & pck);
+	void HandleRequestAccountData(WorldPacket & pck);
 	
 	void HandleItemQuerySingleOpcode(WorldPacket & pck);
 	void HandleCreatureQueryOpcode(WorldPacket & pck);

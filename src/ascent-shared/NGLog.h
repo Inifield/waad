@@ -120,6 +120,7 @@ public:
 		va_list ap;
 		char buffer[LONGEURLOG];
 		va_start(ap, format);
+		SetConsoleOutputCP(1252);
 		vsprintf(buffer,format,ap);
 		va_end(ap);
 		
@@ -155,6 +156,7 @@ public:
 		va_list ap;
 		char buffer[LONGEURLOG];
 		va_start(ap, format);
+		SetConsoleOutputCP(1252);
 		vsprintf(buffer,format,ap);
 		va_end(ap);
 	
@@ -181,6 +183,7 @@ public:
 		va_list ap;
 		char buffer[LONGEURLOG];
 		va_start(ap, format);
+		SetConsoleOutputCP(1252);
         vsprintf(buffer,format,ap);
 		va_end(ap);
 		
@@ -207,6 +210,7 @@ public:
 		va_list ap;
 		char buffer[LONGEURLOG];
 		va_start(ap, format);
+		SetConsoleOutputCP(1252);
         vsprintf(buffer,format,ap);
 		va_end(ap);
 	
@@ -233,6 +237,7 @@ public:
 		va_list ap;
 		char buffer[LONGEURLOG];
 		va_start(ap, format);
+		SetConsoleOutputCP(1252);
         vsprintf(buffer,format,ap);
 		va_end(ap);
 		
@@ -259,6 +264,7 @@ public:
 		va_list ap;
 		char buffer[LONGEURLOG];
 		va_start(ap, format);
+		SetConsoleOutputCP(1252);
         vsprintf(buffer,format,ap);
 		va_end(ap);
 		

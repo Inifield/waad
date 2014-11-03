@@ -28,9 +28,11 @@ struct Instance
 
 class ClusterMgr : public Singleton<ClusterMgr>
 {
+private:
 	typedef map<uint32, Instance*> InstanceMap;
 
 	RWLock m_lock;
+	Mutex Slave_lock;
 	WServer * WorkerServers[MAX_WORKER_SERVERS];
 	Instance * SingleInstanceMaps[MAX_SINGLE_MAPID];
 	

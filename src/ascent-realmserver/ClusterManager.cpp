@@ -25,8 +25,7 @@ ClusterMgr::ClusterMgr()
 	memset(SingleInstanceMaps, 0, sizeof(WServer*) * MAX_SINGLE_MAPID);
 	memset(WorkerServers, 0, sizeof(WServer*) * MAX_WORKER_SERVERS);
 	m_maxInstanceId = 0;
-	m_maxWorkerServer = 0;
-	Log.Success("ClusterMgr", "Interface Created");
+	m_maxWorkerServer = 0;	
 
 	WServer::InitHandlers();
 }
@@ -119,7 +118,7 @@ WServer * ClusterMgr::CreateWorkerServer(WSSocket * s)
 		return 0;		// No spaces
 	}
 
-	Log.Success("ClusterMgr", "Allocating worker server %u to %s:%u", i, s->GetRemoteIP().c_str(), s->GetRemotePort());
+	Log.Success("ClusterMgr", "Allocation du serveur de 'Monde' %u à l'adresse:port %s:%u", i, s->GetRemoteIP().c_str(), s->GetRemotePort());
 	WorkerServers[i] = new WServer(i, s);
 	if(m_maxWorkerServer <= i)
 		m_maxWorkerServer = i+1;
@@ -171,7 +170,7 @@ Instance * ClusterMgr::CreateInstance(uint32 MapId, WServer * server)
 	data << MapId << pInstance->InstanceId;
 	server->SendPacket(&data);
 	server->AddInstance(pInstance);
-	Log.Success("ClusterMgr", "Allocating instance %u on map %u to server %u", pInstance->InstanceId, pInstance->MapId, server->GetID());
+	Log.Success("ClusterMgr", "Allocation de l'instance %u sur la map %u pour le serveur %u", pInstance->InstanceId, pInstance->MapId, server->GetID());
 	return pInstance;
 }
 
@@ -183,7 +182,7 @@ WServer * ClusterMgr::GetWorkerServerForNewInstance()
 	/* for now we'll just work with the instance count. in the future we might want to change this to
 	   use cpu load instead. */
 
-	m_lock.AcquireReadLock();
+	Slave_lock.Acquire();
 	for(uint32 i = 0; i < MAX_WORKER_SERVERS; ++i) {
 		if(WorkerServers[i] != 0) {
 			if((int32)WorkerServers[i]->GetInstanceCount() < lowest_load)
@@ -193,7 +192,7 @@ WServer * ClusterMgr::GetWorkerServerForNewInstance()
 			}
 		}
 	}
-	m_lock.ReleaseReadLock();
+	Slave_lock.Release();
 
 	return lowest;
 }
@@ -211,7 +210,8 @@ Instance * ClusterMgr::CreateInstance(uint32 InstanceId, uint32 MapId)
 	if(!server)
 		return NULL;
 
-	ASSERT(GetInstance(InstanceId) == NULL);
+	if(!GetInstance(InstanceId))
+		return NULL;
 
 	/* bump up the max id if necessary */
 	if(m_maxInstanceId <= InstanceId)
@@ -234,75 +234,81 @@ Instance * ClusterMgr::CreateInstance(uint32 InstanceId, uint32 MapId)
 	data << MapId << InstanceId;
 	server->SendPacket(&data);
 	server->AddInstance(pInstance);
-	Log.Success("ClusterMgr", "Allocating instance %u on map %u to server %u", pInstance->InstanceId, pInstance->MapId, server->GetID());
+	Log.Success("ClusterMgr", "Allocation de l'instance %u sur la map %u pour le serveur %u", pInstance->InstanceId, pInstance->MapId, server->GetID());
 	return pInstance;
 }
 
 void ClusterMgr::Update()
 {
+	Slave_lock.Acquire();
 	for(uint32 i = 1; i < m_maxWorkerServer; i++)
 		if(WorkerServers[i])
 			WorkerServers[i]->Update();
+	Slave_lock.Release();
 }
 
 void ClusterMgr::DistributePacketToAll(WorldPacket * data, WServer * exclude)
 {
+	Slave_lock.Acquire();
 	for(uint32 i = 0; i < m_maxWorkerServer; i++)
 		if(WorkerServers[i] && WorkerServers[i] != exclude)
 			WorkerServers[i]->SendPacket(data);
+	Slave_lock.Release();
 }
 
 void ClusterMgr::OnServerDisconnect(WServer* s)
-{
+{	
 	m_lock.AcquireWriteLock();
+
+	if (Instances.size())
+	{
+		InstanceMap::iterator itr=Instances.begin();
+		while ( itr!=Instances.end() )
+		{
+			if (itr->second->Server == s)
+			{
+				Log.Warning("ClusterMgr", "Suppression de l'instance %u sur la Map %u dûe à la déconnexion du serveur 'Monde'", itr->first, itr->second->MapId);
+				delete itr->second;
+				itr = Instances.erase(itr);
+			}
+			else ++itr;
+		}
+		Instances.clear();
+	}
+	
+	if (InstancedMaps.size())
+	{
+		std::multimap<uint32, Instance*>::iterator itr1=InstancedMaps.begin();
+		while ( itr1!=InstancedMaps.end() )
+		{
+			if (itr1->second->Server == s)
+			{
+				Log.Warning("ClusterMgr", "Suppression de l'instance 'Prototype Map' %u dûe à la déconnexion du serveur 'Monde'", itr1->first);
+				InstancedMaps.erase(itr1++);
+			}
+			else ++itr1;
+		}
+		InstancedMaps.clear();
+	}
+
+	for (uint32 i=0; i<MAX_SINGLE_MAPID; ++i)
+	{
+		if (SingleInstanceMaps[i])
+		{ 
+			if (SingleInstanceMaps[i]->Server == s)
+			{
+				Log.Warning("ClusterMgr", "Suppression de la Map %u dûe à la déconnexion du serveur 'Monde'", i);
+				SingleInstanceMaps[i] = NULL;
+			}
+		}
+	}
 
 	for(uint32 i = 0; i  < m_maxWorkerServer; i++)
 	{
 		if (WorkerServers[i] == s)
 		{
-			Log.Warning("ClusterMgr", "Removing worker server %u due to socket disconnection", i);
+			Log.Warning("ClusterMgr", "Suppression du serveur 'Monde' %u dûe à la fermeture du socket", i);
 			WorkerServers[i] = NULL;
-		}
-	}
-
-
-	for (uint32 i=0; i<MAX_SINGLE_MAPID; ++i)
-	{
-		if (SingleInstanceMaps[i] != NULL && SingleInstanceMaps[i]->Server == s)
-		{
-			Log.Warning("ClusterMgr", "Removing single map %u due to worker server disconnection", i);
-			delete SingleInstanceMaps[i];
-			SingleInstanceMaps[i] = NULL;
-		}
-	}
-
-	for (InstanceMap::iterator itr=Instances.begin(); itr!=Instances.end(); ++itr)
-	{
-		if (itr->second->Server == s)
-		{
-			Log.Warning("ClusterMgr", "Removing instance %u on map %u due to worker server disconnection", itr->first, itr->second->MapId);
-			delete itr->second;
-			Instances.erase(itr);
-			itr=Instances.begin();
-
-			//don't get out of range :P
-			if (Instances.size() == 0)
-				break;
-		}
-	}
-
-	for (std::multimap<uint32, Instance*>::iterator itr=InstancedMaps.begin(); itr!=InstancedMaps.end(); ++itr)
-	{
-		if (itr->second->Server == s)
-		{
-			Log.Warning("ClusterMgr", "Removing instance prototype map %u due to worker server disconnection", itr->first);
-			delete itr->second;
-			InstancedMaps.erase(itr);
-			itr=InstancedMaps.begin();
-
-			//don't get out of range :P
-			if (InstancedMaps.size() == 0)
-				break;
 		}
 	}
 

@@ -2617,6 +2617,7 @@ public:
 	
 	//Clustering
 	void EventClusterMapChange(uint32 mapid, uint32 instanceid, LocationVector location);
+	void HandleClusterRemove();
 	void HandlePlayerTeleportServers();
 };
 	

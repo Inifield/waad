@@ -126,6 +126,7 @@ void oLog::outError( const char * err, ... )
 		return;
 
 	va_start(ap, err);
+	SetConsoleOutputCP(1252);
 	vsnprintf(buf, 32768, err, ap);
 	va_end(ap);
 
@@ -161,6 +162,7 @@ void oLog::outDetail( const char * str, ... )
 		return;
 
 	va_start(ap, str);
+	SetConsoleOutputCP(1252);
 	vsnprintf(buf, 32768, str, ap);
 	va_end(ap);
 
@@ -186,6 +188,7 @@ void oLog::outDebug( const char * str, ... )
 		return;
 
 	va_start(ap, str);
+	SetConsoleOutputCP(1252);
 	vsnprintf(buf, 32768, str, ap);
 	va_end(ap);
 

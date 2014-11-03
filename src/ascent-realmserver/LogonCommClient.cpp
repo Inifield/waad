@@ -109,10 +109,10 @@ void LogonCommClientSocket::HandlePacket(WorldPacket & recvData)
 		NULL,												// RCMSG_UPDATE_CHARACTER_MAPPING_COUNT
 		&LogonCommClientSocket::HandleDisconnectAccount,	// RSMSG_DISCONNECT_ACCOUNT
 		NULL,												// RCMSG_TEST_CONSOLE_LOGIN
-		NULL,												// RSMSG_CONSOLE_LOGIN_RESULT
+		&LogonCommClientSocket::HandleConsoleAuthResult,	// RSMSG_CONSOLE_LOGIN_RESULT
 		NULL,												// RCMSG_MODIFY_DATABASE
-		&LogonCommClientSocket::HandlePong,					// RCMSG_SERVER_PING
-		&LogonCommClientSocket::HandlePong,					// RSMSG_SERVER_PONG
+		&LogonCommClientSocket::HandleServerPing,			// RCMSG_SERVER_PING
+		NULL,												// RSMSG_SERVER_PONG
 	};
 
 	if(recvData.GetOpcode() >= RMSG_COUNT || Handlers[recvData.GetOpcode()] == 0)
@@ -131,7 +131,7 @@ void LogonCommClientSocket::HandleRegister(WorldPacket & recvData)
 	string realmname;
 	recvData >> error >> realmlid >> realmname;
 
-	sLog.outColor(TNORMAL, "\n        >> realm `%s` registered under id ", realmname.c_str());
+	sLog.outColor(TNORMAL, "\n        >> Le serveur Realm `%s` est enregistré sous l'id ", realmname.c_str());
 	sLog.outColor(TGREEN, "%u", realmlid);
 	
 	LogonCommHandler::getSingleton().AdditionAck(_id, realmlid);
@@ -232,7 +232,7 @@ void LogonCommClientSocket::SendChallenge()
 
 	/* initialize rc4 keys */
 
-	printf("Key:");
+	printf("Clef:");
 	sLog.outColor(TGREEN, " ");
 	for(int i = 0; i < 20; ++i)
 		printf("%.2X ", key[i]);
@@ -252,12 +252,13 @@ void LogonCommClientSocket::HandleAuthResponse(WorldPacket & recvData)
 	if(result != 1)
 	{
 		authenticated = 0xFFFFFFFF;
-		sLog.outError("Echec de l'authentification !");
+		sLog.outError("Échec de l'authentification !");
 	}
 	else
 	{
 		authenticated = 1;
 	}
+	use_crypto = true;
 }
 
 void LogonCommClientSocket::UpdateAccountCount(uint32 account_id, uint8 add)
@@ -402,3 +403,21 @@ void LogonCommClientSocket::HandleDisconnectAccount(WorldPacket & recvData)
 		sess->Disconnect();
 }
 
+void ConsoleAuthCallback(uint32 request, uint32 result);
+void LogonCommClientSocket::HandleConsoleAuthResult(WorldPacket & recvData)
+{
+	uint32 requestid, result;
+	recvData >> requestid >> result;
+
+	ConsoleAuthCallback(requestid, result);
+}
+
+void LogonCommClientSocket::HandleServerPing(WorldPacket &recvData)
+{
+	uint32 r;
+	recvData >> r;
+
+	WorldPacket data(RCMSG_SERVER_PONG, 4);
+	data << r;
+	SendPacket(&data, false);
+}

@@ -40,16 +40,15 @@ void WSClient::OnRead()
 			if(GetReadBuffer().GetSize() < 6)
 				break;
 
-			GetReadBuffer().Read(&_cmd, 2);
-			GetReadBuffer().Read(&_remaining, 4);
+			GetReadBuffer().Read((uint8*)&_cmd, 2);
+			GetReadBuffer().Read((uint8*)&_remaining, 4);
 		}
 
 		if(_remaining && GetReadBuffer().GetSize() < _remaining)
-			break;
+			return;
 
 		if(_cmd == ISMSG_WOW_PACKET)
 		{
-			/* optimized version for packet passing, to reduce latency! ;) */
 			uint32 sid = 0;
 			uint16 op = 0;
 			uint32 sz = 0;
@@ -58,21 +57,19 @@ void WSClient::OnRead()
 			GetReadBuffer().Read(&sz, 4);
 			
 			WorldSession * session = sClusterInterface.GetSession(sid);
-			WorldPacket * pck;
 			if(session != NULL)
 			{
-				pck = new WorldPacket(op, sz);
+				WorldPacket * pck = new WorldPacket(op, sz);
 				if (sz > 0)
 				{
 					pck->resize(sz);
 					GetReadBuffer().Read((void*)pck->contents(), sz);
 				}
-				session->QueuePacket(pck);
-			}
-			else 
-			{
-				delete pck;
-				pck = NULL;
+
+				if(session)
+					session->QueuePacket(pck);
+				else
+					delete pck;
 			}
 			_cmd = 0;
 			continue;
@@ -80,8 +77,11 @@ void WSClient::OnRead()
 
 		WorldPacket * pck = new WorldPacket(_cmd, _remaining);
 		_cmd = 0;
-		pck->resize(_remaining);
-		GetReadBuffer().Read((void*)pck->contents(), _remaining);
+		if(_remaining)
+		{
+			pck->resize(_remaining);
+			GetReadBuffer().Read((uint8*)pck->contents(), _remaining);
+		}
 
 		/* we could handle auth here */
 		switch(_cmd)
@@ -90,73 +90,9 @@ void WSClient::OnRead()
 			sClusterInterface.HandleAuthRequest(*pck);
 			delete pck;
 			break;
-		/*case ISMSG_AUTH_RESULT:
-			sClusterInterface.HandleAuthResult(*pck);
-			delete pck;
-			break;
-		case ISMSG_REGISTER_RESULT:
-			sClusterInterface.HandleRegisterResult(*pck);
-			delete pck;
-			break;
-		case ISMSG_CREATE_INSTANCE:
-			sClusterInterface.HandleCreateInstance(*pck);
-			delete pck;
-			break;
-		case ISMSG_PLAYER_LOGIN:
-			sClusterInterface.HandlePlayerLogin(*pck);
-			delete pck;
-			break;
-		case ISMSG_WOW_PACKET:
-			sClusterInterface.HandleWoWPacket(*pck);
-			delete pck;
-			break;
-		case ISMSG_TELEPORT_RESULT:
-			sClusterInterface.HandleTeleportResult(*pck);
-			delete pck;
-			break;
-		case ISMSG_SESSION_REMOVED:
-			sClusterInterface.HandleSessionRemoved(*pck);
-			delete pck;
-			break;
-		case ISMSG_SAVE_ALL_PLAYERS:
-			sClusterInterface.HandleSaveAllPlayers(*pck);
-			delete pck;
-			break;
-		case ISMSG_TRANSPORTER_MAP_CHANGE:
-			sClusterInterface.HandleTransporterMapChange(*pck);
-			delete pck;
-			break;
-		case ISMSG_PLAYER_TELEPORT:
-			sClusterInterface.HandlePlayerTeleport(*pck);
-			delete pck;
-			break;
-		case ISMSG_CREATE_PLAYER:
-			sClusterInterface.HandleCreatePlayer(*pck);
-			delete pck;
-			break;
-		case ISMSG_PACKED_PLAYER_INFO:
-			sClusterInterface.HandlePackedPlayerInfo(*pck);
-			delete pck;
-			break;
-		case ISMSG_DESTROY_PLAYER_INFO:
-			sClusterInterface.HandleDestroyPlayerInfo(*pck);
-			delete pck;
-			break;
-		case ISMSG_PLAYER_INFO:
-			sClusterInterface.HandlePlayerInfo(*pck);
-			delete pck;
-			break;
-		case ISMSG_CHANNEL_ACTION:
-			sClusterInterface.HandleChannelAction(*pck);
-			delete pck;
-			break;
-		case ISMSG_CHANNEL_LFG_DUNGEON_STATUS_REQUEST:
-			sClusterInterface.HandleChannelLFGDungeonStatusRequest(*pck);
-			delete pck;
-			break;*/
 		default:
 			sClusterInterface.QueuePacket(pck);
-		}		
+		}
 	}
 }
 

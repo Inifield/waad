@@ -84,15 +84,23 @@ void WorldSocket::OutPacket(uint16 opcode, size_t len, const void* data)
 		queueLock.Acquire();
 		WorldPacket * pck = new WorldPacket(opcode, len);
 		if(len) pck->append((const uint8*)data, len);
-		m_session->m_readQueue.Push(pck);
+		_queue.Push(pck);
 		queueLock.Release();
 	}
+}
+
+void WorldSocket::QueuePacket(WorldPacket* packet)
+{
+	/* queue the packet */
+	queueLock.Acquire();
+	_queue.Push(packet);
+	queueLock.Release();
 }
 
 void WorldSocket::UpdateQueuedPackets()
 {
 	queueLock.Acquire();
-	if(!m_session->m_readQueue.HasItems())
+	if(!_queue.HasItems())
 	{
 		queueLock.Release();
 		return;
@@ -105,15 +113,16 @@ void WorldSocket::UpdateQueuedPackets()
 		switch(_OutPacket(pck->GetOpcode(), pck->size(), pck->size() ? pck->contents() : NULL))
 		{
 		case OUTPACKET_RESULT_SUCCESS:
-			{
+			{	
 				delete pck;
-				pck = NULL;
-				m_session->m_readQueue.pop_front();
+				_queue.pop_front();
+		
 			}break;
 
 		case OUTPACKET_RESULT_NO_ROOM_IN_BUFFER:
 			{
 				/* still connected */
+				sLog.outString("[WARNING] Problème dans la réception du paquet. Tentative de récuperation");
 				queueLock.Release();
 				return;
 			}break;
@@ -121,8 +130,9 @@ void WorldSocket::UpdateQueuedPackets()
 		default:
 			{
 				/* kill everything in the buffer */
-				while((pck == m_session->m_readQueue.Pop()))
+				while((pck = _queue.Pop()))
 				{
+					sLog.outError("Erreur dans la réception du paquet");
 					delete pck;
 					pck = NULL;
 				}
@@ -285,11 +295,11 @@ void WorldSocket::InformationRetreiveCallback(WorldPacket & recvData, uint32 req
 	if( ForcedPermissions != NULL )
 	{
 		GMFlags.assign(ForcedPermissions->c_str());
-		Log.Debug("[GM FORCED PERMISSIONS]", "Il y a une permission forcee pour le compte No. %u (%s)", AccountID, AccountName.c_str() );
+		Log.Debug("[GM FORCED PERMISSIONS]", "Il y a une permission forcée pour le compte No. %u (%s)", AccountID, AccountName.c_str() );
 
 	}
 	
-	printf( " >> Recuperation des informations pour le logon: `%s` ID %u (request %u)", AccountName.c_str(), AccountID, mRequestID);
+	printf( " >> Récupération des informations pour le logon: `%s` ID %u (request %u)", AccountName.c_str(), AccountID, mRequestID);
 	printf("\n");
 	//	sLog.outColor(TNORMAL, "\n");
 
@@ -360,6 +370,9 @@ void WorldSocket::InformationRetreiveCallback(WorldPacket & recvData, uint32 req
 	m_session->m_ClientBuild = mClientBuild;
 	//m_session->language = sLocalizationMgr.GetLanguageId(lang);
 
+	for(uint32 i = 0; i < 8; i++)
+		session->SetAccountData(i, NULL, true, 0);
+
 	if(recvData.rpos() != recvData.wpos())
 		recvData >> m_session->m_muted;
 
@@ -395,6 +408,28 @@ void WorldSocket::_HandlePing(WorldPacket* recvPacket)
 	*recvPacket >> ping;
 	*recvPacket >> _latency;
 	OutPacket(SMSG_PONG, 4, &ping);
+
+#ifdef WIN32
+	// Dynamically change nagle buffering status based on latency.
+	if(_latency >= 250)
+	{
+		if(!m_nagleEanbled)
+		{
+			u_long arg = 0;
+			setsockopt(GetFd(), 0x6, 0x1, (const char*)&arg, sizeof(arg));
+			m_nagleEanbled = true;
+		}
+	}
+	else
+	{
+		if(m_nagleEanbled)
+		{
+			u_long arg = 1;
+			setsockopt(GetFd(), 0x6, 0x1, (const char*)&arg, sizeof(arg));
+			m_nagleEanbled = false;
+		}
+	}
+#endif
 }
 
 void WorldSocket::OnRead()
@@ -445,7 +480,7 @@ void WorldSocket::OnRead()
 		mRemaining = mSize = mOpcode = 0;
 
 		// Check for packets that we handle
-		sLog.outDebug("[WorldSocket] : Reception de l'Opcode:0x%04X", Packet->GetOpcode());
+		sLog.outDebug("[WorldSocket] : Réception de l'Opcode:0x%04X", Packet->GetOpcode());
 		switch(Packet->GetOpcode())
 		{
 		case CMSG_PING:
@@ -458,7 +493,7 @@ void WorldSocket::OnRead()
 				}
 				else
 				{
-					m_session->m_readQueue.Push(Packet);
+					m_session->QueuePacket(Packet);
 					//m_session->Update();
 				}
 			}break;
@@ -471,7 +506,7 @@ void WorldSocket::OnRead()
 				if(m_session)
 				{
 					sLog.outDebug("[WorldSocket] : OnReadPacket 0x%04X",Packet->GetOpcode());
-					m_session->m_readQueue.Push(Packet);
+					m_session->QueuePacket(Packet);
 					//m_session->Update(); // Note Randdrick : OBLIGATOIRE  ! On update la session pour permettre le traitement du paquet.
 				}
 				else 

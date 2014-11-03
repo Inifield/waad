@@ -438,10 +438,21 @@ void WorldSession::LogoutPlayer(bool Save)
 			data << _socket->GetSessionId() << _player->GetLowGUID();
 			sClusterInterface.SendPacket(&data);
 		}
+		// on se suppose que le Realmserver a pris soin du socket, mais le WorldServer n'a pas pris soin du player : p
+		else if(_player->GetLowGUID())
+		{
+			sEventMgr.AddEvent(_player, &Player::RemovePlayerFromWorld, EVENT_UNK, 10000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
+			OutPacket(SMSG_LOGOUT_COMPLETE, 0, NULL);
+			sLog.outDebug( "SESSION: Sent SMSG_LOGOUT_COMPLETE Message" );
+			_loggingOut = false;
+		}
 #endif
-		sEventMgr.AddEvent(_player, &Player::RemovePlayerFromWorld, EVENT_UNK, 30000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
-		OutPacket(SMSG_LOGOUT_COMPLETE, 0, NULL);
-		sLog.outDebug( "SESSION: Sent SMSG_LOGOUT_COMPLETE Message" );
+		if(_loggingOut)
+		{
+			sEventMgr.AddEvent(_player, &Player::RemovePlayerFromWorld, EVENT_UNK, 10000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
+			OutPacket(SMSG_LOGOUT_COMPLETE, 0, NULL);
+			sLog.outDebug( "SESSION: Sent SMSG_LOGOUT_COMPLETE Message" );
+		}
 	}
 	_loggingOut = false;
 

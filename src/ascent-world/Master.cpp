@@ -103,10 +103,14 @@ struct Addr
 
 #ifdef WIN32
         static const char* default_config_file = "ascent-world.conf";
+#ifndef CLUSTERING
         static const char* default_realm_config_file = "ascent-realms.conf";
+#endif
 #else
         static const char* default_config_file = CONFDIR "/ascent-world.conf";
+#ifndef CLUSTERING
         static const char* default_realm_config_file = CONFDIR "/ascent-realms.conf";
+#endif
 #endif
 
 // Intouchable..... ;)
@@ -132,8 +136,9 @@ bool Master::Run(int argc, char ** argv)
 	s = default_config_file;
 #endif
 	char * config_file = (char*)s.c_str();
+#ifndef CLUSTERING
 	char * realm_config_file = (char*)default_realm_config_file;
-
+#endif
 	int file_log_level = DEF_VALUE_NOT_SET;
 	int screen_log_level = DEF_VALUE_NOT_SET;
 	int do_check_conf = 0;
@@ -164,12 +169,12 @@ bool Master::Run(int argc, char ** argv)
 			config_file = new char[strlen(ascent_optarg)];
 			strncpy(config_file, ascent_optarg,strlen(ascent_optarg)-1);
 			break;
-
+#ifndef CLUSTERING
 		case 'r':
 			realm_config_file = new char[strlen(ascent_optarg)];
 			strncpy(realm_config_file, ascent_optarg,strlen(ascent_optarg)-1);
 			break;
-
+#endif
 		case 0:
 			break;
 		default:
@@ -227,13 +232,13 @@ bool Master::Run(int argc, char ** argv)
 			Log.Success( "Config", "Passed without errors." );
 		else
 			Log.Warning( "Config", "Encountered one or more errors." );
-
+#ifndef CLUSTERING
 		Log.Notice( "Config", "Checking config file: %s\n", realm_config_file );
 		if( Config.RealmConfig.SetSource( realm_config_file, true ) )
 			Log.Success( "Config", "Passed without errors.\n" );
 		else
 			Log.Warning( "Config", "Encountered one or more errors.\n" );
-
+#endif
 		/* test for die variables */
 		string die;
 		if( Config.MainConfig.GetString( "die", "msg", &die) || Config.MainConfig.GetString("die2", "msg", &die ) )
@@ -271,7 +276,7 @@ bool Master::Run(int argc, char ** argv)
 		Log.Warning( "Config", "Die directive received: %s", die.c_str() );
 		return false;
 	}	
-
+#ifndef CLUSTERING
 	if(Config.RealmConfig.SetSource(realm_config_file))
 		Log.Success( "Config", ">> ascent-realms.conf" );
 	else
@@ -279,7 +284,7 @@ bool Master::Run(int argc, char ** argv)
 		Log.Error( "Config", ">> ascent-realms.conf" );
 		return false;
 	}
-
+#endif
 	if( !_StartDB() )
 	{
 		Database::CleanupLibs(); // Fix Ascent V4638
@@ -786,6 +791,7 @@ bool Master::_StartDB()
      printf("%c%c%c%c%c%c\n",0x42,0x79,0x42,0x79,0x65,0x21);
 	 return false;
 	}*/
+
 	return true;
 }
 

@@ -19,21 +19,21 @@ WServerHandler WServer::PHandlers[IMSG_NUM_TYPES];
 void WServer::InitHandlers()
 {
 	memset(PHandlers, 0, sizeof(void*) * IMSG_NUM_TYPES);
-	PHandlers[ICMSG_REGISTER_WORKER] = &WServer::HandleRegisterWorker;
-	PHandlers[ICMSG_WOW_PACKET] = &WServer::HandleWoWPacket;
-	PHandlers[ICMSG_PLAYER_LOGIN_RESULT] = &WServer::HandlePlayerLoginResult;
-	PHandlers[ICMSG_PLAYER_LOGOUT] = &WServer::HandlePlayerLogout;
-	PHandlers[ICMSG_TELEPORT_REQUEST] = &WServer::HandleTeleportRequest;
-	PHandlers[ICMSG_ERROR_HANDLER] = &WServer::HandleError;
-	PHandlers[ICMSG_SWITCH_SERVER] = &WServer::HandleSwitchServer;
-	PHandlers[ICMSG_SAVE_ALL_PLAYERS] = &WServer::HandleSaveAllPlayers;
-	PHandlers[ICMSG_TRANSPORTER_MAP_CHANGE] = &WServer::HandleTransporterMapChange;
-	PHandlers[ICMSG_PLAYER_TELEPORT] = &WServer::HandlePlayerTeleport;
-	PHandlers[ICMSG_CREATE_PLAYER] = &WServer::HandleCreatePlayerResult;
-	PHandlers[ICMSG_PLAYER_INFO] = &WServer::HandlePlayerInfo;
-	PHandlers[ICMSG_CHANNEL_ACTION] = &WServer::HandleChannelAction;
-	PHandlers[ICMSG_CHANNEL_UPDATE] = &WServer::HandleChannelUpdate;
-	PHandlers[ICMSG_CHANNEL_LFG_DUNGEON_STATUS_REPLY] = &WServer::HandleChannelLFGDungeonStatusReply;
+	PHandlers[ICMSG_REGISTER_WORKER]					= &WServer::HandleRegisterWorker;
+	PHandlers[ICMSG_WOW_PACKET]							= &WServer::HandleWoWPacket;
+	PHandlers[ICMSG_PLAYER_LOGIN_RESULT]				= &WServer::HandlePlayerLoginResult;
+	PHandlers[ICMSG_PLAYER_LOGOUT]						= &WServer::HandlePlayerLogout;
+	PHandlers[ICMSG_TELEPORT_REQUEST]					= &WServer::HandleTeleportRequest;
+	PHandlers[ICMSG_ERROR_HANDLER]						= &WServer::HandleError;
+	PHandlers[ICMSG_SWITCH_SERVER]						= &WServer::HandleSwitchServer;
+	PHandlers[ICMSG_SAVE_ALL_PLAYERS]					= &WServer::HandleSaveAllPlayers;
+	PHandlers[ICMSG_TRANSPORTER_MAP_CHANGE]				= &WServer::HandleTransporterMapChange;
+	PHandlers[ICMSG_PLAYER_TELEPORT]					= &WServer::HandlePlayerTeleport;
+	PHandlers[ICMSG_CREATE_PLAYER]						= &WServer::HandleCreatePlayerResult;
+	PHandlers[ICMSG_PLAYER_INFO]						= &WServer::HandlePlayerInfo;
+	PHandlers[ICMSG_CHANNEL_ACTION]						= &WServer::HandleChannelAction;
+	PHandlers[ICMSG_CHANNEL_UPDATE]						= &WServer::HandleChannelUpdate;
+	PHandlers[ICMSG_CHANNEL_LFG_DUNGEON_STATUS_REPLY]	= &WServer::HandleChannelLFGDungeonStatusReply;
 }
 
 WServer::WServer(uint32 id, WSSocket * s) : m_id(id), m_socket(s)
@@ -54,6 +54,19 @@ void WServer::HandleRegisterWorker(WorldPacket & pck)
 	/* allocate initial instances for this worker */
 	sClusterMgr.AllocateInitialInstances(this, maps);
 
+	if(instancedmaps.size())
+	{
+		for (std::vector<uint32>::iterator itr = instancedmaps.begin(); itr != instancedmaps.end(); itr++)
+		{
+			if(!IS_MAIN_MAP((*itr)) && sClusterMgr.GetPrototypeInstanceByMapId(*itr) == NULL)
+			{
+				Instance* i = sClusterMgr.CreateInstance((*itr), this);
+				sClusterMgr.InstancedMaps.insert(std::pair<uint32, Instance*>((*itr), i));
+				Log.Debug("ClusterMgr", "Allocating instance prototype on map %u to worker %u", (*itr), GetID());
+			}
+		}
+	}
+/*
 	for (std::vector<uint32>::iterator itr=instancedmaps.begin(); itr!=instancedmaps.end(); ++itr)
 	{
 		Instance* i=new Instance;
@@ -64,6 +77,7 @@ void WServer::HandleRegisterWorker(WorldPacket & pck)
 		sClusterMgr.InstancedMaps.insert(std::pair<uint32, Instance*>((*itr), i));
 		Log.Debug("ClusterMgr", "Allocating instance prototype on map %u to worker %u", (*itr), GetID());
 	}
+*/
 }
 
 void WServer::HandleWoWPacket(WorldPacket & pck)
@@ -88,7 +102,7 @@ void WServer::HandlePlayerLoginResult(WorldPacket & pck)
 	pck >> guid >> sessionid >> result;
 	if(result)
 	{
-		Log.Success("WServer", "Worldserver %u reports successful login of player %u", m_id, guid);
+		Log.Success("WServer", "Connexion sur le serveur 'Monde' %u avec succès pour le joueur %u", m_id, guid);
 		Session * s = sClientMgr.GetSession(sessionid);
 		if(s)
 		{
@@ -102,6 +116,8 @@ void WServer::HandlePlayerLoginResult(WorldPacket & pck)
 			s->GetPlayer()->Pack(data);
 			sClusterMgr.DistributePacketToAll(&data, this);
 		}
+		else
+			Log.Warning("Wserver","Il n'existe pas de session %u pour la connexion du joueur",s);
 	}
 	else
 	{
@@ -127,7 +143,7 @@ void WServer::HandlePlayerLogout(WorldPacket & pck)
 	{
 		/* tell all other servers this player has gone offline */
 		WorldPacket data(ISMSG_DESTROY_PLAYER_INFO, 4);
-		data << guid;
+		data << sessionid << guid;
 		sClusterMgr.DistributePacketToAll(&data, this);
 
 		/* clear the player from the session */
@@ -155,7 +171,8 @@ void WServer::HandleTeleportRequest(WorldPacket & pck)
 	if(s)
 	{
 		pi = s->GetPlayer();
-		ASSERT(pi);
+		if(!pi)
+			return;
 
 		if(IS_MAIN_MAP(mapid) || instanceid == 0)
 		{
@@ -198,14 +215,14 @@ void WServer::HandleTeleportRequest(WorldPacket & pck)
 
 			if(dest->Server == s->GetServer())
 			{
-				sLog.outDebug("TeleportRequest", "intra-server teleport");
+				sLog.outDetail("TeleportRequest", "intra-server teleport");
 				/* we're not changing servers, the new instance is on the same server */
 				data << sessionid << uint8(1) << mapid << instanceid << vec << vec.o;
 				SendPacket(&data);
 			}
 			else
 			{
-				sLog.outDebug("TeleportRequest", "inter-server teleport");
+				sLog.outDetail("TeleportRequest", "inter-server teleport");
 				/* notify the old server to pack the player info together to send to the new server, and delete the player */
 				data << sessionid << uint8(0) << mapid << instanceid << vec << vec.o;
 				//cache this to next server and switch servers when were ready :P
@@ -259,7 +276,15 @@ void WServer::HandleSwitchServer(WorldPacket & pck)
 	data << guid << mapid << instanceid;
 	data << s->GetAccountId() << s->GetAccountFlags() << s->GetSessionId();
 	data << s->GetAccountPermissions() << s->GetAccountName() << s->GetClientBuild();
-
+	AccountDataEntry* acd = NULL;
+	for(uint8 i = 0; i < 8; i++)
+	{
+		acd = s->GetAccountData(i);
+		if(acd && acd->sz)
+			data << acd->sz << acd->data;
+		else
+			data << uint32(0);
+	}
 
 	s->GetServer()->SendPacket(&data);
 }
@@ -342,7 +367,7 @@ void WServer::HandleCreatePlayerResult(WorldPacket & pck)
 	uint8 result;
 	pck >> accountid >> result;
 
-	Log.Warning("WServer", "Received ICMSG_CREATE_PLAYER, result %u", result);
+	Log.Debug("WServer", "Received ICMSG_CREATE_PLAYER, result %u", result);
 	
 	//ok, we need session by account id... gay	
 	Session* s = sClientMgr.GetSessionByAccountId(accountid);
@@ -360,7 +385,8 @@ void WServer::HandlePlayerInfo(WorldPacket & pck)
 	uint32 guid;
 	pck >> guid;
 	RPlayerInfo * pRPlayer = sClientMgr.GetRPlayer(guid);
-	ASSERT(pRPlayer);
+	if(!pRPlayer)
+		return;
 
 	pRPlayer->Unpack(pck);
 }
@@ -477,6 +503,7 @@ void WServer::HandleChannelUpdate(WorldPacket & pck)
 	std::vector<uint32> channels;
 	std::set<uint32> m_channels;
 	RPlayerInfo * plr = NULL;
+	#define MAXBUFF 200
 	pck >> guid;
 	sLog.outDebug("WServer", "Received ICMSG_CHANNEL_UPDATE opcode, from player guid %u", guid);
 	pck >> channels;
@@ -517,7 +544,8 @@ void WServer::HandleChannelUpdate(WorldPacket & pck)
 			// update channels!!!
 			set<uint32>::iterator itr = m_channels.begin();
 			set<uint32>::iterator itr2;
-			char strbuf[200];
+
+			char strbuf[MAXBUFF];
 			uint32 dbcid;
 			for( ; itr != m_channels.end(); )
 			{
@@ -536,7 +564,7 @@ void WServer::HandleChannelUpdate(WorldPacket & pck)
 				{
 					// general/changable (and not lfg)
 					dbcid = pChannel->pDBC->id;
-					snprintf(strbuf, 200, pChannel->pDBC->pattern, at->name);
+					snprintf(strbuf, sizeof(strbuf), pChannel->pDBC->pattern, at->name);					
 					if( stricmp(strbuf, pChannel->m_name.c_str()) )
 					{
 						// different channel name. :O

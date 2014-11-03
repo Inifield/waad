@@ -87,7 +87,7 @@
       <AdditionalDependencies>ws2_32.lib;libmysql.lib;libeay32.lib;dbghelp.lib;zlib.lib;pcre.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\..\..\bin\Release/AscentWaad-realmserver.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib\2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\..\..\bin\Release/ascent-realmserver.pdb</ProgramDatabaseFile>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -156,6 +156,7 @@
     <ClCompile Include="..\..\src\ascent-realmserver\LogonCommHandler.cpp" />
     <ClCompile Include="..\..\src\ascent-realmserver\CharacterHandler.cpp" />
     <ClCompile Include="..\..\src\ascent-realmserver\Main.cpp" />
+    <ClCompile Include="..\..\src\ascent-realmserver\Opcodes.cpp" />
     <ClCompile Include="..\..\src\ascent-realmserver\QueryHandler.cpp" />
     <ClCompile Include="..\..\src\ascent-realmserver\Session.cpp" />
     <ClCompile Include="..\..\src\ascent-realmserver\WorldSocket.cpp" />

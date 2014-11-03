@@ -678,24 +678,18 @@ bool World::SetInitialWorldSettings()
     //** Lecture des zones de Debug (Branruz)
 	m_DebugTransporters = Config.MainConfig.GetIntDefault("DebugArea", "TransporterGoId", 0);
 	m_DebugPlayers = Config.MainConfig.GetIntDefault("DebugArea", "Debug_Player", 0);
-#ifdef CLUSTERING	
     if(m_DebugTransporters) Log.Warning("[DebugArea]", "Suivi console: Transporter %u",m_DebugTransporters);
 	if(m_DebugPlayers)      Log.Warning("[DebugArea]", "Suivi console: Suivi des joueurs");
-#endif
 
 	//** zone WaadFun
     m_WarriorPetAllowed = Config.MainConfig.GetIntDefault("WaadFun", "WarriorPetAllowed", 0);
 	m_JdRPetListenning  = Config.MainConfig.GetIntDefault("WaadFun", "JdRPetListenning", 0);
-#ifdef CLUSTERING	
 	if(m_WarriorPetAllowed) Log.Success("[WaadFun]","Fun: Les familers pour Guerriers sont autorises.");
 	if(m_JdRPetListenning)  Log.Success("[WaadFun]","JdR: Les familers sont a l'ecoute en fonction de leur loyaute.");
-#endif
 
 	//** Miscellaneous
     m_Latin2UTF8 = Config.MainConfig.GetIntDefault("Miscellaneous", "Latin2UTF8", 0);
-#ifdef CLUSTERING
 	Log.Success("Miscellaneous","Conversion Latin1 vers UTF8 : %s.",(m_Latin2UTF8) ? "Oui":"Non");
-#endif
 
 	//** Relay Irc
 	m_IrcUseChatIrc     = Config.MainConfig.GetIntDefault("RelayChatIrc", "UseChatIrc"    , 0);     
@@ -710,9 +704,7 @@ bool World::SetInitialWorldSettings()
     if(!Config.MainConfig.GetString("RelayChatIrc", "BotNick"   , &m_IrcBotNick))    m_IrcBotNick = "BotFromMyWowServer";
     if(!Config.MainConfig.GetString("RelayChatIrc", "BotName"   , &m_IrcBotName))    m_IrcBotName = "WaadIrcServerRelay";
     if(!Config.MainConfig.GetString("RelayChatIrc", "BotText"   , &m_IrcBotText))    m_IrcBotText = "Waad World Server Relay actif.";
-#ifdef CLUSTERING
 	if(m_IrcUseChatIrc) Log.Success("[WaadIrcRelay]","Le relay Irc est utilisé.");
-#endif
 
 	//------------------------------
 
@@ -1645,24 +1637,6 @@ void World::Rehash(bool load)
 	if( load )
 		Channel::LoadConfSettings();
 #endif
-
-#ifdef CLUSTERING
- // Misc
- //if(sWorld.m_Latin2UTF8) 
- Log.Success("Miscellaneous","Conversion Latin1 vers UTF8 : %s.",(m_Latin2UTF8) ? "Oui":"Non");
-
- // WaadFun
- if(m_WarriorPetAllowed) Log.Success("[WaadFun]","Fun: Les familers pour Guerriers sont autorises.");
- if(m_JdRPetListenning)  Log.Success("[WaadFun]","JdR: Les familers sont a l'ecoute en fonction de leur loyaute.");
-
- // Affichage Zone de Debug (Branruz)
- if(m_DebugTransporters) Log.Warning("[DebugArea]", "Suivi console: Transporter %u",m_DebugTransporters);
- if(m_DebugPlayers)      Log.Warning("[DebugArea]", "Suivi console: Suivi des joueurs");
-
- // Relay Irc
- if(m_IrcUseChatIrc) Log.Success("[WaadIrcRelay]","Le relay Irc est utilisé.");
-#endif
-
 }
 
 void World::LoadNameGenData()

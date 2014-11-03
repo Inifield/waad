@@ -41,7 +41,7 @@ bool Transporter::CreateAsTransporter(uint32 EntryID, const char* Name, int32 Ti
 	// Generate waypoints
 	if(!GenerateWaypoints()) 
 	{
-	 sLog.outError("Transporter %u %s: Waypoints non crees!",EntryID,Name);
+	 sLog.outError("Transporter %u %s: Waypoints non créés !",EntryID,Name);
      return false;
 	}
 
@@ -438,12 +438,6 @@ void Transporter::TransportPassengers(uint32 mapid, uint32 oldmap, float x, floa
 {
 	sEventMgr.RemoveEvents(this, EVENT_TRANSPORTER_NEXT_WAYPOINT);
 
-/*#ifdef CLUSTERING
-	WorldPacket data(ICMSG_TRANSPORTER_MAP_CHANGE, 24);
-	data << GetEntry() << mapid << oldmap << x << y << z;
-	sClusterInterface.SendPacket(&data);
-#endif*/
-
 	if(mPassengers.size() > 0)
 	{
 		PassengerIterator itr = mPassengers.begin();
@@ -453,10 +447,10 @@ void Transporter::TransportPassengers(uint32 mapid, uint32 oldmap, float x, floa
 		WorldPacket data(ICMSG_TRANSPORTER_MAP_CHANGE, 24);
 		data << GetEntry() << mapid << oldmap << x << y << z;
 		sClusterInterface.SendPacket(&data);
-#endif
+#else
 		WorldPacket Pending(SMSG_TRANSFER_PENDING, 12);
 		Pending << mapid << GetEntry() << oldmap;
-
+#endif
 		WorldPacket NewWorld;
 		LocationVector v;
 
@@ -507,21 +501,21 @@ void Transporter::TransportPassengers(uint32 mapid, uint32 oldmap, float x, floa
 				plr->m_CurrentVehicle->RemovePassenger( plr );
 
 			plr->m_lockTransportVariables = true;
-			plr->GetSession()->SendPacket(&Pending);
 #ifndef CLUSTERING
+			plr->GetSession()->SendPacket(&Pending);	
 			plr->_Relocate(mapid, v, false, true, 0);
-#endif		
+#else
+			plr->GetSession()->SendPacket(&data);
+			plr->EventClusterMapChange(mapid, 0, v);
+#endif	
 		}
 	}
 
-	if (IsInWorld()) RemoveFromWorld(false);
 	// Set our position
-
+	if (IsInWorld()) RemoveFromWorld(false);
 	SetPosition(x,y,z,m_position.o,false);
-#ifndef CLUSTERING
 	SetMapId(mapid);
 	AddToWorld();
-#endif
 }
 
 Transporter::Transporter(uint64 guid) : GameObject(guid)
@@ -551,11 +545,8 @@ void Transporter::Init()
 
 void ObjectMgr::LoadTransporters()
 {
-/*#ifdef CLUSTERING
-	return;
-#endif*/
 	Log.Notice("ObjectMgr", "Loading Transports...");
-	QueryResult * QR = WorldDatabase.Query("SELECT * FROM transport_data");
+	QueryResult * QR = WorldDatabase.Query("SELECT * FROM transport_data", GAMEOBJECT_TYPE_MO_TRANSPORT);
 	if(!QR) return;
 
 	int64 total = QR->GetRowCount();
@@ -648,6 +639,10 @@ uint32 cnt = Object::BuildCreateUpdateBlockForPlayer(data, target);
 	// add all the npcs to the packet
 	for(TransportNPCMap::iterator itr = m_npcs.begin(); itr != m_npcs.end(); ++itr)
 	{
+		LocationVector v_offset = GetPosition();
+		v_offset.x = v_offset.x + static_cast<Creature *>(itr->second)->m_transportPosition->x;
+		v_offset.y = v_offset.y + static_cast<Creature *>(itr->second)->m_transportPosition->y;
+		v_offset.z = v_offset.z + static_cast<Creature *>(itr->second)->m_transportPosition->z;
 		itr->second->SetPosition(GetPosition(), false);
 		cnt += itr->second->BuildCreateUpdateBlockForPlayer(data, target);
 	}

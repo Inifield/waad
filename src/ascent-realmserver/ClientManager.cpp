@@ -176,7 +176,6 @@ void ClientMgr::Update()
 	m_pendingdeletesessionids.clear();
 
 	//m_pendingdeletesessionids.erase(std::remove_if(m_pendingdeletesessionids.begin(), m_pendingdeletesessionids.end(), std::bind2nd(std::equal_to<uint32>(), d_sessionid)), m_pendingdeletesessionids.end());
-	// Note Randdrick : Pas sur que cela soit le meilleur moyen d'updater une session.
 	for (SessionMap::iterator itr=m_sessions.begin(); itr!=m_sessions.end(); ++itr)
 		if (!itr->second->deleted)
 			itr->second->Update();

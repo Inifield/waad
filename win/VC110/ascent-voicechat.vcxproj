@@ -87,7 +87,7 @@
     <Link>
       <AdditionalDependencies>ws2_32.lib;libmysql.lib;libeay32.lib;dbghelp.lib;zlib.lib;pcre.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)AscentWaad-voicechat.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib\2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>

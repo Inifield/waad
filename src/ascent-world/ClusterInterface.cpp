@@ -200,6 +200,11 @@ void ClusterInterface::HandleRegisterResult(WorldPacket & pck)
 {
 	uint32 res;
 	pck >> res;
+	if(!res)
+	{
+		_clientSocket->Disconnect();
+		_clientSocket = NULL;
+	}
 	Log.Debug("ClusterInterface", "Résultat d'enregistrement: %u", res);
 }
 
@@ -207,10 +212,16 @@ void ClusterInterface::HandleCreateInstance(WorldPacket & pck)
 {
 	uint32 mapid, instanceid;
 	pck >> mapid >> instanceid;
+
 	Log.Debug("ClusterInterface", "Creation de l'instance %u sur la Map %u", instanceid, mapid);
 	MapMgr * mgr = sInstanceMgr.ClusterCreateInstance(mapid, instanceid);
+
 	if(!mgr)
-		Log.Debug("ClusterInterface", "Echec dans la creation de l'instance,  %u sur la Map %u", instanceid, mapid);
+	{
+		Log.Error("ClusterInterface", "Echec dans la creation de l'instance,  %u sur la Map %u", instanceid, mapid);
+		_clientSocket->Disconnect();
+		_clientSocket = NULL;
+	}
 }
 
 void ClusterInterface::HandleDestroyInstance(WorldPacket & pck)
@@ -242,6 +253,27 @@ void ClusterInterface::HandlePlayerLogin(WorldPacket & pck)
 	_sessions[sessionid] = s;
 	sWorld.AddSession(s);
 
+	for(uint8 i = 0; i < 8; i++)
+		s->SetAccountData(i, NULL, true, 0);
+
+	if(pck.rpos() != pck.wpos())
+	{
+		uint32 size = 0;
+		for(uint8 i = 0; i < 8; i++)
+		{
+			if(pck.rpos()+4 > pck.wpos())
+				break; // Out of packet.
+
+			pck >> size;
+			if(size)
+			{
+				char* data = new char[size];
+				pck.read(((uint8*)data), size);
+				s->SetAccountData(i, data, true, size);
+			}
+		}
+	}
+
 	bool login_result = s->ClusterTryPlayerLogin(Guid, ClientBuild, GMPermissions, Account_Flags);
 	if(login_result)
 	{
@@ -258,6 +290,7 @@ void ClusterInterface::HandlePlayerLogin(WorldPacket & pck)
 		SendPacket(&data);
 
 		/* tell the client his login failed before deleting the session */
+		Log.Warning("ClusterInterface", "La connexion de %s a échoué", s->GetPlayer()->GetName());
 		data.Initialize(SMSG_CHARACTER_LOGIN_FAILED);
 		data << uint8(62);
 		so->SendPacket(&data);
@@ -269,14 +302,16 @@ void ClusterInterface::HandlePlayerLogin(WorldPacket & pck)
 
 void ClusterInterface::HandleDestroyPlayerInfo(WorldPacket & pck)
 {
-	uint32 guid;
-	pck >> guid;
+	uint32 sessionid, guid;
+	pck >> sessionid >> guid;
 
+	m_onlinePlayerMapMutex.Acquire();
 	if(_onlinePlayers[guid])
 	{
 		delete _onlinePlayers[guid];
 		_onlinePlayers[guid] = NULL;
 	}
+	m_onlinePlayerMapMutex.Release();
 
 	Player * player = objmgr.GetPlayer(guid);
 	if(player)
@@ -285,7 +320,9 @@ void ClusterInterface::HandleDestroyPlayerInfo(WorldPacket & pck)
 		{
 			player->GetSession()->SetSocket(NULL);
 			player->SetSession(NULL);
+			DestroySession(sessionid);
 		}
+		delete player;
 	}
 
 }
@@ -305,6 +342,7 @@ void ClusterInterface::HandlePackedPlayerInfo(WorldPacket & pck)
 		return;
 	}
 
+	m_onlinePlayerMapMutex.Acquire();
 	RPlayerInfo * pi;
 	uint32 count;
 	buf >> count;
@@ -314,11 +352,12 @@ void ClusterInterface::HandlePackedPlayerInfo(WorldPacket & pck)
 		pi->Unpack(buf);
 		_onlinePlayers[pi->Guid] = pi;
 	}
+	m_onlinePlayerMapMutex.Release();
 }
 
 void ClusterInterface::Update()
 {
-	if(!m_connected && UNIXTIME >= (_lastConnectTime + 30))
+	if(!m_connected && UNIXTIME >= (_lastConnectTime + 5))
 		ConnectToRealmServer();
 
 	WorldPacket * pck;
@@ -344,8 +383,11 @@ void ClusterInterface::DestroySession(uint32 sid)
 			s->LogoutPlayer(true);
 
 		delete s->GetSocket();
+		sWorld.RemoveGlobalSession(s);
+		sWorld.RemoveSession(sid);
 		delete s;
 	}
+
 }
 
 
@@ -508,15 +550,17 @@ void ClusterInterface::HandleTeleportResult(WorldPacket & pck)
 
 void ClusterInterface::HandlePlayerInfo(WorldPacket & pck)
 {
-	uint32 guid;
-	pck >> guid;
-	RPlayerInfo * pRPlayer = GetPlayer(guid);
-	if(!pRPlayer)
-		pRPlayer = new RPlayerInfo;
-
-	pRPlayer->Unpack(pck);
-
-	_onlinePlayers[pRPlayer->Guid] = pRPlayer;
+	m_onlinePlayerMapMutex.Acquire();
+	RPlayerInfo * pi;
+	uint32 count;
+	pck >> count;
+	for(uint32 i = 0; i < count; i++)
+	{
+		pi = new RPlayerInfo;
+		pi->Unpack(pck);
+		_onlinePlayers[pi->Guid] = pi;
+	}
+	m_onlinePlayerMapMutex.Release();
 }
 
 bool WorldSession::ClusterTryPlayerLogin(uint32 Guid, uint32 ClientBuild, string GMPermissions, uint32 Account_Flags)
@@ -526,14 +570,15 @@ bool WorldSession::ClusterTryPlayerLogin(uint32 Guid, uint32 ClientBuild, string
 	if(objmgr.GetPlayer(Guid) != NULL || m_loggingInPlayer || _player)
 	{
 		// A character with that name already exists 0x3E
+		Log.Warning("ClusterInterface", "Un personnage avec le même nom est déja connecté");
 		uint8 respons = 0x3E;
 		OutPacket(SMSG_CHARACTER_LOGIN_FAILED, 1, &respons);
 		return false;
 	}
 
 	Player* plr = new Player(Guid);
-	ASSERT(plr);
-	plr->Init();
+	if(plr) plr->Init();
+	else return false;
 
 	SetClientBuild(ClientBuild);
 	LoadSecurity(GMPermissions);
@@ -578,6 +623,28 @@ void Player::EventClusterMapChange(uint32 mapid, uint32 instanceid, LocationVect
 	SetPosition(location);
 	ResetHeartbeatCoords();
 	z_axisposition = 0.0f;
+}
+
+void Player::HandleClusterRemove()
+{
+
+	RemoveAllAuras();
+	if (IsInWorld())
+		RemoveFromWorld();
+
+	sEventMgr.AddEvent(this, &Player::RemovePlayerFromWorld, EVENT_UNK, 10000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
+	
+	if (GetSession() != NULL)
+	{
+		GetSession()->SetPlayer(NULL);
+		if (GetSession()->GetSocket() != NULL)
+		{
+			uint32 sessionid = GetSession()->GetSocket()->GetSessionId();
+			sClusterInterface.DestroySession(sessionid);
+		}
+		SetSession(NULL);
+	}
+	ObjectMgr::getSingleton().RemovePlayer(this);
 }
 
 void Player::HandlePlayerTeleportServers()
@@ -672,16 +739,18 @@ void ClusterInterface::HandleCreatePlayer(WorldPacket & pck)
 {
 	uint32 accountid, size;
 	uint16 opcode;
+	uint8 _side = -1;
+	uint8 race;
 
 	pck >> accountid >> opcode >> size;
-	
+
 	if (_sessions[accountid] != NULL)
 		return;
 
 	sLog.outDetail("CMSG_CHAR_CREATE: accountid %u, opcode %u, size %u",accountid,opcode,size);
 
 	WorldSession* s=new WorldSession(accountid, "", NULL);
-	
+
 	//construct the cmsg_char_create
 	WorldPacket data(opcode, size);
 	data.resize(size);
@@ -689,12 +758,36 @@ void ClusterInterface::HandleCreatePlayer(WorldPacket & pck)
 
 	Player * pNewChar = objmgr.CreatePlayer();
 	pNewChar->SetSession(s);
+	race = pNewChar->getRace();
 	if(!pNewChar->Create( data ))
 	{
 		// failed.
 		pNewChar->ok_to_remove = true;
 		delete pNewChar;
 		return;
+	}	
+
+	if( _side < 0 )
+	{
+		// work out the side
+		static uint8 sides[11+1] = { 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0 };
+		_side = sides[race];
+	}
+	
+	//Same Faction limitation only applies to PVP and RPPVP realms :)
+	uint32 realmType = sLogonCommHandler.GetRealmType();
+	if(!s->HasGMPermissions() && (realmType == REALMTYPE_PVP || realmType == REALMTYPE_RPPVP) &&  _side>= 0)
+	{
+		if( ((pNewChar->GetTeam()== 0) && (_side == 1)) || ((pNewChar->GetTeam()== 1) && (_side == 0)) )
+		{
+			pNewChar->ok_to_remove = true;
+			delete pNewChar;
+			WorldPacket data(1);
+			data.SetOpcode(SMSG_CHAR_CREATE);
+			data << (uint8)ALL_CHARS_ON_PVP_REALM_MUST_AT_SAME_SIDE+1;
+			SendPacket( &data );
+			return;
+		}
 	}
 
 	pNewChar->UnSetBanned();
@@ -719,6 +812,25 @@ void ClusterInterface::HandleCreatePlayer(WorldPacket & pck)
 	}
 	pNewChar->SaveToDB(true);
 
+	PlayerInfo *pn=new PlayerInfo ;
+	memset(pn, 0, sizeof(PlayerInfo));
+	pn->guid = pNewChar->GetLowGUID();
+	pn->name = strdup(pNewChar->GetName());
+	pn->cl = pNewChar->getClass();
+	pn->race = pNewChar->getRace();
+	pn->gender = pNewChar->getGender();
+	pn->m_Group=0;
+	pn->subGroup=0;
+	pn->m_loggedInPlayer=NULL;
+	pn->team = pNewChar->GetTeam ();
+	pn->guild=NULL;
+	pn->guildRank=NULL;
+	pn->guildMember=NULL;
+#ifdef VOICE_CHAT
+	pn->groupVoiceId = -1;
+#endif
+	objmgr.AddPlayerInfo(pn);
+
 	pNewChar->ok_to_remove = true;
 	delete pNewChar;
 	delete s;
@@ -728,6 +840,8 @@ void ClusterInterface::HandleCreatePlayer(WorldPacket & pck)
 	WorldPacket result(ICMSG_CREATE_PLAYER, 5);
 	result << accountid << uint8(0x2F); //CHAR_CREATE_SUCCESS
 	SendPacket(&result);
+
+	sLogonCommHandler.UpdateAccountCount(accountid, 1);
 }
 
 void ClusterInterface::HandleDeletePlayer(WorldPacket & pck)

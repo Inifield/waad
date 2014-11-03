@@ -3304,12 +3304,14 @@ void Player::LoadFromDBProc(QueryResultVector & results)
 	m_playerInfo = objmgr.GetPlayerInfo(GetLowGUID());
 	if( m_playerInfo == NULL )
 	{
+		Log.Error("Player","Pas d'information sur le personnage. Connexion annulée.");
 		RemovePendingPlayer();
 		return;
 	}
 
 	if(GetSession() == NULL || results.size() < 8)		// should have 8 query results for aplayer load.
 	{
+		Log.Error("Player","Pas d'information sur la session. Connexion annulée");
 		RemovePendingPlayer();
 		return;
 	}
@@ -3317,7 +3319,7 @@ void Player::LoadFromDBProc(QueryResultVector & results)
 	QueryResult *result = results[0].result;
 	if(!result)
 	{
-		printf("Player login query failed., guid %u\n", GetLowGUID());
+		sLog.outError("Player login query failed., guid %u\n", m_playerInfo);
 		RemovePendingPlayer();
 		return;
 	}
@@ -3335,6 +3337,7 @@ void Player::LoadFromDBProc(QueryResultVector & results)
 	uint32 banned = fields[33].GetUInt32();
 	if(banned && (banned < 100 || banned > (uint32)UNIXTIME))
 	{
+		sLog.outDetail("Player","Le joueur est banni");
 		RemovePendingPlayer();
 		return;
 	}
@@ -3354,7 +3357,7 @@ void Player::LoadFromDBProc(QueryResultVector & results)
 	if(!myClass || !myRace)
 	{
 		// bad character
-		printf("guid %u failed to login, no race or class dbc found. (race %u class %u)\n", (unsigned int)GetLowGUID(), (unsigned int)getRace(), (unsigned int)getClass());
+		sLog.outError("guid %u failed to login, no race or class dbc found. (race %u class %u)\n", (unsigned int)GetLowGUID(), (unsigned int)getRace(), (unsigned int)getClass());
 		RemovePendingPlayer();
 		return;
 	}
@@ -3397,7 +3400,7 @@ void Player::LoadFromDBProc(QueryResultVector & results)
 	
 	if(!lvlinfo)
 	{
-		Log.Error("[Player::LoadFromDBProc]","guid %u level %u class %u race %u levelinfo not found!\n", (unsigned int)GetLowGUID(), (unsigned int)getLevel(), (unsigned int)getClass(), (unsigned int)getRace());
+		Log.Error("[Player::LoadFromDBProc]","guid %u level %u class %u race %u levelinfo non trouvé!\n", (unsigned int)GetLowGUID(), (unsigned int)getLevel(), (unsigned int)getClass(), (unsigned int)getRace());
 		RemovePendingPlayer();
 		return;
 	}

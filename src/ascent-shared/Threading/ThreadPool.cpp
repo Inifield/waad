@@ -239,6 +239,10 @@ void CThreadPool::Shutdown()
 			continue;
 		}
 
+		m_activeThreads.clear();
+		m_freeThreads.clear();
+		_mutex.Release();
+
 		break;
 	}
 }

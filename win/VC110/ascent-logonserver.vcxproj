@@ -73,7 +73,7 @@
     <Link>
       <AdditionalDependencies>ws2_32.lib;libmysql.lib;libeay32.lib;dbghelp.lib;zlib.lib;pcre.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)AscentWaad-logonserver.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\dep\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)ascent-logonserver.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
@@ -117,7 +117,7 @@
     <Link>
       <AdditionalDependencies>ws2_32.lib;libmysql.lib;libeay32.lib;dbghelp.lib;zlib.lib;pcre.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)AscentWaad-logonserver.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib\2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ascent-windows-libraries\VC\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)ascent-logonserver.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>

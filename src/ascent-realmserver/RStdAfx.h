@@ -27,6 +27,8 @@
 #include <string>
 //#include <fstream>
 
+#include "../ascent-shared/AuthCodes.h"
+#include "../ascent-shared/svn_revision.h"
 #include "../ascent-shared/Common.h"
 #include "../ascent-shared/MersenneTwister.h"
 #include "../ascent-shared/WorldPacket.h"
@@ -57,6 +59,7 @@
 #include "../ascent-world/NameTables.h"
 #include "../ascent-world/Opcodes.h"
 #include "../ascent-shared/CallBack.h"
+#include "../ascent-logonserver/LogonOpcodes.h"
 
 #include "Master.h"
 #include "WorkerOpcodes.h"

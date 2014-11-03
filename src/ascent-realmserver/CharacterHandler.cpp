@@ -62,11 +62,10 @@ void Session::HandleCharacterEnum(WorldPacket & pck)
 		numchar = 0;
 
 	// should be more than enough.. 200 bytes per char..
-	WorldPacket data((result ? result->GetRowCount() * 200 : 1));
+	WorldPacket data(SMSG_CHAR_ENUM, (result ? result->GetRowCount() * 200 : 1));
 
 	// parse m_characters and build a mighty packet of
 	// characters to send to the client.
-	data.SetOpcode(SMSG_CHAR_ENUM);
 	data << uint8(numchar);
 	if( result )
 	{
@@ -274,7 +273,7 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 	}
 	else
 	{
-		Log.Error("CharacterHandler", "Le personnage n'existe pas dans la base de donnees!");
+		Log.Error("CharacterHandler", "Le personnage n'existe pas dans la base de données !");
 		data << uint8(CHAR_LOGIN_NO_CHARACTER);
 		SendPacket(&data);
 		sClientMgr.DestroyRPlayerInfo((uint32)guid);
@@ -298,7 +297,7 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 			MapInfo * info = WorldMapInfoStorage.LookupEntry(dest->MapId);
 			if(info)
 			{
-				Log.Error("HandlePlayerLogin", "Instance has been deleted or no longer valid, attempting repop on map %u", info->repopmapid);
+				Log.Error("HandlePlayerLogin", "L'instance a été supprimée ou n'est plus valide. Tentative de reconnexion à la Map %u", info->repopmapid);
 				m_currentPlayer->MapId = info->repopmapid;
 				LoginCoord.x = info->repopx;
 				LoginCoord.y = info->repopy;
@@ -317,20 +316,20 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 				else
 				{
 					dest = NULL;
-					Log.Error("HandlePlayerLogin", "Repop failed, could not find instance, for map %u", m_currentPlayer->MapId);
+					Log.Error("HandlePlayerLogin", "Échec de la reconnexion - instance non trouvée - à la Map %u", m_currentPlayer->MapId);
 				}
 
 			}
 			else
 			{
 				dest = NULL;
-				Log.Error("HandlePlayerLogin", "Repop failed, no map info, for map %u", m_currentPlayer->MapId);
+				Log.Error("HandlePlayerLogin", "Échec de la reconnexion -  pas d'information - à la Map %u", m_currentPlayer->MapId);
 			}
 		}
 
 		if(!dest)
 		{
-			Log.Error("HandlePlayerLogin", "Could not find instance, attempting recovery");
+			Log.Error("HandlePlayerLogin", "Aucune instance trouvée, tentative de reconnexion");
 			/* our instance has been deleted or no longer valid */
 			m_currentPlayer->MapId = m_currentPlayer->RecoveryMapId;
 			LoginCoord = m_currentPlayer->RecoveryPosition;
@@ -349,7 +348,7 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 
 	if(!dest || !dest->Server)		// Shouldn't happen
 	{
-		Log.Error("CharacterHandler", "World server is down!");
+		Log.Error("CharacterHandler", "Le serveur de 'Monde' est hors ligne !");
 		/* world server is down */
 		data << uint8(CHAR_LOGIN_NO_WORLD);
 		SendPacket(&data);
@@ -367,6 +366,16 @@ void Session::HandlePlayerLogin(WorldPacket & pck)
 	/* append the account information */
 	data << uint32(m_accountId) << uint32(m_accountFlags) << uint32(m_sessionId)
 		<< m_GMPermissions << m_accountName << m_ClientBuild;
+
+	AccountDataEntry* acd = NULL;
+	for(uint8 i = 0; i < 8; i++)
+	{
+		acd = GetAccountData(i);
+		if(acd && acd->sz)
+			data << acd->sz << acd->data;
+		else
+			data << uint32(0);
+	}
 
 	dest->Server->SendPacket(&data);
 	m_nextServer = dest->Server;
@@ -443,7 +452,7 @@ void Session::HandleCharacterCreate( WorldPacket & pck )
 	   result = CharacterDatabase.Query("SELECT * FROM `_blizzrequirements` where acct_id = %u", this->GetAccountId());
 	   if(!result) // Ne peut pas arriver, la table se met a jour au chargement de la liste des persos (Branruz)
 	   {
-		   Log.Error("[Creation d'un DK]","AccountId player (%u) non trouvé dans la table BlizzRequirements <- Report this to Devs.",this->GetAccountId());
+		   Log.Error("[Creation d'un DK]","AccountId player (%u) non trouvé dans la table BlizzRequirements <- Reportez ceci aux développeurs.",this->GetAccountId());
 		   OutPacket(SMSG_CHAR_CREATE, 1, "\x30"); // CHAR_CREATE_ERROR
 	       return;
 	   }
@@ -456,14 +465,14 @@ void Session::HandleCharacterCreate( WorldPacket & pck )
 
 		   if( (DK_Guid != 0)) 
 		   {
-			Log.Notice("[Blizz Prerequis]","%s veut creer un DK mais il en possede deja un!",this->GetAccountName().c_str());
+			Log.Notice("[Blizz Prerequis]","%s veut créer un DK mais il en possède déjà un !",this->GetAccountName().c_str());
 		    OutPacket(SMSG_CHAR_CREATE, 1, "\x3C"); // CHAR_CREATE_ERROR_HERO_CLASS_LIMIT
 	        return;
 		   }
 
 		   if(MaxLevelPlayerGet < 55) 
 		   {
-		    Log.Notice("[Blizz Prerequis]","%s veut creer un DK mais il n'a aucun personnage de level > a 55!",this->GetAccountName().c_str());
+		    Log.Notice("[Blizz Prerequis]","%s veut créer un DK mais il n'a aucun personnage de niveau > à 55 !",this->GetAccountName().c_str());
 		    OutPacket(SMSG_CHAR_CREATE, 1, "\x3B"); // CHAR_CREATE_ERROR_NEED_LVL_55_CHAR
 	        return;
 		   }
@@ -475,7 +484,7 @@ void Session::HandleCharacterCreate( WorldPacket & pck )
 
 	if (i == NULL)
 	{
-		Log.Warning("CHAR_CREATE","Il n'y a pas de World en ligne pour realiser l'operation");
+		Log.Error("CHAR_CREATE","Il n'y a pas de serveur de 'Monde' en ligne pour réaliser l’opération");
 		GetSocket()->OutPacket(SMSG_CHAR_CREATE, 1, "\x32");
 		return;
 	}
@@ -489,10 +498,7 @@ void Session::HandleCharacterCreate( WorldPacket & pck )
 		data << GetAccountId() << pck.GetOpcode() << uint32(pck.size());
 		data.resize(10 + pck.size());
 		memcpy((void*)(data.contents() + 10), pck.contents(), pck.size());
-
 		i->Server->SendPacket(&data);
-		
-		sLogonCommHandler.UpdateAccountCount(GetAccountId(), 1);
 	}
 	else
 	{
@@ -521,7 +527,7 @@ void Session::HandleCharacterDelete(WorldPacket & pck)
 	Log.Debug("CHAR_DELETE","Le guid est %u",info->Guid);
 	Log.Debug("CHAR_DELETE","Son AccountID est %u",info->AccountId);
 	Log.Debug("CHAR_DELETE","L'info de Session est %u",GetAccountId());
-	Log.Debug("CHAR_DELETE","Ses references sont %u",info->references);	
+	Log.Debug("CHAR_DELETE","Ses références sont %u",info->references);	
 
 	if( info->Guid != NULL && s == NULL)
 	{
@@ -550,7 +556,7 @@ void Session::HandleCharacterDelete(WorldPacket & pck)
 			QueryResult * resultTeam = CharacterDatabase.Query("SELECT leader FROM arenateams WHERE id = %u", (uint32)guid);
 			if(resultTeam)
 			{
-				Log.Warning("CHAR_DELETE","Le personnage est le leader de la Team : %u",info->Team);
+				Log.Warning("CHAR_DELETE","Le personnage est le meneur de l'équipe : %u",info->Team);
 				OutPacket(SMSG_CHAR_DELETE, 1, "\x4B"); //CHAR_DELETE_FAILED_GUILD_LEADER
 				delete resultTeam;
 				return;
@@ -563,7 +569,7 @@ void Session::HandleCharacterDelete(WorldPacket & pck)
 
 		if (i == NULL)
 		{
-			Log.Warning("CHAR_DELETE","Il n' y a pas de World en ligne pour realiser l'operation");
+			Log.Warning("CHAR_DELETE","Il n'y a pas de serveur de 'Monde' en ligne pour réaliser l’opération");
 			OutPacket(SMSG_CHAR_DELETE, 1, "\x48"); //CHAR_DELETE_FAILED
 			return;
 		}
@@ -608,12 +614,209 @@ void Session::HandleCharacterDelete(WorldPacket & pck)
 	{
 		if(info->Guid == NULL)
 		{
-			Log.Warning("CHAR_DELETE","Le personnage n'existe pas ou a deja ete supprime");
+			Log.Warning("CHAR_DELETE","Le personnage n'existe pas ou a déjà été supprimé");
 		}
 		else
 		{
-			Log.Warning("CHAR_DELETE","Le personnage existe dans le World");
+			Log.Warning("CHAR_DELETE","Le personnage n'existe pas dans le serveur de 'Monde'");
 		}
 		OutPacket(SMSG_CHAR_DELETE, 1, "\x48"); //CHAR_DELETE_FAILED
 	}
+}
+
+void Session::HandleCharacterRename(WorldPacket & pck)
+{
+	uint64 guid;
+	string name;
+	pck >> guid >> name;
+
+	QueryResult * result = CharacterDatabase.Query("SELECT forced_rename_pending FROM characters WHERE guid = %u AND acct = %u", (uint32)guid, GetAccountId());
+	if(result == NULL)
+		return;
+
+	WorldPacket data(SMSG_CHAR_RENAME, pck.size() + 1);
+
+	// Check name for rule violation.
+	const char * szName=name.c_str();
+	for(uint32 x = 0; x < strlen(szName); x++)
+	{
+		if((int)szName[x] < 65 || ((int)szName[x] > 90 && (int)szName[x] < 97) || (int)szName[x] > 122)
+		{
+			if((int)szName[x] < 65)
+			{
+				data << uint8(CHAR_NAME_TOO_SHORT); // Name is too short.
+			}
+			else if((int)szName[x] > 122) // Name is too long.
+			{
+				data << uint8(CHAR_NAME_TOO_LONG);
+			}
+			else
+			{
+				data << uint8(CHAR_NAME_FAILURE); // No clue.
+			}
+			data << guid << name;
+			SendPacket(&data);
+			return;
+		}
+	}
+
+	QueryResult * result2 = CharacterDatabase.Query("SELECT COUNT(*) FROM banned_names WHERE name = '%s'", CharacterDatabase.EscapeString(name).c_str());
+	if(result2)
+	{
+		if(result2->Fetch()[0].GetUInt32() > 0)
+		{
+			// That name is banned!
+			data << uint8(CHAR_NAME_PROFANE);
+			data << guid << name;
+			SendPacket(&data);
+			delete result2;
+			return;
+		}
+		delete result2;
+	}
+
+	// Check if name is in use.
+	if(sClientMgr.GetRPlayer(name.c_str()) != NULL)
+	{
+		data << uint8(CHAR_NAME_FAILURE);
+		data << guid << name;
+		SendPacket(&data);
+		return;
+	}
+
+	CharacterDatabase.Query("UPDATE characters SET name = \'%s\', forced_rename_pending \
+		= 0 WHERE guid = %u AND acct = %u", name.c_str(), (uint32)guid, GetAccountId());
+
+	RPlayerInfo* pi = sClientMgr.GetRPlayer(uint32(guid));
+	if(pi != NULL)
+		pi->Name = name;
+
+	data << uint8(0) << guid << name;
+	SendPacket(&data);
+}
+
+void Session::HandleUpdateAccountData(WorldPacket & pck)
+{
+	uint32 uiID;
+	pck >> uiID;
+
+	if(uiID > 8)
+	{
+		// Shit..
+		sLog.outString("WARNING: Accountdata > 8 (%d) was requested to be updated by account %s(%u)!", uiID, GetAccountName().c_str(), GetAccountId());
+		return;
+	}
+
+	uint32 _time;
+	pck >> _time;
+
+	uint32 uiDecompressedSize;
+	pck >> uiDecompressedSize;
+	uLongf uid = uiDecompressedSize;
+
+	// client wants to 'erase' current entries
+	if(uiDecompressedSize == 0)
+	{
+		SKIP_READ_PACKET(pck);
+		SetAccountData(uiID, NULL, false,0);
+		return;
+	}
+
+	if(uiDecompressedSize > 100000)
+	{
+		SKIP_READ_PACKET(pck); // Spam cleanup.
+		Disconnect();
+		return;
+	}
+
+	if(uiDecompressedSize >= 65534)
+	{
+		SKIP_READ_PACKET(pck); // Spam cleanup.
+		// BLOB fields can't handle any more than this.
+		return;
+	}
+
+	size_t ReceivedPackedSize = pck.size() - 12;
+	char* data = new char[uiDecompressedSize+1];
+	memset(data, 0, uiDecompressedSize+1);	/* fix umr here */
+
+	if(uiDecompressedSize > ReceivedPackedSize) // if packed is compressed
+	{
+		int32 ZlibResult;
+
+		ZlibResult = uncompress((uint8*)data, &uid, pck.contents() + 12, (uLong)ReceivedPackedSize);
+
+		switch (ZlibResult)
+		{
+		case Z_OK:				  //0 no error decompression is OK
+			SetAccountData(uiID, data, false, uiDecompressedSize);
+			sLog.outDebug("WORLD: Successfully decompressed account data %d for %s, and updated storage array.", uiID, GetAccountName().c_str());
+			break;
+
+		case Z_ERRNO:				//-1
+		case Z_STREAM_ERROR:		//-2
+		case Z_DATA_ERROR:			//-3
+		case Z_MEM_ERROR:			//-4
+		case Z_BUF_ERROR:			//-5
+		case Z_VERSION_ERROR:		//-6
+		{
+			delete [] data;
+			sLog.outString("WORLD WARNING: Decompression of account data %d for %s FAILED.", uiID, GetAccountName().c_str());
+			break;
+		}
+
+		default:
+			delete [] data;
+			sLog.outString("WORLD WARNING: Decompression gave a unknown error: %x, of account data %d for %s FAILED.", ZlibResult, uiID, GetAccountName().c_str());
+			break;
+		}
+	}
+	else
+	{
+		memcpy(data, pck.contents() + 12, uiDecompressedSize);
+		SetAccountData(uiID, data, false, uiDecompressedSize);
+	}SKIP_READ_PACKET(pck); // Spam cleanup for packet size checker... Because who cares about this dataz
+}
+
+void Session::HandleRequestAccountData(WorldPacket & pck)
+{
+	uint32 id;
+	pck >> id;
+
+	if(id > 8)
+	{
+		// Shit..
+		sLog.outString("WARNING: Accountdata > 8 (%d) was requested by account %s(%u)!", id, GetAccountName().c_str(), GetAccountId());
+		return;
+	}
+
+	AccountDataEntry* res = GetAccountData(id);
+	uLongf destSize = compressBound(res->sz);
+	ByteBuffer bbuff;
+	bbuff.resize(destSize);
+
+	if(res->sz && compress(const_cast<uint8*>(bbuff.contents()), &destSize, (uint8*)res->data, res->sz) != Z_OK)
+	{
+		sLog.outError("Error while compressing ACCOUNT_DATA");
+		SKIP_READ_PACKET(pck);
+		return;
+	}
+
+	WorldPacket data;
+	data.SetOpcode(SMSG_UPDATE_ACCOUNT_DATA);
+	data << uint64(GetPlayer() ? GetPlayer()->Guid : 0);
+	data << id;
+	// if red does not exists if ID == 7 and if there is no data send 0
+	if(!res || !res->data) // if error, send a NOTHING packet
+	{
+		data << (uint32)0;
+		data << (uint32)0;
+	}
+	else
+	{
+		data << uint32(res->Time);
+		data << res->sz;
+	}
+	data.append(bbuff);
+	SendPacket(&data);
 }
