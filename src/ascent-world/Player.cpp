@@ -5830,32 +5830,33 @@ void Player::RepopAtGraveyard(float ox, float oy, float oz, uint32 mapid)
 	
 }
 
-
-void Player::JoinedChannel(Channel *c)
+void Player::JoinedChannel(uint32 channelId)
 {
-	c = channelmgr.GetChannel("LookingForGroup",this);
-	if(!c)
-		return;
+	m_channels.insert(channelId);
 }
 
-void Player::LeftChannel(Channel *c)
+void Player::LeftChannel(uint32 channelId)
 {
-	c = channelmgr.GetChannel("LookingForGroup",this);
-	if(!c)
-		return;
+	m_channels.erase(channelId);
 }
+
 void Player::CleanupChannels()
 {
+	std::set<uint32>::iterator i;
+	std::vector<uint32> channels;
+	uint32 cid;
 
-	set<Channel *>::iterator i;
-	Channel * c;
 	for(i = m_channels.begin(); i != m_channels.end();)
 	{
-		c = *i;
+		cid = *i;
 		++i;
-		
-		c->Part(this);
+		channels.push_back(cid);
 	}
+	WorldPacket data(ICMSG_CHANNEL_UPDATE, (sizeof(std::vector<uint32>::size_type) * channels.size()) + 5);
+	data << uint8(PART_ALL_CHANNELS); //part all channels
+	data << GetLowGUID();
+	data << channels;
+	sClusterInterface.SendPacket(&data);
 }
 
 void Player::SendInitialActions()
@@ -7702,9 +7703,9 @@ void Player::ResetTitansGrip()
 {
 	if(titanGrip || !GetItemInterface())
 		return;
-
+	
 	Item *mainhand = GetItemInterface()->GetInventoryItem(INVENTORY_SLOT_NOT_SET, EQUIPMENT_SLOT_MAINHAND);
-	Item *offhand = new (GetItemInterface()->GetInventoryItem(INVENTORY_SLOT_NOT_SET, EQUIPMENT_SLOT_OFFHAND)) Item();
+	Item *offhand = (GetItemInterface()->GetInventoryItem(INVENTORY_SLOT_NOT_SET, EQUIPMENT_SLOT_OFFHAND));
 	if(offhand && (offhand->GetProto()->InventoryType == INVTYPE_2HWEAPON ||
 		mainhand && mainhand->GetProto()->InventoryType == INVTYPE_2HWEAPON))
 	{
@@ -7712,7 +7713,6 @@ void Player::ResetTitansGrip()
 		offhand = GetItemInterface()->SafeRemoveAndRetreiveItemFromSlot(INVENTORY_SLOT_NOT_SET, EQUIPMENT_SLOT_OFFHAND, false);
 		if( offhand == NULL )
 		{
-			delete offhand;
 			offhand = NULL;
 			return;     // should never happen
 		}
@@ -7724,21 +7724,14 @@ void Player::ResetTitansGrip()
 			offhand->SetOwner( NULL );
 			offhand->SaveToDB( INVENTORY_SLOT_NOT_SET, 0, true, NULL );
 			//sMailSystem.DeliverMessage(GetGUID(),"Your offhand item", "", 0, 0, offhand->GetUInt32Value(OBJECT_FIELD_GUID), 1, true);
-			delete offhand;
+
 			offhand = NULL;
 		}
 		else if( !GetItemInterface()->SafeAddItem(offhand, result.ContainerSlot, result.Slot) )
 			if( !GetItemInterface()->AddItemToFreeSlot(offhand) )   // shouldn't happen either.
 			{
-				delete offhand;
 				offhand = NULL;
 			}
-	}
-	//Note Randdrick : suppression du pointeur offhand déclaré au début par un new.
-	if(offhand)
-	{
-		delete offhand;
-		offhand = NULL;
 	}
 }
 
@@ -8754,72 +8747,6 @@ void Player::RemovePlayerPet(uint32 pet_number)
 	}
 }
 
-void Player::_Relocate(uint32 mapid, const LocationVector & v, bool sendpending, bool force_new_world, uint32 instance_id)
-{
-	//this func must only be called when switching between maps!
-	WorldPacket data(41);
-	if(sendpending && (mapid != m_mapId) && force_new_world)
-	{
-		data.SetOpcode(SMSG_TRANSFER_PENDING);
-		data << mapid;
-		GetSession()->SendPacket(&data);
-	}
-
-	//are we changing maps?
-	if(m_mapId != mapid || force_new_world)
-	{
-		//Preteleport will try to find an instance (saved or active), or create a new one if none found.
-		uint32 status = sInstanceMgr.PreTeleport(mapid, this, instance_id);
-		if(status != INSTANCE_OK)
-		{
-			data.Initialize(SMSG_TRANSFER_ABORTED);
-			data << mapid << status;
-			GetSession()->SendPacket(&data);
-			return;
-		}
-
-		//did we get a new instanceid?
-		if(instance_id)
-			m_instanceId=instance_id;
-
-		//remove us from this map
-		if(IsInWorld())
-		{
-			RemoveFromWorld();
-		}
-
-		// SMSG_NEW_WORLD : 61020000 ADC61345 875AB4C5 F05D1743 DB0F493F
-		data.Initialize(SMSG_NEW_WORLD);
-		data << (uint32)mapid << v << v.o;
-		GetSession()->SendPacket( &data );
-		SetMapId(mapid);
-		SetPlayerStatus(TRANSFER_PENDING);
-	}
-	else
-	{
-
-		// we are on same map allready, no further checks needed,
-		// send teleport ack msg
-		WorldPacket * data = BuildTeleportAckMsg(v);
-		m_session->SendPacket(data);
-		delete data;
-
-		//reset transporter if we where on one.
-		if( m_CurrentTransporter && !m_lockTransportVariables )
-		{
-			m_CurrentTransporter->RemovePlayer(this);
-			m_CurrentTransporter = NULL;
-			m_TransporterGUID = 0;
-		}
-	}
-
-	//update position
-	m_sentTeleportPosition = v;
-	SetPosition(v);
-	ResetHeartbeatCoords();
-
-	z_axisposition = 0.0f;
-}
 void Player::UpdateKnownCurrencies(uint32 ItemId, bool apply)
 {
 	if(CurrencyTypesEntry * ctEntry = dbcCurrencyTypes.LookupEntryForced(ItemId))
@@ -9545,49 +9472,25 @@ void Player::ZoneUpdate(uint32 ZoneId)
 	if( !m_channels.empty() && at )
 	{
 
+		std::set<uint32>::iterator i;
+		std::vector<uint32> channels;
+		uint32 cid;
 
-		// change to zone name, not area name
-		for(std::set<Channel*>::iterator itr = m_channels.begin(), nextitr ; itr != m_channels.end() ; itr = nextitr)
+		for(i = m_channels.begin(); i != m_channels.end();)
 		{
-			nextitr = itr;
-			++nextitr;
-			Channel* chn;
-			chn = (*itr);
-			// Check if this is a custom channel (i.e. global)
-			if(!((*itr)->m_flags & 0x10))
-				continue;
-
-			if(chn->m_flags & 0x40)   // LookingForGroup - constant among all zones
-				continue;
-
-			char updatedName[95];
-			ChatChannelDBC* pDBC;
-			pDBC = dbcChatChannels.LookupEntryForced(chn->m_id);
-			if(!pDBC)
-			{
-				Log.Error("ChannelMgr" , "Invalid channel entry %u for %s" , chn->m_id , chn->m_name.c_str());
-				return;
-			}
-			//for( int i = 0 ; i <= 15 ; i ++ )
-			//	Log.Notice( "asfssdf" , "%u %s" , i , pDBC->name_pattern[i] );
-			snprintf(updatedName , 95 , pDBC->pattern , at->name);
-			Channel* newChannel = channelmgr.GetCreateChannel(updatedName , NULL , chn->m_id);
-			if(newChannel == NULL)
-			{
-				Log.Error("ChannelMgr" , "Could not create channel %s!" , updatedName);
-				return; // whoops?
-			}
-			//Log.Notice( "ChannelMgr" , "LEAVING CHANNEL %s" , chn->m_name.c_str() );
-			//Log.Notice( "ChannelMgr" , "JOINING CHANNEL %s" , newChannel->m_name.c_str() );
-			if(chn != newChannel)   // perhaps there's no need
-			{
-				// join new channel
-				newChannel->AttemptJoin(this , "");
-				// leave the old channel
-
-				chn->Part(this);
-			}
+			cid = *i;
+			++i;
+			channels.push_back(cid);
 		}
+		WorldPacket data(ICMSG_CHANNEL_UPDATE, 4 + (sizeof(std::vector<uint32>::size_type) * channels.size()) + 4 + 4 + 4);
+		data << uint8(UPDATE_CHANNELS_ON_ZONE_CHANGE); //update channels on zone change
+		data << GetLowGUID();
+		data << channels;
+		data << GetAreaID();
+		data << GetZoneId();
+		data << GetMapId();
+		sClusterInterface.SendPacket(&data);
+
 	/*std::map<uint32, AreaTable*>::iterator iter = sWorld.mZoneIDToTable.find(ZoneId);
 	if(iter == sWorld.mZoneIDToTable.end())
 		return;
@@ -10064,7 +9967,6 @@ bool Player::SafeTeleport(uint32 MapID, uint32 InstanceID, const LocationVector 
 	{
 		instance = true;
 		
-		this->SetInstanceID(InstanceID);
 #ifndef COLLISION
 		// if we are mounted remove it
 		if( m_MountSpellId )
@@ -10113,8 +10015,22 @@ bool Player::SafeTeleport(uint32 MapID, uint32 InstanceID, const LocationVector 
 	if(pPet) pPet->Remove(false, true, true); // no safedelete
 	//--------
 
-	_Relocate(MapID, vec, true, instance, InstanceID);
+	if(instance)
+	{
+		WorldPacket data(SMSG_TRANSFER_PENDING, 4);
+		data << uint32(MapID);
+		GetSession()->SendPacket(&data);
+		sClusterInterface.RequestTransfer(this, MapID, InstanceID, vec);
+		return true;
+	}
 
+	m_sentTeleportPosition = vec;
+	SetPosition(vec);
+	ResetHeartbeatCoords();
+
+	WorldPacket * data = BuildTeleportAckMsg(vec);
+	m_session->SendPacket(data);
+	delete data;
 
 	//Log.Notice("[Player::SafeTeleport] Ok","%s",this->GetName()); // Debug (Branruz)
 	return true;
@@ -11727,7 +11643,10 @@ void Player::RemoveFromBattlegroundQueue(uint32 queueSlot, bool forced)
 	if(forced)
 	    sChatHandler.SystemMessage(m_session, "You were removed from the queue for the battleground for not joining after 2 minutes.");
 }
+void Player::EventRemoveAndDelete()
+{
 
+}
 
 void Player::_AddSkillLine(uint32 SkillLine, uint32 Curr_sk, uint32 Max_sk)
 {
@@ -12606,25 +12525,7 @@ void Player::SendMeetingStoneQueue(uint32 DungeonId, uint8 Status)
 
 void Player::PartLFGChannel()
 {
-	Channel * pChannel = channelmgr.GetChannel("LookingForGroup", this);
-	if( pChannel == NULL )
-		return;
-
-	/*for(list<Channel*>::iterator itr = m_channels.begin(); itr != m_channels.end(); ++itr)
-	{
-		if( (*itr) == pChannel )
-		{
-			pChannel->Part(this);
-			return;
-		}
-	}*/
-	if( m_channels.find( pChannel) == m_channels.end() )
-		return;
-
-	pChannel->Part( this );
-
 }
-
 //if we charmed or simply summoned a pet, this function should get called
 void Player::EventSummonPet( Pet *new_pet )
 {

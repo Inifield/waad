@@ -297,7 +297,7 @@ struct SERVER_DECL TimedEvent
 		}
 		else this->resultDecRef = false;
 
-		Log.Warning("[DecRef]","(Ref:%d) L'Event %d est supprime : %s",ref,this->eventType, (this->resultDecRef)?"Vrai":"Faux");
+		Log.Debug("[DecRef]","(Ref:%d) L'Event %d est supprime : %s",ref,this->eventType, (this->resultDecRef)?"Vrai":"Faux");
 	}
 
 	void IncRef() 

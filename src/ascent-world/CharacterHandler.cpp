@@ -896,7 +896,7 @@ void WorldSession::FullLogin(Player * plr)
 	// account data == UI config
 	SendAccountDataTimes(PER_CHARACTER_CACHE_MASK);
 
-	 // _player->ResetTitansGrip();
+	 _player->ResetTitansGrip();
 
 	// Set TIME OF LOGIN
 	CharacterDatabase.Execute (

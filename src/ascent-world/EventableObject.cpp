@@ -256,7 +256,7 @@ void EventableObject::event_RemoveEvents(uint32 EventType)
 				if(it2->second->resultDecRef == true) 
 				{
 					delete it2->second;
-					Log.Warning("[EventableObject]","RemoveEvents it2 : Suppression de l'Event %d",it2->second->eventType);
+					Log.Debug("[EventableObject]","RemoveEvents it2 : Suppression de l'Event %d",it2->second->eventType);
 				}
 				m_events.erase(it2);
 
@@ -527,7 +527,7 @@ void EventableObjectHolder::Update(uint32 time_difference)
 				ev->DecRef();
 				if(ev->resultDecRef == true) 
 				{
-					Log.Warning("[EventableObjectHolder]","EVENT_FLAG_DELETES_OBJECT : L'Event %d a bien ete supprime !!",ev->eventType);
+					Log.Debug("[EventableObjectHolder]","EVENT_FLAG_DELETES_OBJECT : L'Event %d a bien ete supprime !!",ev->eventType);
 					delete ev;
 				}
 				continue;
@@ -547,7 +547,7 @@ void EventableObjectHolder::Update(uint32 time_difference)
 				ev->DecRef();
 				if(ev->resultDecRef == true) 
 				{
-					Log.Warning("[EventableObjectHolder]","Expiration de l'event : L'Event %d a bien ete supprime !!",ev->eventType);
+					Log.Debug("[EventableObjectHolder]","Expiration de l'event : L'Event %d a bien ete supprime !!",ev->eventType);
 					delete ev;
 				}				
 				m_events.erase(it2);
@@ -561,7 +561,7 @@ void EventableObjectHolder::Update(uint32 time_difference)
 				ev->DecRef();
 				if(ev->resultDecRef == true) // A ce stade, le callback est forcement detruit => ev->Deleted = True => l'Event à expiré
 				{
-					Log.Warning("[EventableObjectHolder]","Suppresion tardive de l'Event %d!!",ev->eventType);
+					Log.Debug("[EventableObjectHolder]","Suppresion tardive de l'Event %d!!",ev->eventType);
 					delete ev;	
 				}
 
