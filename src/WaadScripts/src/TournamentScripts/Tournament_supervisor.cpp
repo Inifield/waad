@@ -768,11 +768,10 @@ sLog.outDebug("Tournament DEBUG : team2 char %u = %s is getting ported ",i,chr->
 						if( !plr->IsPvPFlagged() )
 							plr->SetPvPFlag();
 					}
-#ifndef CLUSTERING
 					//check if he felt underground 
 					if( plr->GetPositionZ() + 10 < m_Unit->GetPositionZ() )
 						plr->_Relocate(m_Unit->GetMapId(),m_Unit->GetPosition(),false,false,m_Unit->GetInstanceID());
-#endif
+
 				}
 				//he probably DC-ed. Fight is not fair this way
 				else
@@ -799,11 +798,10 @@ sLog.outDebug("Tournament DEBUG : team2 char %u = %s is getting ported ",i,chr->
 						if( !plr->IsPvPFlagged() )
 							plr->SetPvPFlag();
 					}
-#ifndef CLUSTERING
 					//check if he felt underground 
 					if( plr->GetPositionZ() + 10 < m_Unit->GetPositionZ() )
 						plr->_Relocate(m_Unit->GetMapId(),m_Unit->GetPosition(),false,false,m_Unit->GetInstanceID());
-#endif	
+
 				}
 				//he probably DC-ed. Fight is not fair this way
 				else
