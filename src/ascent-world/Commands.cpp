@@ -3223,23 +3223,12 @@ bool ChatHandler::HandleUnBanCharacterCommand(const char* args, WorldSession *m_
 
 bool ChatHandler::HandleGMTicketGetAllCommand(const char* args, WorldSession *m_session)
 {
-#ifdef CLUSTERING
-	string message = "GmTicket 2";
-	WorldPacket data(ICMSG_CHANNEL_ACTION, 1 + sWorld.getGmClientChannel().size() + 4 + message.size() + 4 + 1);
-	data << uint8(CHANNEL_SAY);
-	data << sWorld.getGmClientChannel();
-	data << m_session->GetPlayer()->GetLowGUID();
-	data << message;
-	data << m_session->GetPlayer()->GetLowGUID();
-	data << bool(true);
-	sClusterInterface.SendPacket(&data);
-#else
+
 	Channel *chn = channelmgr.GetChannel(sWorld.getGmClientChannel().c_str(),m_session->GetPlayer());
 	if(!chn)
 		return false;
 
 	chn->Say(m_session->GetPlayer(), "GmTicket 2", m_session->GetPlayer(), true);
-#endif	
 	for(GmTicketList::iterator itr = objmgr.GM_TicketList.begin(); itr != objmgr.GM_TicketList.end(); itr++)
 	{
 		uint32 cont = 0;
@@ -3263,19 +3252,8 @@ bool ChatHandler::HandleGMTicketGetAllCommand(const char* args, WorldSession *m_
 			str << "GmTicket 0,";
 			str << (*itr)->name.c_str() << ","  << (*itr)->level << ","  << (*itr)->map << ",";
 			str << zone;
-#ifdef CLUSTERING
-			string message = str.str();
-			WorldPacket data(ICMSG_CHANNEL_ACTION, 1 + sWorld.getGmClientChannel().size() + 4 + message.size() + 4 + 1);
-			data << uint8(CHANNEL_SAY);
-			data << sWorld.getGmClientChannel();
-			data << m_session->GetPlayer()->GetLowGUID();
-			data << message;
-			data << m_session->GetPlayer()->GetLowGUID();
-			data << bool(true);
-			sClusterInterface.SendPacket(&data);
-#else
+
 			chn->Say(m_session->GetPlayer(),str.str().c_str(), m_session->GetPlayer(), true);
-#endif			
 	}
 
 	return true;
@@ -3292,11 +3270,7 @@ bool ChatHandler::HandleGMTicketGetByIdCommand(const char* args, WorldSession *m
 	{
 		if(strcmp((*i)->name.c_str(), args) == 0)
 		{
-#ifdef CLUSTERING
-			std::stringstream str;
-			str << "GmTicket 3,";
-			str << (*i)->name.c_str() << "," << (*i)->message;
-#else
+
 			Channel *chn = channelmgr.GetChannel(sWorld.getGmClientChannel().c_str(),m_session->GetPlayer());
 			if(!chn)
 				return false;
@@ -3305,7 +3279,6 @@ bool ChatHandler::HandleGMTicketGetByIdCommand(const char* args, WorldSession *m
 			str << "GmTicket 3,";
 			str << (*i)->name.c_str() << "," << (*i)->message;
 			chn->Say(m_session->GetPlayer(),str.str().c_str(), m_session->GetPlayer(), true);
-#endif
 		}
 	}
 
@@ -3334,25 +3307,11 @@ bool ChatHandler::HandleGMTicketDelByIdCommand(const char* args, WorldSession *m
 		std::stringstream str;
 		str << "GmTicket 1," << args;
 		
-#ifndef CLUSTERING
 		Channel *chn = channelmgr.GetChannel(sWorld.getGmClientChannel().c_str(),m_session->GetPlayer());
 		if(!chn)
 			return false;
-#endif
 
-#ifdef CLUSTERING 
-		string message = str.str();
-		WorldPacket data(ICMSG_CHANNEL_ACTION, 1 + sWorld.getGmClientChannel().size() + 4 + message.size() + 4 + 1);
-		data << uint8(CHANNEL_SAY);
-		data << sWorld.getGmClientChannel();
-		data << m_session->GetPlayer()->GetLowGUID();
-		data << message;
-		data << m_session->GetPlayer()->GetLowGUID();
-		data << bool(true);
-		sClusterInterface.SendPacket(&data);
-#else
 		chn->Say(m_session->GetPlayer(), str.str().c_str(), NULL, true);
-#endif
 
 		Player* plr = objmgr.GetPlayer((uint32)guid);
 		if(!plr)

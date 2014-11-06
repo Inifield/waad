@@ -443,14 +443,8 @@ void Transporter::TransportPassengers(uint32 mapid, uint32 oldmap, float x, floa
 		PassengerIterator itr = mPassengers.begin();
 		PassengerIterator it2;
 
-#ifdef CLUSTERING
-		WorldPacket data(ICMSG_TRANSPORTER_MAP_CHANGE, 24);
-		data << GetEntry() << mapid << oldmap << x << y << z;
-		sClusterInterface.SendPacket(&data);
-#else
 		WorldPacket Pending(SMSG_TRANSFER_PENDING, 12);
 		Pending << mapid << GetEntry() << oldmap;
-#endif
 		WorldPacket NewWorld;
 		LocationVector v;
 
@@ -501,13 +495,9 @@ void Transporter::TransportPassengers(uint32 mapid, uint32 oldmap, float x, floa
 				plr->m_CurrentVehicle->RemovePassenger( plr );
 
 			plr->m_lockTransportVariables = true;
-#ifndef CLUSTERING
 			plr->GetSession()->SendPacket(&Pending);	
 			plr->_Relocate(mapid, v, false, true, 0);
-#else
-			plr->GetSession()->SendPacket(&data);
-			plr->EventClusterMapChange(mapid, 0, v);
-#endif	
+
 		}
 	}
 

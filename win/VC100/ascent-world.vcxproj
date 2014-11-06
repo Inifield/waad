@@ -242,7 +242,6 @@
     <ClCompile Include="..\..\src\ascent-world\CharacterHandler.cpp" />
     <ClCompile Include="..\..\src\ascent-world\Chat.cpp" />
     <ClCompile Include="..\..\src\ascent-world\ChatHandler.cpp" />
-    <ClCompile Include="..\..\src\ascent-world\ClusterInterface.cpp" />
     <ClCompile Include="..\..\src\ascent-world\CollideInterface.cpp" />
     <ClCompile Include="..\..\src\ascent-world\CombatHandler.cpp" />
     <ClCompile Include="..\..\src\ascent-world\Commands.cpp" />
@@ -316,8 +315,6 @@
     <ClCompile Include="..\..\src\ascent-world\WayPoints.cpp" />
     <ClCompile Include="..\..\src\ascent-world\WeatherMgr.cpp" />
     <ClCompile Include="..\..\src\ascent-world\WordFilter.cpp" />
-    <ClCompile Include="..\..\src\ascent-world\WorkdSocketCluster.cpp" />
-    <ClCompile Include="..\..\src\ascent-world\WorkerServerClient.cpp" />
     <ClCompile Include="..\..\src\ascent-world\World.cpp" />
     <ClCompile Include="..\..\src\ascent-world\WorldAnnounce.cpp" />
     <ClCompile Include="..\..\src\ascent-world\WorldCreator.cpp" />
@@ -387,7 +384,6 @@
     <ClInclude Include="..\..\src\ascent-world\Channel.h" />
     <ClInclude Include="..\..\src\ascent-world\ChannelMgr.h" />
     <ClInclude Include="..\..\src\ascent-world\Chat.h" />
-    <ClInclude Include="..\..\src\ascent-world\ClusterInterface.h" />
     <ClInclude Include="..\..\src\ascent-world\CollideInterface.h" />
     <ClInclude Include="..\..\src\ascent-world\Const.h" />
     <ClInclude Include="..\..\src\ascent-world\Container.h" />
@@ -445,7 +441,6 @@
     <ClInclude Include="..\..\src\ascent-world\VoiceChatHandler.h" />
     <ClInclude Include="..\..\src\ascent-world\WeatherMgr.h" />
     <ClInclude Include="..\..\src\ascent-world\WordFilter.h" />
-    <ClInclude Include="..\..\src\ascent-world\WorkerServerClient.h" />
     <ClInclude Include="..\..\src\ascent-world\World.h" />
     <ClInclude Include="..\..\src\ascent-world\WorldAnnounce.h" />
     <ClInclude Include="..\..\src\ascent-world\WorldCreator.h" />

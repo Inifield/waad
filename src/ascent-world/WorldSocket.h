@@ -23,9 +23,6 @@
 #ifndef __WORLDSOCKET_H
 #define __WORLDSOCKET_H
 
-/* Normal WorldSocket when not using clustering */
-#ifndef CLUSTERING
-
 #define WORLDSOCKET_SENDBUF_SIZE 131078
 #define WORLDSOCKET_RECVBUF_SIZE 16384
 
@@ -98,8 +95,6 @@ private:
 	bool m_nagleEanbled;
 	string * m_fullAccountName;
 };
-
-#endif
 
 //void FastGUIDPack(ByteBuffer & buf, const uint64 & oldguid);
 void FastGUIDPack(StackBuffer & buf, const uint64 & oldguid);
@@ -233,28 +228,4 @@ static inline unsigned int FastGUIDPack(const uint64 & oldguid, unsigned char * 
 	return (j - pos);
 }
 
-/* Modified/Simplified WorldSocket for use with clustering */
-#ifdef CLUSTERING
-class SERVER_DECL WorldSocket
-{
-public:
-	WorldSocket(uint32 sessionid);
-	~WorldSocket();
-
-	void Disconnect();
-	bool IsConnected();
-	ASCENT_INLINE string GetRemoteIP() { return string(inet_ntoa(m_address.sin_addr)); }
-	ASCENT_INLINE uint32 GetRemotePort() { return ntohs(m_address.sin_port); }
-
-	ASCENT_INLINE void SendPacket(WorldPacket* packet) { if(!packet) return; OutPacket(packet->GetOpcode(), packet->size(), (packet->size() ? (const void*)packet->contents() : NULL)); }
-	ASCENT_INLINE void SendPacket(StackPacket * packet) { if(!packet) return; OutPacket(packet->GetOpcode(), packet->GetSize(), (packet->GetSize() ? (const void*)packet->GetBufferPointer() : NULL)); }
-	void __fastcall OutPacket(uint16 opcode, size_t len, const void* data);
-	ASCENT_INLINE uint32 GetSessionId() { return m_sessionId; }
-
-protected:
-	uint32 m_sessionId;
-	sockaddr_in m_address;
-};
-
-#endif
 #endif

@@ -17,7 +17,6 @@
  *
  */
 
-#ifndef CLUSTERING
 #ifndef __CHANNEL_H
 #define __CHANNEL_H
 
@@ -210,4 +209,3 @@ public:
 };
 
 #endif //__CHANNEL_H
-#endif //CLUSTERING

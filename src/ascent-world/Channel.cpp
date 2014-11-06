@@ -19,8 +19,6 @@
 
 #include "StdAfx.h"
 
-#ifndef CLUSTERING
-
 Mutex m_confSettingLock;
 vector<string> m_bannedChannels;
 uint64 voicechannelhigh = 0;
@@ -1008,8 +1006,6 @@ ChannelMgr::ChannelMgr()
 {
 
 }
-
-#endif
 
 #ifdef VOICE_CHAT
 void Channel::VoiceChannelCreated(uint16 id)

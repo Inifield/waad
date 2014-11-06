@@ -94,10 +94,6 @@
 #include "Opcodes.h"
 
 
-#ifdef CLUSTERING
-	#include "../ascent-realmserver/WorkerOpcodes.h"
-#endif
-
 #include "SharedEnums.h"
 #include "WorldState.h"
 #include "PointerLogger.h"
@@ -203,10 +199,6 @@
 #include "IA_Waad/AI_Speak.h"
 #include "IA_Waad/Tokenizer.h"
 
-#ifdef CLUSTERING
-	#include "WorkerServerClient.h"
-	#include "ClusterInterface.h"
-#endif
 
 #ifdef COLLISION
 #include "vmap/ModelInstance.h"
@@ -223,7 +215,5 @@
 #include "BaseConsole.h"
 #include "CConsole.h"
 //#define COLLECTION_OF_UNTESTED_STUFF_AND_TESTERS 1
-
-
 
 #endif

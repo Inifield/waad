@@ -17,7 +17,6 @@
  *
  */
 
-#ifndef CLUSTERING
 class ChannelMgr :  public Singleton < ChannelMgr >
 {
  
@@ -46,4 +45,4 @@ private:
 };
 
 #define channelmgr ChannelMgr::getSingleton()
-#endif//CLUSTERING
+

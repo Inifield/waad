@@ -521,9 +521,8 @@ void ObjectMgr::LoadExtraItemStuff()
 
 void Storage_FillTaskList(TaskList & tl)
 {
-#ifdef CLUSTERING
-	std::string worldmap_info = Config.MainConfig.GetStringDefault("Cluster", "MapInfoTable", "worldmap_info");
-#endif
+
+	
 	make_task(ItemPrototypeStorage, ItemPrototype, ArrayStorageContainer, "items", gItemPrototypeFormat);
 	make_task(CreatureHeightStorage, CreatureHeight, HashMapStorageContainer, "creature_height", gCreatureHeightFormat); // Avant CreatureName
 	make_task(CreatureNameStorage, CreatureInfo, HashMapStorageContainer, "creature_names", gCreatureNameFormat);
@@ -536,11 +535,8 @@ void Storage_FillTaskList(TaskList & tl)
 	make_task(TeleportCoordStorage, TeleportCoords, HashMapStorageContainer, "teleport_coords", gTeleportCoordFormat);
 	make_task(FishingZoneStorage, FishingZoneEntry, HashMapStorageContainer, "fishing", gFishingFormat);
 	make_task(NpcTextStorage, GossipText, HashMapStorageContainer, "npc_text", gNpcTextFormat);
-#ifdef CLUSTERING
-	tl.AddTask(new Task(new CallbackP2<SQLStorage< MapInfo, ArrayStorageContainer<MapInfo> >, const char*, const char*>(&WorldMapInfoStorage, &SQLStorage< MapInfo, ArrayStorageContainer<MapInfo> >::Load, "worldmap_info", gWorldMapInfoFormat))); //With Cluster
-#else
+
 	make_task(WorldMapInfoStorage, MapInfo, ArrayStorageContainer, "worldmap_info", gWorldMapInfoFormat);
-#endif
 	make_task(ZoneGuardStorage, ZoneGuardEntry, HashMapStorageContainer, "zoneguards", gZoneGuardsFormat);
 	make_task(AchievementRewardStorage, AchievementReward, HashMapStorageContainer, "achievement_rewards", gAchievementRewardFormat); // HearthStone
 	make_task(ProfessionDiscoveryStorage, ProfessionDiscovery, HashMapStorageContainer, "professiondiscoveries", gProfessionDiscoveryFormat); // HearthStone
@@ -655,11 +651,8 @@ bool Storage_ReloadTable(const char * TableName)
 	else if(!stricmp(TableName, "graveyards"))			// Graveyards
 		GraveyardStorage.Reload();
 	else if
-#ifndef CLUSTERING
 		(!stricmp(TableName, "worldmap_info"))		// WorldMapInfo
-#else
-		(!stricmp(TableName, Config.MainConfig.GetStringDefault("Cluster", "MapInfoTable", "worldmap_info").c_str()))		//WorldMap Info with Cluster
-#endif
+
 		WorldMapInfoStorage.Reload();
 	else if(!stricmp(TableName, "zoneguards"))
 		ZoneGuardStorage.Reload();

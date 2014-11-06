@@ -5830,17 +5830,7 @@ void Player::RepopAtGraveyard(float ox, float oy, float oz, uint32 mapid)
 	
 }
 
-#ifdef CLUSTERING
-void Player::JoinedChannel(uint32 channelId)
-{
-	m_channels.insert(channelId);
-}
 
-void Player::LeftChannel(uint32 channelId)
-{
-	m_channels.erase(channelId);
-}
-#else
 void Player::JoinedChannel(Channel *c)
 {
 	c = channelmgr.GetChannel("LookingForGroup",this);
@@ -5854,27 +5844,9 @@ void Player::LeftChannel(Channel *c)
 	if(!c)
 		return;
 }
-#endif
-
 void Player::CleanupChannels()
 {
-#ifdef CLUSTERING
-	std::set<uint32>::iterator i;
-	std::vector<uint32> channels;
-	uint32 cid;
 
-	for(i = m_channels.begin(); i != m_channels.end();)
-	{
-		cid = *i;
-		++i;
-		channels.push_back(cid);
-	}
-	WorldPacket data(ICMSG_CHANNEL_UPDATE, (sizeof(std::vector<uint32>::size_type) * channels.size()) + 5);
-	data << uint8(PART_ALL_CHANNELS); //part all channels
-	data << GetLowGUID();
-	data << channels;
-	sClusterInterface.SendPacket(&data);
-#else
 	set<Channel *>::iterator i;
 	Channel * c;
 	for(i = m_channels.begin(); i != m_channels.end();)
@@ -5884,7 +5856,6 @@ void Player::CleanupChannels()
 		
 		c->Part(this);
 	}
-#endif
 }
 
 void Player::SendInitialActions()
@@ -8783,7 +8754,6 @@ void Player::RemovePlayerPet(uint32 pet_number)
 	}
 }
 
-#ifndef CLUSTERING
 void Player::_Relocate(uint32 mapid, const LocationVector & v, bool sendpending, bool force_new_world, uint32 instance_id)
 {
 	//this func must only be called when switching between maps!
@@ -8850,8 +8820,6 @@ void Player::_Relocate(uint32 mapid, const LocationVector & v, bool sendpending,
 
 	z_axisposition = 0.0f;
 }
-#endif
-
 void Player::UpdateKnownCurrencies(uint32 ItemId, bool apply)
 {
 	if(CurrencyTypesEntry * ctEntry = dbcCurrencyTypes.LookupEntryForced(ItemId))
@@ -9576,26 +9544,8 @@ void Player::ZoneUpdate(uint32 ZoneId)
 
 	if( !m_channels.empty() && at )
 	{
-#ifdef CLUSTERING
-		std::set<uint32>::iterator i;
-		std::vector<uint32> channels;
-		uint32 cid;
 
-		for(i = m_channels.begin(); i != m_channels.end();)
-		{
-			cid = *i;
-			++i;
-			channels.push_back(cid);
-		}
-		WorldPacket data(ICMSG_CHANNEL_UPDATE, 4 + (sizeof(std::vector<uint32>::size_type) * channels.size()) + 4 + 4 + 4);
-		data << uint8(UPDATE_CHANNELS_ON_ZONE_CHANGE); //update channels on zone change
-		data << GetLowGUID();
-		data << channels;
-		data << GetAreaID();
-		data << GetZoneId();
-		data << GetMapId();
-		sClusterInterface.SendPacket(&data);
-#else
+
 		// change to zone name, not area name
 		for(std::set<Channel*>::iterator itr = m_channels.begin(), nextitr ; itr != m_channels.end() ; itr = nextitr)
 		{
@@ -9638,7 +9588,6 @@ void Player::ZoneUpdate(uint32 ZoneId)
 				chn->Part(this);
 			}
 		}
-#endif
 	/*std::map<uint32, AreaTable*>::iterator iter = sWorld.mZoneIDToTable.find(ZoneId);
 	if(iter == sWorld.mZoneIDToTable.end())
 		return;
@@ -10114,9 +10063,8 @@ bool Player::SafeTeleport(uint32 MapID, uint32 InstanceID, const LocationVector 
 	if(InstanceID && (uint32)m_instanceId != InstanceID)
 	{
 		instance = true;
-#ifndef CLUSTERING		
+		
 		this->SetInstanceID(InstanceID);
-#endif
 #ifndef COLLISION
 		// if we are mounted remove it
 		if( m_MountSpellId )
@@ -10164,26 +10112,10 @@ bool Player::SafeTeleport(uint32 MapID, uint32 InstanceID, const LocationVector 
 	Pet *pPet = this->GetSummon();
 	if(pPet) pPet->Remove(false, true, true); // no safedelete
 	//--------
-#ifndef CLUSTERING	
+
 	_Relocate(MapID, vec, true, instance, InstanceID);
-#else
-	if(instance)
-	{
-		WorldPacket data(SMSG_TRANSFER_PENDING, 4);
-		data << uint32(MapID);
-		GetSession()->SendPacket(&data);
-		sClusterInterface.RequestTransfer(this, MapID, InstanceID, vec);
-		return true;
-	}
 
-	m_sentTeleportPosition = vec;
-	SetPosition(vec);
-	ResetHeartbeatCoords();
 
-	WorldPacket * data = BuildTeleportAckMsg(vec);
-	m_session->SendPacket(data);
-	delete data;
-#endif
 	//Log.Notice("[Player::SafeTeleport] Ok","%s",this->GetName()); // Debug (Branruz)
 	return true;
 }
@@ -11796,12 +11728,6 @@ void Player::RemoveFromBattlegroundQueue(uint32 queueSlot, bool forced)
 	    sChatHandler.SystemMessage(m_session, "You were removed from the queue for the battleground for not joining after 2 minutes.");
 }
 
-#ifdef CLUSTERING
-void Player::EventRemoveAndDelete()
-{
-
-}
-#endif
 
 void Player::_AddSkillLine(uint32 SkillLine, uint32 Curr_sk, uint32 Max_sk)
 {
@@ -12604,12 +12530,6 @@ void Player::save_Auras()
 
 #endif
 
-#ifdef CLUSTERING
-
-
-#endif
-
-
 void Player::EventGroupFullUpdate()
 {
 	if(m_playerInfo->m_Group)
@@ -12686,7 +12606,6 @@ void Player::SendMeetingStoneQueue(uint32 DungeonId, uint8 Status)
 
 void Player::PartLFGChannel()
 {
-#ifndef CLUSTERING
 	Channel * pChannel = channelmgr.GetChannel("LookingForGroup", this);
 	if( pChannel == NULL )
 		return;
@@ -12704,7 +12623,6 @@ void Player::PartLFGChannel()
 
 	pChannel->Part( this );
 
-#endif
 }
 
 //if we charmed or simply summoned a pet, this function should get called
@@ -13873,64 +13791,6 @@ uint32 Player::GetMaxPersonalRating()
 
 	return maxrating;
 }
-
-/*void Player::HandleClusterRemove()
-{
-#ifdef CLUSTERING
-	RemoveAllAuras();
-	if (IsInWorld())
-		RemoveFromWorld();
-
-	sEventMgr.AddEvent(this, &Player::RemovePlayerFromWorld, EVENT_UNK, 30000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
-	
-	if (GetSession() != NULL)
-	{
-		GetSession()->SetPlayer(NULL);
-		if (GetSession()->GetSocket() != NULL)
-		{
-			uint32 sessionid = GetSession()->GetSocket()->GetSessionId();
-			sClusterInterface.DestroySession(sessionid);
-		}
-		SetSession(NULL);
-	}
-	ObjectMgr::getSingleton().RemovePlayer(this);
-#endif
-}
-
-//This must be an event to stay in the correct context!
-void Player::EventClusterMapChange(uint32 mapid, uint32 instanceid, LocationVector location)
-{
-	WorldPacket data;
-	uint32 status = sInstanceMgr.PreTeleport(mapid, this, instanceid);
-	if(status != INSTANCE_OK)
-	{
-		data.Initialize(SMSG_TRANSFER_ABORTED);
-		data << mapid << status;
-		GetSession()->SendPacket(&data);
-		return;
-	}
-
-	if(instanceid)
-		m_instanceId = instanceid;
-
-	if(IsInWorld())
-	{
-		RemoveFromWorld();
-	}
-
-	data.Initialize(SMSG_NEW_WORLD);
-	data << (uint32)mapid << location << location.o;
-	GetSession()->SendPacket( &data );
-	SetMapId(mapid);
-
-
-	SetPlayerStatus(TRANSFER_PENDING);
-	m_sentTeleportPosition = location;
-	SetPosition(location);
-	ResetHeartbeatCoords();
-	z_axisposition = 0.0f;
-}*/
-
 
 void Player::RetroactiveCompleteQuests()
 {

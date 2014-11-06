@@ -1621,15 +1621,11 @@ public:
     /************************************************************************/
     /* Channel stuff                                                        */
     /************************************************************************/
-#ifdef CLUSTERING	
-	void JoinedChannel(uint32 channelId);
-	void LeftChannel(uint32 channelId);
-#else
 	void JoinedChannel(Channel *c);
 	void LeftChannel(Channel *c);
-#endif
 	void CleanupChannels();
-	//Attack stuff
+	
+	//Attack stuff	
 	void EventAttackStart();
 	void EventAttackStop();
 	void EventAttackUpdateSpeed() { }
@@ -1921,9 +1917,7 @@ public:
 	// GameObject commands
 	GameObject *m_GM_SelectedGO;
 	
-#ifndef CLUSTERING
 	void _Relocate(uint32 mapid,const LocationVector & v, bool sendpending, bool force_new_world, uint32 instance_id);
-#endif
 	void AddItemsToWorld();
 	void RemoveItemsFromWorld();
 	void UpdateKnownCurrencies(uint32 ItemId, bool apply);
@@ -2060,34 +2054,6 @@ public:
 	void EjectFromInstance();
 	bool raidgrouponlysent;
 
-#ifdef CLUSTERING
-	RPlayerInfo * UpdateRPlayerInfo(RPlayerInfo * pRPlayer, bool newRplr = false)
-	{
-		pRPlayer->Guid = GetLowGUID();
-		pRPlayer->AccountId = GetSession()->GetAccountId();
-		pRPlayer->Name = GetName();
-		pRPlayer->Level= getLevel() ;
-		pRPlayer->GuildId = GetGuildId();
-		pRPlayer->PositionX = GetPositionX();
-		pRPlayer->PositionY = GetPositionY();
-		pRPlayer->PositionY = GetPositionZ();
-		pRPlayer->ZoneId = m_zoneId;
-		pRPlayer->Race = getRace();
-		pRPlayer->Class = getClass();
-		pRPlayer->Gender = getGender();
-		pRPlayer->Latency = GetSession()->GetLatency();
-		pRPlayer->GMPermissions = GetSession()->HasPermissions();
-		pRPlayer->Account_Flags = GetSession()->GetAccountFlags();
-		pRPlayer->InstanceId = GetInstanceID();
-		pRPlayer->MapId = GetMapId();
-		pRPlayer->iInstanceType = iInstanceType;
-		pRPlayer->ClientBuild = GetSession()->GetClientBuild();
-		pRPlayer->Team = m_team;
-		if(newRplr)
-			pRPlayer->references = 1;
-		return pRPlayer;
-	}
-#endif
 
 	void EventSafeTeleport(uint32 MapID, uint32 InstanceID, LocationVector vec)
 	{
@@ -2283,11 +2249,6 @@ public:
 	void save_PVP();
 #endif
 
-#ifdef CLUSTERING
-	void EventRemoveAndDelete();
-	void PackPlayerData(ByteBuffer & data);
-	bool UnpackPlayerData(ByteBuffer & data);
-#endif
 
 	//Creature * m_tempSummon; // A quoi sert ce truc, viré temporairement (Branruz)
 	bool m_deathVision;
@@ -2471,11 +2432,8 @@ protected:
 	// Pointer to this char's game client
 	WorldSession *m_session;
 	// Channels	
-#ifdef CLUSTERING
-	std::set<uint32> m_channels;
-#else
+
 	std::set<Channel*> m_channels;
-#endif	
 	// Visible objects
 	std::set<Object*> m_visibleObjects;
 	// Groups/Raids

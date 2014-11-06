@@ -59,10 +59,9 @@ World::World()
 	show_gm_in_who_list = true;
 	//allow_gm_friends = true;
 	map_unload_time=0;
-#ifndef CLUSTERING
+
 	SocketSendBufSize = WORLDSOCKET_SENDBUF_SIZE;
 	SocketRecvBufSize = WORLDSOCKET_RECVBUF_SIZE;
-#endif
 	m_startLevel=1;
 	m_levelCap=250;
 	//m_genLevelCap=250; // finalement il sert a rien celui la!
@@ -129,11 +128,8 @@ World::~World()
 	Log.Notice("LfgMgr", "~LfgMgr()");
 	LfgMgr::DestroySingleton();
 
-#ifndef CLUSTERING
 	Log.Notice("ChannelMgr", "~ChannelMgr()");
 	ChannelMgr::DestroySingleton();
-#endif
-
 	Log.Notice("QuestMgr", "~QuestMgr()");
 	QuestMgr::DestroySingleton();
   
@@ -612,10 +608,8 @@ bool World::SetInitialWorldSettings()
 		lootmgr.LoadLoot();
 	}
 
-#ifndef CLUSTERING
 	Log.Notice("World", "Loading Channel config...");
 	Channel::LoadConfSettings();
-#endif
 	// Maitres des Arenes
 	m_ArenaSeasonOnTime = Config.MainConfig.GetIntDefault("ArenaSeason", "SeasonOnTime", 0);
 	m_ArenaSeasonNumber = Config.MainConfig.GetIntDefault("ArenaSeason", "SeasonNumber", 1);
@@ -1081,7 +1075,7 @@ uint32 World::GetQueuePos(WorldSocket* Socket)
 
 void World::UpdateQueuedSessions(uint32 diff)
 {
-#ifndef CLUSTERING
+
 	if(diff >= m_queueUpdateTimer) 
 	{
 		m_queueUpdateTimer = mQueueUpdateInterval;
@@ -1133,7 +1127,7 @@ void World::UpdateQueuedSessions(uint32 diff)
 	{
 		m_queueUpdateTimer -= diff;
 	}
-#endif
+
 }
 
 void World::SaveAllPlayers()
@@ -1371,17 +1365,12 @@ void World::Rehash(bool load)
 		#endif
 	}
 
-#ifndef CLUSTERING
 	if(!ChannelMgr::getSingletonPtr())
 		new ChannelMgr;
-#endif
-
 	if(!MailSystem::getSingletonPtr())
 		new MailSystem;
 
-#ifndef CLUSTERING
 	channelmgr.seperatechannels = Config.MainConfig.GetBoolDefault("Server", "SeperateChatChannels", false);
-#endif
 	MapPath = Config.MainConfig.GetStringDefault("Terrain", "MapPath", "maps");
 	vMapPath = Config.MainConfig.GetStringDefault("Terrain", "vMapPath", "vmaps");
 	UnloadMapFiles = Config.MainConfig.GetBoolDefault("Terrain", "UnloadMapFiles", true);
@@ -1431,13 +1420,11 @@ void World::Rehash(bool load)
 	sLog.SetScreenLoggingLevel(Config.MainConfig.GetIntDefault("LogLevel", "Screen", 1));
 	sLog.SetFileLoggingLevel(Config.MainConfig.GetIntDefault("LogLevel", "File", -1));
 	Log.log_level = Config.MainConfig.GetIntDefault("LogLevel", "Screen", 1);
-	gm_skip_attunement = Config.MainConfig.GetBoolDefault("Server", "SkipAttunementsForGM", true);
-	
+	gm_skip_attunement = Config.MainConfig.GetBoolDefault("Server", "SkipAttunementsForGM", true);	
 	CheckProfessions = Config.MainConfig.GetBoolDefault("Server", "CheckProfessions", false);
-#ifndef CLUSTERING
+
 	SocketRecvBufSize = Config.MainConfig.GetIntDefault("WorldSocket", "RecvBufSize", WORLDSOCKET_RECVBUF_SIZE);
 	SocketSendBufSize = Config.MainConfig.GetIntDefault("WorldSocket", "SendBufSize", WORLDSOCKET_SENDBUF_SIZE);
-#endif
     // Recuperation de la config BG (Branruz)
 	string MasterSubNameBG;
 	// Goulet
@@ -1633,10 +1620,8 @@ void World::Rehash(bool load)
 	if( !s.empty() )
 		m_banTable = strdup( s.c_str() );
 
-#ifndef CLUSTERING
 	if( load )
 		Channel::LoadConfSettings();
-#endif
 }
 
 void World::LoadNameGenData()

@@ -421,20 +421,10 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
 
 			if (sChatHandler.ParseCommands(msg.c_str(), this) > 0)
 				break;
-#ifdef CLUSTERING 
-			WorldPacket data(ICMSG_CHANNEL_ACTION, 1 + misc.size() + 4 + msg.size() + 4 + 1);
-			data << uint8(CHANNEL_SAY);
-			data << misc;
-			data << GetPlayer()->GetLowGUID();
-			data << msg;
-			data << uint32(NULL);
-			data << bool(false);
-			sClusterInterface.SendPacket(&data);
-#else
+
 			Channel *chn = channelmgr.GetChannel(misc.c_str(),GetPlayer()); 
 			if(chn) 
 				chn->Say(GetPlayer(),msg.c_str(), NULL, false);
-#endif
 			//sLog.outString("[%s] %s: %s", channel.c_str(), _player->GetName(), msg.c_str());
 		} break;
 

@@ -18,7 +18,7 @@
  */
 
 #include "StdAfx.h"
-#ifndef CLUSTERING
+
 initialiseSingleton( ChannelMgr );
 
 void WorldSession::HandleChannelJoin(WorldPacket& recvPacket)
@@ -309,5 +309,3 @@ void WorldSession::HandleChannelNumMembersQuery(WorldPacket & recvPacket)
 		SendPacket(&data);
 	}
 }
-
-#endif

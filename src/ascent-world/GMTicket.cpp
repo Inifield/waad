@@ -67,21 +67,7 @@ void WorldSession::HandleGMTicketCreateOpcode(WorldPacket & recv_data)
 	objmgr.AddGMTicket(ticket,false);
 
 	// Response - no errors
-	data << uint32(2);
-	
-#ifdef CLUSTERING 
-	std::stringstream str;
-	str << "GmTicket 5," << GetPlayer()->GetName();
-	string strmessage = str.str();
-	WorldPacket data2(ICMSG_CHANNEL_ACTION, 1 + sWorld.getGmClientChannel().size() + 4 + strmessage.size() + 4 + 1);
-	data2 << uint8(CHANNEL_SAY);
-	data2 << sWorld.getGmClientChannel();
-	data2 << GetPlayer()->GetLowGUID();
-	data2 << strmessage;
-	data2 << uint32(NULL);
-	data2 << bool(true);
-	sClusterInterface.SendPacket(&data2);
-#else
+	data << uint32(2);	
 	SendPacket(&data);
 
 	// send message indicating new ticket
@@ -92,7 +78,6 @@ void WorldSession::HandleGMTicketCreateOpcode(WorldPacket & recv_data)
 		snprintf(msg, 100, "GmTicket 5,%s", GetPlayer()->GetName());
 		chn->Say(_player, msg, NULL, true);
 	}
-#endif
 }
 
 void WorldSession::HandleGMTicketUpdateOpcode(WorldPacket & recv_data)

@@ -25,9 +25,6 @@
 #ifndef __WORLDSESSION_H
 #define __WORLDSESSION_H
 
-#ifdef CLUSTERING
-#include "../ascent-realmserver/Structures.h"
-#endif
 
 class Player;
 class WorldPacket;
@@ -593,7 +590,6 @@ protected:
 	void HandleCorpseQueryOpcode( WorldPacket& recvPacket );
 	void HandleResurrectResponseOpcode(WorldPacket& recvPacket);
 
-#ifndef CLUSTERING
 	/// Channel Opcodes (ChannelHandler.cpp)
 	void HandleChannelJoin(WorldPacket& recvPacket);
 	void HandleChannelLeave(WorldPacket& recvPacket);
@@ -613,8 +609,6 @@ protected:
 	void HandleChannelModerate(WorldPacket& recvPacket);
 	void HandleChannelNumMembersQuery(WorldPacket & recvPacket);
 	void HandleChannelRosterQuery(WorldPacket & recvPacket);
-#endif
-
 	// Duel
 	void HandleDuelAccepted(WorldPacket & recv_data);
 	void HandleDuelCancelled(WorldPacket & recv_data);
@@ -803,9 +797,6 @@ public:
 	void SendMOTD();
 	void SendAccountDataTimes(uint32 mask);
 	void ActivateDirectTaxi(Creature* pMonture);
-#ifdef CLUSTERING
-	bool ClusterTryPlayerLogin(uint32 Guid, uint32 ClientBuild, string GMPermissions, uint32 Account_Flags);
-#endif
 
 	uint32 GetCreatureModelId(uint32 CreatureId,uint32 Player_Faction);
 

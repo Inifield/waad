@@ -26,7 +26,6 @@ typedef struct
 }logonpacket;
 #pragma pack(pop)
 
-#ifndef CLUSTERING
 
 #ifndef USING_BIG_ENDIAN
 ASCENT_INLINE static void swap32(uint32* p) { *p = ((*p >> 24 & 0xff)) | ((*p >> 8) & 0xff00) | ((*p << 8) & 0xff0000) | (*p << 24); }
@@ -422,74 +421,3 @@ void LogonCommClientSocket::HandleServerPing(WorldPacket &recvData)
 	data << r;
 	SendPacket(&data, false);
 }
-
-#else
-/*
-void LogonCommHandler::LogonDatabaseReloadAccounts()
-{
-
-}
-
-void LogonCommHandler::LogonDatabaseSQLExecute(const char* str, ...)
-{
-
-}
-*/
-
-void LogonCommHandler::Account_SetBanned(const char * account, uint32 banned)
-{
-
-}
-
-void LogonCommHandler::Account_SetGM(const char * account, const char * flags)
-{
-
-}
-
-void LogonCommHandler::Account_SetMute(const char * account, uint32 muted)
-{
-
-}
-
-void LogonCommHandler::IPBan_Add(const char * ip, uint32 duration)
-{
-
-}
-
-void LogonCommHandler::IPBan_Remove(const char * ip)
-{
-
-}
-void LogonCommHandler::TestConsoleLogon(std::string &username, std::string &password, uint32 requestnum)
-{
-
-}
-
-void LogonCommHandler::Startup()
-{
-
-}
-
-void LogonCommHandler::UpdateAccountCount(uint32 account_id, uint8 add)
-{
-
-}
-
-void LogonCommHandler::UpdateSockets()
-{
-
-}
-
-LogonCommHandler::LogonCommHandler()
-{
-
-}
-
-LogonCommHandler::~LogonCommHandler()
-{
-
-}
-
-#endif
-
-

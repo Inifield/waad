@@ -103,14 +103,10 @@ struct Addr
 
 #ifdef WIN32
         static const char* default_config_file = "ascent-world.conf";
-#ifndef CLUSTERING
         static const char* default_realm_config_file = "ascent-realms.conf";
-#endif
 #else
         static const char* default_config_file = CONFDIR "/ascent-world.conf";
-#ifndef CLUSTERING
         static const char* default_realm_config_file = CONFDIR "/ascent-realms.conf";
-#endif
 #endif
 
 // Intouchable..... ;)
@@ -136,9 +132,7 @@ bool Master::Run(int argc, char ** argv)
 	s = default_config_file;
 #endif
 	char * config_file = (char*)s.c_str();
-#ifndef CLUSTERING
 	char * realm_config_file = (char*)default_realm_config_file;
-#endif
 	int file_log_level = DEF_VALUE_NOT_SET;
 	int screen_log_level = DEF_VALUE_NOT_SET;
 	int do_check_conf = 0;
@@ -169,12 +163,11 @@ bool Master::Run(int argc, char ** argv)
 			config_file = new char[strlen(ascent_optarg)];
 			strncpy(config_file, ascent_optarg,strlen(ascent_optarg)-1);
 			break;
-#ifndef CLUSTERING
+			
 		case 'r':
 			realm_config_file = new char[strlen(ascent_optarg)];
 			strncpy(realm_config_file, ascent_optarg,strlen(ascent_optarg)-1);
 			break;
-#endif
 		case 0:
 			break;
 		default:
@@ -232,13 +225,12 @@ bool Master::Run(int argc, char ** argv)
 			Log.Success( "Config", "Passed without errors." );
 		else
 			Log.Warning( "Config", "Encountered one or more errors." );
-#ifndef CLUSTERING
+
 		Log.Notice( "Config", "Checking config file: %s\n", realm_config_file );
 		if( Config.RealmConfig.SetSource( realm_config_file, true ) )
 			Log.Success( "Config", "Passed without errors.\n" );
 		else
 			Log.Warning( "Config", "Encountered one or more errors.\n" );
-#endif
 		/* test for die variables */
 		string die;
 		if( Config.MainConfig.GetString( "die", "msg", &die) || Config.MainConfig.GetString("die2", "msg", &die ) )
@@ -276,7 +268,7 @@ bool Master::Run(int argc, char ** argv)
 		Log.Warning( "Config", "Die directive received: %s", die.c_str() );
 		return false;
 	}	
-#ifndef CLUSTERING
+
 	if(Config.RealmConfig.SetSource(realm_config_file))
 		Log.Success( "Config", ">> ascent-realms.conf" );
 	else
@@ -284,7 +276,6 @@ bool Master::Run(int argc, char ** argv)
 		Log.Error( "Config", ">> ascent-realms.conf" );
 		return false;
 	}
-#endif
 	if( !_StartDB() )
 	{
 		Database::CleanupLibs(); // Fix Ascent V4638
@@ -477,7 +468,6 @@ bool Master::Run(int argc, char ** argv)
 	uint32 loopcounter = 0;
 	//ThreadPool.Gobble();
 
-#ifndef CLUSTERING
 	/* Connect to realmlist servers / logon servers */
 	new LogonCommHandler();
 	sLogonCommHandler.Startup();
@@ -501,11 +491,8 @@ bool Master::Run(int argc, char ** argv)
 		ThreadPool.ExecuteTask(ls);
 #endif
 	while( !m_stopEvent && listnersockcreate )
-#else
-	new ClusterInterface;
-	sClusterInterface.ConnectToRealmServer();
-	while(!m_stopEvent)
-#endif
+
+
 	{
 		start = now();
 		diff = start - last_time;
@@ -536,12 +523,10 @@ bool Master::Run(int argc, char ** argv)
 			Log.Debug("Network", "============================================");
 			sWorld.m_datasent = 0;
 			sWorld.m_datarecv = 0;
-#ifndef CLUSTERING
 			//ajout de B.B.
 				//on va se permettre de "reload" les permissions forcée (du moins tenter)
 				sLogonCommHandler.ReloadForcedPermissions();
 			//fin d'ajout
-#endif
 		}
 
 		/* since time() is an expensive system call, we only update it once per server loop */
@@ -552,13 +537,12 @@ bool Master::Run(int argc, char ** argv)
 			g_localTime = *localtime(&curTime);
 		}
 
-#ifndef CLUSTERING
+
 #ifdef VOICE_CHAT
 		sVoiceChatHandler.Update();
 #endif
-#else
-		sClusterInterface.Update();
-#endif
+
+
 		sSocketGarbageCollector.Update();
 
 		/* UPDATE */
@@ -649,10 +633,7 @@ bool Master::Run(int argc, char ** argv)
 	dw->terminate();
 	dw = NULL;
 
-#ifndef CLUSTERING
 	ls->Close();
-#endif
-
 	CloseConsoleListener();
 	sWorld.SaveAllPlayers();
 
@@ -666,10 +647,7 @@ bool Master::Run(int argc, char ** argv)
 	Log.Notice("ThreadPool", "Shutting down thread pool");	
 	ThreadPool.Shutdown();
 
-#ifndef CLUSTERING
 	delete ls;
-#endif
-
 	sWorld.LogoutPlayers(); //(Also saves players ?).
 	CharacterDatabase.Execute("UPDATE characters SET online = 0");
 

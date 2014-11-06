@@ -19,7 +19,6 @@
 
 #include "StdAfx.h"
 initialiseSingleton(LogonCommHandler);
-#ifndef CLUSTERING
 LogonCommHandler::LogonCommHandler()
 {
 	idhigh = 1;
@@ -580,4 +579,3 @@ void LogonCommHandler::Account_SetOneDK(const uint32 _GuidPlayer, bool OneDKCrea
 	itr->second->SendPacket(&data, false);
 }
 
-#endif

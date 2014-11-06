@@ -92,10 +92,8 @@ WorldSession::~WorldSession()
 			delete [] sAccountData[x].data;
 	}
 
-#ifndef CLUSTERING
 	if(_socket)
 		_socket->SetSession(0);
-#endif
 
 	if(m_loggingInPlayer)
 	{
@@ -114,10 +112,8 @@ int WorldSession::Update(uint32 InstanceID)
 	if (m_forceddelete)
 		return 1;	
 
-#ifndef CLUSTERING
 	if(!((++_updatecount) % 2) && _socket)
 		_socket->UpdateQueuedPackets();
-#endif
 
 	WorldPacket *packet;
 	OpcodeHandler * Handler;
@@ -429,24 +425,15 @@ void WorldSession::LogoutPlayer(bool Save)
 		}
 
 		_player->ObjUnlock(); // rev398
-
-#ifdef CLUSTERING
-		//if socket is NULL, we can assume the realmserver took care of it :P
-		if (_socket != NULL)
-		{
-			WorldPacket data(ICMSG_PLAYER_LOGOUT, 4);
-			data << _socket->GetSessionId() << _player->GetLowGUID();
-			sClusterInterface.SendPacket(&data);
-		}
-		// on se suppose que le Realmserver a pris soin du socket, mais le WorldServer n'a pas pris soin du player : p
-		else if(_player->GetLowGUID())
+		
+		if(_player->GetLowGUID())
 		{
 			sEventMgr.AddEvent(_player, &Player::RemovePlayerFromWorld, EVENT_UNK, 10000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
 			OutPacket(SMSG_LOGOUT_COMPLETE, 0, NULL);
 			sLog.outDebug( "SESSION: Sent SMSG_LOGOUT_COMPLETE Message" );
 			_loggingOut = false;
 		}
-#endif
+
 		if(_loggingOut)
 		{
 			sEventMgr.AddEvent(_player, &Player::RemovePlayerFromWorld, EVENT_UNK, 10000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
@@ -521,7 +508,6 @@ void WorldSession::InitPacketHandlerTable()
 		WorldPacketHandlers[i].handler = 0;
 	}
 
-#ifndef CLUSTERING
 	// Login
 	WorldPacketHandlers[CMSG_CHAR_ENUM].handler								= &WorldSession::HandleCharEnumOpcode;
 	WorldPacketHandlers[CMSG_CHAR_ENUM].status								= STATUS_AUTHED;
@@ -537,7 +523,6 @@ void WorldSession::InitPacketHandlerTable()
 
 	WorldPacketHandlers[CMSG_PLAYER_LOGIN].handler							= &WorldSession::HandlePlayerLoginOpcode; 
 	WorldPacketHandlers[CMSG_PLAYER_LOGIN].status							= STATUS_AUTHED;
-#endif
 
 	// Queries
 	WorldPacketHandlers[MSG_CORPSE_QUERY].handler							= &WorldSession::HandleCorpseQueryOpcode;
@@ -649,7 +634,6 @@ void WorldSession::InitPacketHandlerTable()
 	WorldPacketHandlers[CMSG_TEXT_EMOTE].handler							= &WorldSession::HandleTextEmoteOpcode;
 	WorldPacketHandlers[CMSG_INSPECT].handler								= &WorldSession::HandleInspectOpcode;
 	
-#ifndef CLUSTERING
 	// Channels
 	WorldPacketHandlers[CMSG_JOIN_CHANNEL].handler							= &WorldSession::HandleChannelJoin;
 	WorldPacketHandlers[CMSG_LEAVE_CHANNEL].handler							= &WorldSession::HandleChannelLeave;
@@ -669,7 +653,6 @@ void WorldSession::InitPacketHandlerTable()
 	WorldPacketHandlers[CMSG_CHANNEL_MODERATE].handler						= &WorldSession::HandleChannelModerate;
 	WorldPacketHandlers[CMSG_GET_CHANNEL_MEMBER_COUNT].handler				= &WorldSession::HandleChannelNumMembersQuery;
 	WorldPacketHandlers[CMSG_CHANNEL_DISPLAY_LIST].handler					= &WorldSession::HandleChannelRosterQuery;
-#endif
 	
 	// Groups / Raids
 	WorldPacketHandlers[CMSG_GROUP_INVITE].handler							= &WorldSession::HandleGroupInviteOpcode;
@@ -938,10 +921,6 @@ void WorldSession::InitPacketHandlerTable()
 	WorldPacketHandlers[CMSG_ARENA_TEAM_LEADER].handler 					= &WorldSession::HandleArenaTeamPromoteOpcode;
 	WorldPacketHandlers[MSG_INSPECT_ARENA_TEAMS].handler 					= &WorldSession::HandleInspectArenaStatsOpcode;
 
-#ifdef CLUSTERING
-	WorldPacketHandlers[CMSG_PING].handler = &WorldSession::HandlePingOpcode;
-#endif
-
 	// cheat/gm commands?
 	WorldPacketHandlers[MSG_MOVE_TELEPORT_CHEAT].handler 					= &WorldSession::HandleTeleportCheatOpcode;
 	WorldPacketHandlers[CMSG_TELEPORT_TO_UNIT].handler   					= &WorldSession::HandleTeleportToUnitOpcode;
@@ -999,17 +978,6 @@ void SessionLogWriter::writefromsession(WorldSession* session, const char* forma
 	fflush(m_file);
 	va_end(ap);
 }
-
-#ifdef CLUSTERING
-void WorldSession::HandlePingOpcode(WorldPacket& recvPacket)
-{
-	uint32 pong;
-	recvPacket >> pong;
-	WorldPacket data(SMSG_PONG, 4);
-	data << pong;
-	SendPacket(&data);
-}
-#endif
 
 void WorldSession::SystemMessage(const char * format, ...)
 {

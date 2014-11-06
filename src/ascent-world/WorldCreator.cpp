@@ -629,10 +629,6 @@ void InstanceMgr::_CreateMap(uint32 mapid)
 	inf = WorldMapInfoStorage.LookupEntry(mapid);
 	if(inf==NULL || m_maps[mapid]!=NULL)
 		return;
-#ifdef CLUSTERING
-	if (!inf->clustering_handled)
-		return;
-#endif
 
 	m_maps[mapid] = new Map(mapid, inf);
 	if(inf->type == INSTANCE_NULL)

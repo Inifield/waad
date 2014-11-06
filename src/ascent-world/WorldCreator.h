@@ -15,9 +15,6 @@
 #ifndef __WORLDCREATOR_H
 #define __WORLDCREATOR_H
 
-#ifdef CLUSTERING
-#include "../ascent-realmserver/Structures.h"
-#endif
 
 enum INSTANCE_TYPE
 {
