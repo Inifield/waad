@@ -7392,6 +7392,9 @@ void Player::EventRepeatSpell()
 	if( !m_curSelection || !IsInWorld() )
 		return;
 	
+	SpellEntry *spellInfo = dbcSpell.LookupEntryForced(m_AutoShotSpell->Id);
+	Item *item_used = NULL;
+
 	Unit* target = GetMapMgr()->GetUnit( m_curSelection );
 	if( target == NULL )
 	{
@@ -7432,6 +7435,28 @@ void Player::EventRepeatSpell()
 		m_AutoShotAttackTimer = m_AutoShotDuration;
 	
 		Spell* sp = new Spell( this, m_AutoShotSpell, true, NULL );
+
+		//Méthode de Branruz, adaptée pour les armes à distance uniquement.
+		//On recherche l'owner puisque à ce niveau là, il n'existe pas encore.
+		switch(spellInfo->EquippedItemClass)
+		{
+					case ITEM_SUBCLASS_WEAPON_BOW:
+					case ITEM_SUBCLASS_WEAPON_GUN:
+					case ITEM_SUBCLASS_WEAPON_THROWN:
+					case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+					case ITEM_SUBCLASS_WEAPON_WAND:
+			                          item_used = this->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
+			                          sp->m_owner = item_used; // meme NULL c'est Ok (Brz)
+									  if(sp->m_owner) Log.Debug("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_owner %u",
+										                     this->GetName(),spellInfo->Id,sp->m_owner->GetEntry());
+									  else Log.Debug("[HandleCastSpellOpcode]","(%s) Spell %u",this->GetName(),spellInfo->Id);
+									  break;
+
+					default : Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, EquippedItemClass inconnu %u",
+				                            this->GetName(),spellInfo->Id,spellInfo->EquippedItemClass);
+			                         break;
+		}
+
 		SpellCastTargets tgt;
 		tgt.m_target = GetMapMgr()->GetUnit(GetSelection());
 		tgt.m_targetMask = TARGET_FLAG_UNIT;

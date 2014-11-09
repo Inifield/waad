@@ -539,19 +539,22 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 				plr->SendCastResult(spellInfo->Id,SPELL_FAILED_SUCCESS, cn, 0);
 				return;
 			}
-            // Pourquoi faire un override du spell de tir...
-			/* Test (Branruz)
-			switch(weapon->GetProto()->SubClass)
+            // Pourquoi faire un override du spell de tir... (Branruz) ?
+			// On fait un override pour l'autoshot car le spell 75
+			// n'est pas capable de connaitre l'arme à distance utilisée. (Randdrick)
+			switch(item_used->GetProto()->SubClass)
 			{
-			 case 2:			 // bows (Arc)
-			 case 3:			 // guns
-             case 18:		 // crossbow (Arbalete)
+			case ITEM_SUBCLASS_WEAPON_BOW:
+			case ITEM_SUBCLASS_WEAPON_GUN:
+			case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+				Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, subclass d'Arme de jet %u",
+				                            this->GetPlayer()->GetName(),spellInfo->Id,item_used->GetProto()->SubClass);
 				spellId = SPELL_RANGED_GENERAL;
 				break;
-			 case 16:			// thrown (Arme de Jet)
+			 case ITEM_SUBCLASS_WEAPON_THROWN:			// thrown (Arme de Jet)
 				spellId = SPELL_RANGED_THROW;
 				break;
-			 case 19:			// wands
+			 case ITEM_SUBCLASS_WEAPON_WAND:			// wands
 				spellId = SPELL_RANGED_WAND;
 				break;
 			 default:
@@ -562,11 +565,11 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 			if(!spellId) 
 			{
 				// Debug (Branruz)
-				//Log.Error("[HandleCastSpellOpcode]","(%s) Spell %u, subclass d'Arme de jet inconnu %u",
-				  //                          this->GetPlayer()->GetName(),spellInfo->Id,weapon->GetProto()->SubClass);
+				Log.Error("[HandleCastSpellOpcode]","(%s) Spell %u, subclass d'Arme de jet inconnu %u",
+				                            this->GetPlayer()->GetName(),spellInfo->Id,item_used->GetProto()->SubClass);
 				spellId = spellInfo->Id;
-			}*/
-			
+			}
+
 			if(!plr->m_onAutoShot)
 			{
 				plr->m_AutoShotTarget = plr->GetSelection();
@@ -579,12 +582,15 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 					return;
 				}
 				SpellEntry *sp = dbcSpell.LookupEntry(spellId);
+				Spell *spell = new Spell(plr, spellInfo, false, NULL);
 			
 				plr->m_AutoShotSpell = sp;
 				plr->m_AutoShotDuration = duration;
 				//This will fix fast clicks
 				if(plr->m_AutoShotAttackTimer < 500) plr->m_AutoShotAttackTimer = 500;
 				plr->m_onAutoShot = true;
+
+
 			}
 
 			return;

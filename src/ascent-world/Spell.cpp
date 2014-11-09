@@ -1609,14 +1609,11 @@ void Spell::cast(bool check)
 			if(m_caster->IsUnit()) ((Unit *)m_caster)->RemoveFlag( UNIT_FIELD_AURASTATE, m_spellInfo->casterAuraState );
 		}
 
-		
-
 		if (m_caster->IsUnit())
 		{
 			if (((Unit *)m_caster)->IsStealth() && !(m_spellInfo->attributesEx & ATTRIBUTESEX_NOT_BREAK_STEALTH) && !m_triggeredSpell)
 				((Unit *)m_caster)->RemoveStealth();
 		}
-
 
 		if( m_caster->IsPlayer()) //-------------------------------
 		{
@@ -2600,7 +2597,7 @@ void Spell::finish()
 		}
 
 		/* Suppression de la charge de l'Item ou de l'Item utilisé dans le sort */
-		if( m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) )
+		if(  m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) )
 		{
 			Log.Notice("[Spell::finish()]","Suppression de la charge de l'Item ou de l'Item utilise dans le sort");
 			RemoveItems((Item *)m_owner);	// Normalement c'est un Item
@@ -2630,7 +2627,7 @@ void Spell::finish()
 	{
 		// En principe, le caster ne devrait pas être player si le m_owner est un item. 
 		//Cependant, on considère dans ce cas là, que le caster est le player et le déclencheur, l'item.
-		if( (m_owner && m_owner->IsItem()) && (m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) ) )
+		if( (m_owner && m_owner->IsItem() ) && (m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) ) )
 		{
 			Log.Notice("[Spell::finish()]","Suppression de la charge de l'Item ou de l'Item utilise par le joueur");
 			RemoveItems((Item *)m_owner);	// Normalement c'est un Item
