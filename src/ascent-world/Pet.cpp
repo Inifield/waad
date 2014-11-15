@@ -753,7 +753,7 @@ void Pet::LoadFromDB(Player* owner, PlayerPet * playerPetInfo)
 */
 void Pet::InitializeMe(bool first)
 {
-	if( m_Owner->GetSummon() != NULL )
+	if(m_Owner->GetSummon())
 	{
 		// 2 pets???!
 		m_Owner->GetSummon()->Remove(true, true, true);
@@ -778,11 +778,11 @@ void Pet::InitializeMe(bool first)
 	bHasLoyalty = false;
 	if(m_Owner->getClass() == HUNTER)
 	{
-	 bHasLoyalty = true;
+		bHasLoyalty = true;
 	}
 	else if(sWorld.m_WarriorPetAllowed) // WaadFun
 	{
-     bHasLoyalty = (m_Owner->getClass() == WARRIOR) ? true : false;
+		bHasLoyalty = (m_Owner->getClass() == WARRIOR) ? true : false;
 	}
 	//---------
 
@@ -866,13 +866,17 @@ void Pet::InitializeMe(bool first)
 	if(!bExpires)
 		UpdatePetInfo(false);
 
+	static_cast<Player*>(m_Owner)->_SavePet(NULL);
+
 	sEventMgr.AddEvent(this, &Pet::HandleAutoCastEvent, uint32(AUTOCAST_EVENT_ON_SPAWN), EVENT_UNK, 1000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 	sEventMgr.AddEvent(this, &Pet::HandleAutoCastEvent, uint32(AUTOCAST_EVENT_LEAVE_COMBAT), EVENT_UNK, 1000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 }
 
 void Pet::UpdatePetInfo(bool bSetToOffline)
-{
-	if(bExpires || m_Owner==NULL)
+{	
+	PlayerPet *pi = static_cast<Player*>(m_Owner)->GetPlayerPet(m_PetNumber);
+
+	if(bExpires || m_Owner==NULL || pi==NULL)
 		return;	// don't update expiring pets
 
 	if(!m_Owner->IsPlayer())
@@ -880,8 +884,6 @@ void Pet::UpdatePetInfo(bool bSetToOffline)
 	 // Log.Warning("UpdatePetInfo","Pas un familier de player");
       return;
 	}
-
-	PlayerPet *pi = static_cast<Player*>(m_Owner)->GetPlayerPet(m_PetNumber);
 
 	if(pi->number > 500) // Anti-Leak (Brz)
 	{
@@ -933,14 +935,24 @@ void Pet::UpdatePetInfo(bool bSetToOffline)
 
 void Pet::Dismiss(bool bSafeDelete)//Abandon pet
 {
+	bool bUpdate = bSafeDelete;
+
 	// already deleted
 	if( m_dismissed ) return;
+
+	// Suppression autorisée
+	if(bSafeDelete == true)
+	{
+		Log.Debug("Pet","Supression du famillier demandé");
+		Summon = false;
+	}
 
 	// Delete any petspells for us.
 	if( !bExpires )
 	{
 		if(!Summon && m_Owner)
 		{
+			Log.Debug("Pet", "Suppression, dans la DB, des sorts et talents du famillier");
 			CharacterDatabase.Execute("DELETE FROM playerpetspells WHERE ownerguid=%u AND petnumber=%u",
 				m_Owner->GetLowGUID(), m_PetNumber);
 			CharacterDatabase.Execute("DELETE FROM playerpettalents WHERE ownerguid=%u AND petnumber=%u",
@@ -953,8 +965,8 @@ void Pet::Dismiss(bool bSafeDelete)//Abandon pet
 		}
 	}
 
-	// find out playerpet entry, delete it
-	Remove(bSafeDelete, false, true);
+	// find out playerpet entry, delete it	
+	Remove(bSafeDelete, bUpdate, true);
 }
 
 void Pet::Remove(bool bSafeDelete, bool bUpdate, bool bSetOffline)
@@ -998,7 +1010,7 @@ void Pet::PetSafeDelete()
 	if(this->IsInWorld())
 	{
 		// remove from world, and delete
-		RemoveFromWorld(false, false);
+		RemoveFromWorld(false, true);
 	}
 
 	//sEventMgr.AddEvent(World::getSingletonPtr(), &World::DeleteObject, ((Object*)this), EVENT_CREATURE_SAFE_DELETE, 1000, 1);

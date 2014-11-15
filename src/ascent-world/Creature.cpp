@@ -182,7 +182,7 @@ void Creature::SafeDelete()
 	sEventMgr.AddEvent(this, &Creature::DeleteMe, EVENT_CREATURE_INTERNAL_DELETE, 30000, 1, 0);
 
 	if (IsInWorld())
-		sEventMgr.AddEvent(this, &Creature::RemoveFromWorld, true, false, EVENT_UNK, 1, 1, 0);
+		sEventMgr.AddEvent(this, &Creature::RemoveFromWorld, false, true, EVENT_UNK, 1, 1, 0);
 }
 
 void Creature::DeleteMe()

@@ -1167,12 +1167,11 @@ SpellScript::SpellScript(Spell *pSpell)
 
 
 SpellScript::~SpellScript()
-{  // Modif Randdrick 214, etrange de ne pas liberer la memoire sur le destructeur du spellscript ??
-	/* 
+{  	
+	// Suppression du commentaire pour permettre la libération de la mémoire.
 	_spell->m_spellScript = NULL;
 	_spell = NULL;
-	sEventMgr.RemoveEvents(this);
-	*/
+	sEventMgr.RemoveEvents(this);	
 }
 
 void SpellScript::CallSpellUpdate()

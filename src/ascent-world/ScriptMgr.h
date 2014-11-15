@@ -81,7 +81,6 @@ enum ScriptFlags
 	SSCRIPT_FLAG_COMPLETE_CHECK				= 0x01,
 };
 
-
 /* Hook typedefs */
 typedef bool(*tOnNewCharacter)(uint32 Race, uint32 Class, WorldSession * Session, const char * Name);
 typedef void(*tOnKillPlayer)(Player * pPlayer, Player * pVictim);
@@ -323,7 +322,9 @@ public:
 	void AddRef(DynamicObject* obj);
 	void RemoveRef(DynamicObject* obj);
 	void TryDelete();
-	int32 event_GetInstanceID();	
+	int32 event_GetInstanceID();
+	int32 count;
+	uint32 damage;
 
 	//dummy/script stuff
 	virtual void DummyEffect(uint32 EffectIndex) {}

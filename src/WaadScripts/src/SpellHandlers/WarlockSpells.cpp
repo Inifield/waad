@@ -76,9 +76,13 @@ class LifeTap : public SpellScript
 {
 public:
 	ADD_SPELL_FACTORY_FUNCTION(LifeTap);
-	int32 valueforplayer;
-	LifeTap(Spell* pSpell) : SpellScript(pSpell) {}
+	int32 valueforplayer;	
 
+	LifeTap(Spell* pSpell) : SpellScript(pSpell)
+	{ 
+		count = 0;
+		damage = 0;
+	}
 	void CalculateEffect(uint32 EffectIndex, Unit* target, int32* value)
 	{
 		if (!_spell->m_caster->IsUnit()) return;
@@ -99,29 +103,55 @@ public:
 		*value=float2int32(amount);
 
 		valueforplayer = *value;
-	}
 
-	SpellCastError CanCast(bool tolerate)
+		uint32 mod;	// spirit bonus coefficient multiplied by 2
+		if(_spell->GetSpellProto()->Id == 1454) mod = 2;
+		else if(_spell->GetSpellProto()->Id == 1455) mod = 3;
+		else if(_spell->GetSpellProto()->Id == 1456) mod = 4;
+		else if(_spell->GetSpellProto()->Id == 11687) mod = 5;
+		else mod = 6;
+
+		damage = _spell->GetSpellProto()->EffectBasePoints[EffectIndex] + 1 + mod * target->GetSpirit() / 2;
+		if (damage < 69)
+			damage = 69;		
+	}
+	
+	//En commentaire car sa gestion n'est pas prise en charge au niveau du Core
+	/*SpellCastError CanCast(bool tolerate)
 	{
 		if (!_spell->m_caster->IsUnit())
 			return SPELL_FAILED_BAD_TARGETS;
 
 		if (((Unit *)_spell->m_caster)->GetUInt32Value(UNIT_FIELD_HEALTH) <= (uint32)_spell->CalculateEffect(0, ((Unit *)_spell->m_caster)))
 			return SPELL_FAILED_FIZZLE;
+		
+		if(damage >= ((Unit *)_spell->m_caster)->GetHealth() || ++count >1)
+		{
+			Log.Warning("LifeTap", "le sort a été lancé %u fois",count);
+			return SPELL_FAILED_SUCCESS;
+		}
 
 		return SPELL_CANCAST_OK;
-	}
+	}*/
 
 	void DummyEffect(uint32 EffectIndex)
 	{
+		//On pose un compteur et on limite la cible au player uniquement car ce spell possède une zone d'effet.
+		if(damage >= ((Unit *)_spell->m_caster)->GetHealth() || ++count >1)
+			return;
+
 		if (!_spell->m_caster->IsUnit()) return;
 
-		((Unit *)_spell->m_caster)->DealDamage(((Unit *)_spell->m_caster), valueforplayer, 0, 0, _spell->m_spellInfo->Id);
+		((Unit *)_spell->m_caster)->DealDamage(((Unit *)_spell->m_caster), damage, 0, 0, _spell->m_spellInfo->Id);
 		((Unit *)_spell->m_caster)->Energize(((Unit *)_spell->m_caster), _spell->m_spellInfo->Id, valueforplayer, 0);
 
 		//give extra points to player's pet (mana feed)
 		if (_spell->m_caster->IsPlayer() && _spell->damage > valueforplayer && ((Player *)_spell->m_caster)->GetSummon() != NULL)
-			((Player *)_spell->m_caster)->Energize(((Unit *)_spell->m_caster)->GetSummon(), _spell->m_spellInfo->Id, _spell->damage - valueforplayer, 0);
+			((Player *)_spell->m_caster)->Energize(((Unit *)_spell->m_caster)->GetSummon(), _spell->m_spellInfo->Id, damage - valueforplayer, 0);
+
+		//On donne les points de mana restant au joueur d'un groupe
+		if (_spell->m_caster->IsPlayer() && _spell->damage > valueforplayer && ((Player *)_spell->m_caster)->IsGroupMember(((Player *)_spell->GetPlayerTarget())) != NULL)
+			((Player *)_spell->m_caster)->Energize(((Unit *)_spell->GetPlayerTarget()), _spell->m_spellInfo->Id, damage - valueforplayer, 0);
 	}
 };
 

@@ -229,7 +229,7 @@ void WorldSession::HandlePetAction(WorldPacket & recv_data)
 		case PET_ACTION_DISMISS:
 		{
 		 // Bye byte...
-		 pPet->Dismiss();
+		 pPet->Dismiss(true);
 		}
 		break;
 	  } // End Switch(misc)

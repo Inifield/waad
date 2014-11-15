@@ -576,15 +576,16 @@ void Spell::SpellEffectSchoolDMG(uint32 i) // dmg school
 
 void Spell::SpellEffectDummy(uint32 i) // Dummy(Scripted events)
 {
+
+	// Try a dummy SpellHandler
+	if(sScriptMgr.CallScriptedDummySpell(m_spellInfo->Id, i, this))
+		return;
+
 	uint32 spellId = m_spellInfo->Id;
 	uint32 spellHashes = m_spellInfo->NameHash;
 
 	if (m_spellScript != NULL)
 		m_spellScript->DummyEffect(i);
-	
-	// Try a dummy SpellHandler
-	if(sScriptMgr.CallScriptedDummySpell(spellId, i, this))
-		return;
 
 	switch(spellHashes) 
 	{
