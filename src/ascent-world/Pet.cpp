@@ -104,8 +104,22 @@ uint32 GetAutoCastTypeForSpell(SpellEntry * ent)
 void Pet::CreateAsSummon(uint32 entry, CreatureInfo *ci, Creature* created_from_creature, Unit *owner, SpellEntry* created_by_spell, uint32 type, uint32 expiretime, Spell* spell_callback)
 {
 	if(ci == NULL) return;
+	string name = "";
 
 	SetIsPet(true);
+
+	// Vérification de l'existence de l'enregistrement dans la DB et du flag de mise à jour.
+	QueryResult * querypet = CharacterDatabase.Query("SELECT * FROM playerpets WHERE ownerguid=%u", owner->GetLowGUID());
+
+	if(querypet && !bUpdate)
+	{
+		do
+		{
+			Field *fields = querypet->Fetch();
+			name = fields[2].GetString();
+		}
+		while( querypet->NextRow() ); 
+	}
 
 	//std::string myname = sWorld.GenerateName();
 
@@ -118,9 +132,17 @@ void Pet::CreateAsSummon(uint32 entry, CreatureInfo *ci, Creature* created_from_
 	m_Phase = m_Owner->GetPhase();
 	creature_info = ci;
 	myFamily = dbcCreatureFamily.LookupEntry(creature_info->Family);
-	//m_name = objmgr.GetCreatureFamilyName(myFamily->ID);
-	if( myFamily->name == NULL ) m_name = "Sam";
-	else                         m_name.assign(myFamily->name);
+	if(name == "")
+	{		
+		//m_name = objmgr.GetCreatureFamilyName(myFamily->ID);
+		if( myFamily->name == NULL ) m_name = "Sam";
+		else                         m_name.assign(myFamily->name);
+	}
+	else
+	{
+		m_name.assign(myFamily->name) = name;
+		//Log.Warning("Pet","le nom du famillier est %s",m_name);
+	}
 
 	// Create ourself
 	if ((spell_callback != NULL) && (spell_callback->m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION))
@@ -161,13 +183,15 @@ void Pet::CreateAsSummon(uint32 entry, CreatureInfo *ci, Creature* created_from_
 		SetUInt32Value(UNIT_FIELD_BYTES_2, (0x01 | (0x28 << 8) | (0x2 << 24)));
 		SetUInt32Value(UNIT_FIELD_PET_LGUID, GetUIdFromGUID());
 		SetPowerType(POWER_TYPE_MANA);
-		if(entry == WATER_ELEMENTAL)
-			m_name = "Elementaire d'eau";
-		else if(entry == 19668)
-			m_name = "Ombrefiel";
-		else
-			m_name = sWorld.GenerateName();
-
+		if(!querypet)
+		{
+			if(entry == WATER_ELEMENTAL)
+				m_name = "Elementaire d'eau";
+			else if(entry == 19668)
+				m_name = "Ombrefiel";
+			else
+				m_name = sWorld.GenerateName();
+		}		
 	}
 	else
 	{
@@ -286,6 +310,7 @@ Pet::Pet(uint64 guid) : Creature(guid)
 	m_LoyaltyXP = 0;
 	m_CurrentBarAISpell = NULL;
 	m_CurrentBarAISpellCount = 0;
+	bUpdate = false;
 }
 
 Pet::~Pet()
@@ -756,7 +781,7 @@ void Pet::InitializeMe(bool first)
 	if(m_Owner->GetSummon())
 	{
 		// 2 pets???!
-		m_Owner->GetSummon()->Remove(true, true, true);
+		m_Owner->GetSummon()->Dismiss(true);
 		m_Owner->SetSummon( this );
 	}
 	else
@@ -866,7 +891,14 @@ void Pet::InitializeMe(bool first)
 	if(!bExpires)
 		UpdatePetInfo(false);
 
-	static_cast<Player*>(m_Owner)->_SavePet(NULL);
+	//Vérification de l'existence d'un enregistrement dans la DB.
+	QueryResult * petquery = CharacterDatabase.Query("SELECT * FROM playerpets WHERE ownerguid=%u",m_Owner->GetLowGUID());
+	if(!petquery)
+	{
+		static_cast<Player*>(m_Owner)->_SavePet(NULL);
+		delete petquery;
+	}
+	else delete petquery;
 
 	sEventMgr.AddEvent(this, &Pet::HandleAutoCastEvent, uint32(AUTOCAST_EVENT_ON_SPAWN), EVENT_UNK, 1000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 	sEventMgr.AddEvent(this, &Pet::HandleAutoCastEvent, uint32(AUTOCAST_EVENT_LEAVE_COMBAT), EVENT_UNK, 1000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
@@ -935,7 +967,7 @@ void Pet::UpdatePetInfo(bool bSetToOffline)
 
 void Pet::Dismiss(bool bSafeDelete)//Abandon pet
 {
-	bool bUpdate = bSafeDelete;
+	bUpdate = bSafeDelete;
 
 	// already deleted
 	if( m_dismissed ) return;
@@ -1023,10 +1055,11 @@ void Pet::DelayedRemove(bool bTime, bool bDeath)
 		m_Owner = GetMapMgr()->GetPlayer((uint32)m_OwnerGuid);
 	if(bTime)
 	{
-		if(GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0 || bDeath)
+		Dismiss(true);
+		/*if(GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0 || bDeath)
 			Dismiss(true);  // remove us..
 		else
-			Remove(true, true, true);
+			Remove(true, true, true);*/
 	}
 	else
 		sEventMgr.AddEvent(this, &Pet::DelayedRemove, true, bDeath, EVENT_PET_DELAYED_REMOVE, PET_DELAYED_REMOVAL_TIME, 1,EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);

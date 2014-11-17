@@ -256,10 +256,11 @@ void WorldSession::HandleActivateTaxiOpcode( WorldPacket & recv_data )
 	// check for a summon -> if we do, remove.
 	if(_player->GetSummon() != NULL)
 	{
-		if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
+		_player->GetSummon()->Dismiss(false);
+		/*if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
 			_player->GetSummon()->Dismiss(false);						   // warlock summon -> dismiss
 		else
-			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call
+			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call*/
 	}
 
 	_player->taxi_model_id = modelid;
@@ -419,10 +420,11 @@ void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 	// check for a summon -> if we do, remove.
 	if(_player->GetSummon() != NULL)
 	{
-		if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
+		_player->GetSummon()->Dismiss(false);
+		/*if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
 			_player->GetSummon()->Dismiss(false);						   // warlock summon -> dismiss
 		else
-			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call
+			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call*/
 	}
 
 	_player->taxi_model_id = modelid;
@@ -588,11 +590,12 @@ void WorldSession::ActivateDirectTaxi(Creature* pMonture)
 
 	// check for a summon -> if we do, remove.
 	if(_player->GetSummon() != NULL)
-	{
-		if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
+	{		
+		/*if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
 			_player->GetSummon()->Dismiss(false);						   // warlock summon -> dismiss
 		else
-			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call
+			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call*/
+		_player->GetSummon()->Dismiss(false);
 	}
 
 	_player->taxi_model_id = modelid;

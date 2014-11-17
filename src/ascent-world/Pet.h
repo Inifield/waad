@@ -331,6 +331,7 @@ protected:
 
 	list<AI_Spell*> m_autoCastSpells[AUTOCAST_EVENT_COUNT];
 	bool m_dismissed;
+	bool bUpdate;
 };
 
 

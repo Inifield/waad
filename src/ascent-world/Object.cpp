@@ -3055,10 +3055,11 @@ void Object::HandleDeath(Unit *pVictim, uint32 damage, uint32 targetEvent, uint3
 			/* -------------------- KILL PET WHEN PLAYER DIES ---------------*/
 			if( static_cast< Player* >( pVictim )->GetSummon() != NULL )
 			{
-				if( pVictim->GetUInt32Value( UNIT_CREATED_BY_SPELL ) > 0 )
+				static_cast< Player* >( pVictim )->GetSummon()->Dismiss( true );
+				/*if( pVictim->GetUInt32Value( UNIT_CREATED_BY_SPELL ) > 0 )
 					static_cast< Player* >( pVictim )->GetSummon()->Dismiss( true );
 				else
-					static_cast< Player* >( pVictim )->GetSummon()->Remove( true, true, true );
+					static_cast< Player* >( pVictim )->GetSummon()->Remove( true, true, true );*/
 			}
 			/* -------------------- KILL PET WHEN PLAYER DIES END---------------*/
 		}

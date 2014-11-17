@@ -411,7 +411,8 @@ void WorldSession::HandleStablePet(WorldPacket & recv_data)
 	if(!pet) return;
 	pet->stablestate = STABLE_STATE_PASSIVE;
 	
-	if(pPet) pPet->Remove(false, true, true);	// no safedelete needed
+	//if(pPet) pPet->Remove(false, true, true);	// no safedelete needed
+	if(pPet) pPet->Dismiss(true);
 
 	//Log.Warning("SMSG_STABLE_RESULT","Send Success");
 
@@ -467,7 +468,8 @@ void WorldSession::HandleStableSwapPet(WorldPacket & recv_data)
 	//stable current pet
 	PlayerPet *pet2 = _player->GetPlayerPet(_player->GetUnstabledPetNumber());
 	if(!pet2) return;
-	if(pPet) pPet->Remove(false, true, true);	// no safedelete needed
+	//if(pPet) pPet->Remove(false, true, true);	// no safedelete needed
+	if(pPet) pPet->Dismiss(true);
 	pet2->stablestate = STABLE_STATE_PASSIVE;
 
 	//unstable selected pet

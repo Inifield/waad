@@ -2368,7 +2368,8 @@ void Player::SpawnPet(uint32 pet_number)
 
 	if( m_Summon != NULL ) // Secu (Randdrick, rev398)
 	{
-		m_Summon->Remove(true, true, true);
+		//m_Summon->Remove(true, true, true);
+		m_Summon->Dismiss(true);
 		m_Summon = NULL;
 	}
 
@@ -6855,12 +6856,12 @@ void Player::OnRemoveInRangeObject(Object* pObj)
 	{
 		if(m_Summon->IsSummon())
 		{
-			m_Summon->Dismiss(true);
+			m_Summon->Dismiss(false);
 		}
-		else
+		/*else
 		{
 			m_Summon->Remove(true, true, false);
-		}
+		}*/
 		if(m_Summon)
 		{
 			m_Summon->ClearPetOwner();
@@ -7881,10 +7882,11 @@ void Player::ApplySpec(uint8 spec, bool init)
 		//Dismiss any pets
 		if(GetSummon())
 		{
-			if(GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
+			GetSummon()->Dismiss(false);
+			/*if(GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
 				GetSummon()->Dismiss(false);				// warlock summon -> dismiss
 			else
-				GetSummon()->Remove(false, true, true);	// hunter pet -> just remove for later re-call
+				GetSummon()->Remove(false, true, true);	// hunter pet -> just remove for later re-call*/
 		}
 	}
 	
@@ -10125,7 +10127,8 @@ bool Player::SafeTeleport(uint32 MapID, uint32 InstanceID, const LocationVector 
 	//--- Branruz
 	// Si le familier est spawn, on le despawn avant le teleport du player
 	Pet *pPet = this->GetSummon();
-	if(pPet) pPet->Remove(false, true, true); // no safedelete
+	//if(pPet) pPet->Remove(false, true, true); // no safedelete
+	if(pPet) pPet->Dismiss(true);
 	//--------
 
 	_Relocate(MapID, vec, true, instance, InstanceID);
