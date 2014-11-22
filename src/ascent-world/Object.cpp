@@ -3015,15 +3015,21 @@ void Object::HandleDeath(Unit *pVictim, uint32 damage, uint32 targetEvent, uint3
 					// dying pet looses 1 happiness level
 					if( !static_cast< Pet* >( pVictim )->IsSummon() )
 					{
+						Log.Debug("Pet","Votre famillier est mort");
 						int32 happy_value = static_cast< Pet* >( pVictim )->GetLoyaltyPts();
 
 						happy_value = happy_value - 350; // Le familier meurt = -350 sur la loyauté
 						if(happy_value < 0) happy_value = 0;
 						static_cast< Pet* >( pVictim )->SetLoyaltyPts(happy_value);
+
+						static_cast< Pet* >( pVictim )->DelayedRemove( false, true );
+					}					
+					else
+					{
+						Log.Debug("Pet","Votre famillier invoqué est mort");
+						static_cast< Pet* >( pVictim )->Dismiss( true ); //SUMMON PET DEATH	
 					}
-					
-					static_cast< Pet* >( pVictim )->DelayedRemove( false, true );
-					
+
 					//remove owner warlock soul link from caster
 					if (static_cast<Pet*>( pVictim )->GetPetOwner() != NULL && static_cast<Pet*>( pVictim )->GetPetOwner()->IsPlayer())
 					{
