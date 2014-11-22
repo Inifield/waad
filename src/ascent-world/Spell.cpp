@@ -1909,8 +1909,7 @@ void Spell::cast(bool check)
 			}
 
 		    // don't call HandleAddAura unless we actually have auras... - Burlex
-			/* Si le player fait parti de la liste, les auras seront lancées une 2ieme fois  - Branruz
-			// Note Randdrick : ****** Obsolète suite changement de gestion des Auras *******
+			// Si le player fait parti de la liste, les auras seront lancées une 2ieme fois  - Branruz
 			// A ce stade  l'aura a déjà été lancée par un Event. Si une autre aura est lancée, l'event s'en sera chargé.
 		    if( m_spellInfo->EffectApplyAuraName[0] != SPELL_AURA_NONE || 
 				m_spellInfo->EffectApplyAuraName[1] != SPELL_AURA_NONE ||
@@ -1923,7 +1922,7 @@ void Spell::cast(bool check)
 					if( itr->HitResult != SPELL_DID_HIT_SUCCESS ) continue;
 					NewHandleAddAura(itr->Guid);
 				}
-			}*/
+			}
 
 			SpellTargetMap::iterator i;
 			
@@ -3953,144 +3952,142 @@ void Spell::_SetTargets(const uint64& guid)
 
 void Spell::NewHandleAddAura(uint64 guid)
 {
-	Unit *Target = NULL;
-	if(guid == 0)
-		return;
-
-	if(m_caster->IsUnit() && ((Unit *)m_caster)->GetGUID() == guid)
-		Target = ((Unit *)m_caster);
-	else if(m_caster->IsInWorld())
-		Target = m_caster->GetMapMgr()->GetUnit(guid);
-
-	if(!Target) return;
-
-	// Applying an aura to a flagged target will cause you to get flagged.
-	// self casting doesnt flag himself.
-	if(Target->IsPlayer() && m_caster->IsPlayer() && (((Player *)m_caster) != static_cast<Player *>(Target)) )
+	if(guid == 0 || !unitTarget)
 	{
-		if(static_cast<Player *>(Target)->IsPvPFlagged())
-		{
-			((Player *)m_caster)->SetPvPFlag();
-			((Player *)m_caster)->SetPVPCombat();
-		}
+		Log.Error("NewHandleAddAura","Il n'y a pas de cible pour appliquer l'aura. Reportez aux Devs");
+		return;
 	}
 	
-	// remove any auras with same type
-	if( m_spellInfo->buffType > 0)
-		Target->RemoveAurasByBuffType(m_spellInfo->buffType, m_caster->GetGUID(),m_spellInfo->Id);
-		
-	uint32 spellid = 0;
-
-	if( m_spellInfo->mechanics == 25 && m_spellInfo->Id != 25771 || m_spellInfo->Id == 31884 ) // Cast spell Forbearance
+	if(m_caster) //Lors de l'application d'une aura, le caster n'existe pas forcément ( surtout si il s'agit d'un item - ex : parchemin de l'esprit )
 	{
-		if( m_spellInfo->Id != 31884 )
-			spellid = 25771;
-
-		if( Target->IsPlayer() )
+		// Applying an aura to a flagged target will cause you to get flagged.
+		// self casting doesnt flag himself.
+		if(unitTarget->IsPlayer() && m_caster && m_caster->IsPlayer() && (((Player *)m_caster) != static_cast<Player *>(unitTarget)) )
 		{
-			sEventMgr.AddEvent(static_cast<Player *>(Target), &Player::AvengingWrath, EVENT_PLAYER_AVENGING_WRATH, 30000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);	
-			static_cast<Player *>(Target)->mAvengingWrath = false;
+			if(static_cast<Player *>(unitTarget)->IsPvPFlagged())
+			{
+				((Player *)m_caster)->SetPvPFlag();
+				((Player *)m_caster)->SetPVPCombat();
+			}
 		}
-	}
-	else if( m_spellInfo->mechanics == 16 && m_spellInfo->Id != 11196) // Cast spell Recently Bandaged
-		spellid = 11196;
-	else if( m_spellInfo->mechanics == 19 && m_spellInfo->Id != 6788) // Cast spell Weakened Soul
-		spellid = 6788;
-	else if( m_spellInfo->Id == 45438) // Cast spell Hypothermia
-		spellid = 41425;
-	else if (m_caster->IsPlayer() && m_spellInfo->Id == 34754 && ((Player *)m_caster)->HasSpell(47549))//Improved Holy Concentration 3.0.9 on 3.1.0 doesn't exist
-		spellid = 47894;
-	else if (m_caster->IsPlayer() && m_spellInfo->Id == 34754 && ((Player *)m_caster)->HasSpell(47551))//Improved Holy Concentration 3.0.9 on 3.1.0 doesn't exist
-		spellid = 47895;
-	else if (m_caster->IsPlayer() && m_spellInfo->Id == 34754 && ((Player *)m_caster)->HasSpell(47552))//Improved Holy Concentration 3.0.9 on 3.1.0 doesn't exist
-		spellid = 47896;
-	else if( m_spellInfo->AdditionalAura )
-		spellid = m_spellInfo->AdditionalAura;
-	else if( m_spellInfo->NameHash == SPELL_HASH_HEROISM )
-		spellid = 57723;
-	else if( m_spellInfo->NameHash == SPELL_HASH_BLOODLUST )
-		spellid = 57724;
-	else if( m_spellInfo->NameHash == SPELL_HASH_STEALTH )
-	{
-		if( Target->HasDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY) )
-			spellid = 31665;
-	}
-	else if( m_spellInfo->Id == 62124 && m_caster->IsUnit() )
-	{
-		if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_VINDICATION) )
-			spellid = ((Unit *)m_caster)->GetDummyAura(SPELL_HASH_VINDICATION)->RankNumber == 2 ? 26017 : 67;
-	}
-	else if( m_spellInfo->Id == 5229 &&
-		m_caster->IsPlayer() && (
-		((Player *)m_caster)->GetShapeShift() == FORM_BEAR ||
-		((Player *)m_caster)->GetShapeShift() == FORM_DIREBEAR ) &&
-		((Player *)m_caster)->HasDummyAura(SPELL_HASH_KING_OF_THE_JUNGLE) )
-	{
-		SpellEntry *spellInfo = dbcSpell.LookupEntry( 51185 );
-		if(!spellInfo) 
-			return;
+	
+		// remove any auras with same type
+		if( m_spellInfo->buffType > 0)
+			unitTarget->RemoveAurasByBuffType(m_spellInfo->buffType, m_caster->GetGUID(),m_spellInfo->Id);
+		
+		uint32 spellid = 0;
 
-		Spell *spell = new Spell(((Player *)m_caster), spellInfo ,true, NULL);
-		spell->forced_basepoints[0] = ((Player *)m_caster)->GetDummyAura(SPELL_HASH_KING_OF_THE_JUNGLE)->RankNumber * 5;
-		SpellCastTargets targets(m_caster); // SpellCastTargets targets(p_caster->GetGUID());
-		spell->prepare(&targets);
-	}
-	else if( m_spellInfo->Id == 19574 )
-	{
-		if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_THE_BEAST_WITHIN) )
-			((Unit *)m_caster)->CastSpell(((Unit *)m_caster), 34471, true);
-	}
-	else if( m_spellInfo->NameHash == SPELL_HASH_RAPID_KILLING )
-	{
-		if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_RAPID_RECUPERATION) )
-			m_spellInfo->Id = 56654;
-	}
+			if( m_spellInfo->mechanics == 25 && m_spellInfo->Id != 25771 || m_spellInfo->Id == 31884 ) // Cast spell Forbearance
+			{
+				if( m_spellInfo->Id != 31884 )
+					spellid = 25771;
 
-	switch( m_spellInfo->NameHash )
-	{
-	case SPELL_HASH_CLEARCASTING:
-	case SPELL_HASH_PRESENCE_OF_MIND:
+			if( unitTarget->IsPlayer() )
+			{
+				sEventMgr.AddEvent(static_cast<Player *>(unitTarget), &Player::AvengingWrath, EVENT_PLAYER_AVENGING_WRATH, 30000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);	
+				static_cast<Player *>(unitTarget)->mAvengingWrath = false;
+			}
+		}
+		else if( m_spellInfo->mechanics == 16 && m_spellInfo->Id != 11196) // Cast spell Recently Bandaged
+			spellid = 11196;
+		else if( m_spellInfo->mechanics == 19 && m_spellInfo->Id != 6788) // Cast spell Weakened Soul
+			spellid = 6788;
+		else if( m_spellInfo->Id == 45438) // Cast spell Hypothermia
+			spellid = 41425;
+		else if (m_caster->IsPlayer() && m_spellInfo->Id == 34754 && ((Player *)m_caster)->HasSpell(47549))//Improved Holy Concentration 3.0.9 on 3.1.0 doesn't exist
+			spellid = 47894;
+		else if (m_caster->IsPlayer() && m_spellInfo->Id == 34754 && ((Player *)m_caster)->HasSpell(47551))//Improved Holy Concentration 3.0.9 on 3.1.0 doesn't exist
+			spellid = 47895;
+		else if (m_caster->IsPlayer() && m_spellInfo->Id == 34754 && ((Player *)m_caster)->HasSpell(47552))//Improved Holy Concentration 3.0.9 on 3.1.0 doesn't exist
+			spellid = 47896;
+		else if( m_spellInfo->AdditionalAura )
+			spellid = m_spellInfo->AdditionalAura;
+		else if( m_spellInfo->NameHash == SPELL_HASH_HEROISM )
+			spellid = 57723;
+		else if( m_spellInfo->NameHash == SPELL_HASH_BLOODLUST )
+			spellid = 57724;
+		else if( m_spellInfo->NameHash == SPELL_HASH_STEALTH )
 		{
-			if( Target->HasDummyAura(SPELL_HASH_ARCANE_POTENCY) )
-				spellid = Target->GetDummyAura(SPELL_HASH_ARCANE_POTENCY)->RankNumber == 1 ? 57529 : 57531;
-		}break;
-	}
+			if( unitTarget->HasDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY) )
+				spellid = 31665;
+		}
+		else if( m_spellInfo->Id == 62124 && m_caster->IsUnit() )
+		{
+			if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_VINDICATION) )
+				spellid = ((Unit *)m_caster)->GetDummyAura(SPELL_HASH_VINDICATION)->RankNumber == 2 ? 26017 : 67;
+		}
+		else if( m_spellInfo->Id == 5229 &&
+			m_caster->IsPlayer() && (
+			((Player *)m_caster)->GetShapeShift() == FORM_BEAR ||
+			((Player *)m_caster)->GetShapeShift() == FORM_DIREBEAR ) &&
+			((Player *)m_caster)->HasDummyAura(SPELL_HASH_KING_OF_THE_JUNGLE) )
+		{
+			SpellEntry *spellInfo = dbcSpell.LookupEntry( 51185 );
+			if(!spellInfo) 
+				return;
 
-	if( spellid && Target )
-	{
-		SpellEntry *spellInfo = dbcSpell.LookupEntry( spellid );
-		if(!spellInfo)
+			Spell *spell = new Spell(((Player *)m_caster), spellInfo ,true, NULL);
+			spell->forced_basepoints[0] = ((Player *)m_caster)->GetDummyAura(SPELL_HASH_KING_OF_THE_JUNGLE)->RankNumber * 5;
+			SpellCastTargets targets(m_caster); // SpellCastTargets targets(p_caster->GetGUID());
+			spell->prepare(&targets);
+		}
+		else if( m_spellInfo->Id == 19574 )
+		{
+			if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_THE_BEAST_WITHIN) )
+				((Unit *)m_caster)->CastSpell(((Unit *)m_caster), 34471, true);
+		}
+		else if( m_spellInfo->NameHash == SPELL_HASH_RAPID_KILLING )
+		{
+			if( ((Unit *)m_caster)->HasDummyAura(SPELL_HASH_RAPID_RECUPERATION) )
+				m_spellInfo->Id = 56654;
+		}
+
+		switch( m_spellInfo->NameHash )
+		{
+			case SPELL_HASH_CLEARCASTING:
+			case SPELL_HASH_PRESENCE_OF_MIND:
+			{
+				if( unitTarget->HasDummyAura(SPELL_HASH_ARCANE_POTENCY) )
+					spellid = unitTarget->GetDummyAura(SPELL_HASH_ARCANE_POTENCY)->RankNumber == 1 ? 57529 : 57531;
+			}break;
+		}
+
+		if( spellid && unitTarget )
+		{
+			SpellEntry *spellInfo = dbcSpell.LookupEntry( spellid );
+			if(!spellInfo)
+				return;
+
+			Spell *spell = new Spell(unitTarget, spellInfo ,true, NULL);
+			if( spellid == 31665 && unitTarget->HasDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY) )
+				spell->forced_basepoints[0] = unitTarget->GetDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY)->EffectBasePoints[0];
+
+			SpellCastTargets targets(unitTarget); // SpellCastTargets targets(Target->GetGUID());
+			spell->prepare(&targets);
+		}
+
+		if( m_spellInfo->mechanics == 31 )
+			unitTarget->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_ENRAGE);
+
+		// avoid map corruption
+		if(unitTarget->GetInstanceID() != m_caster->GetInstanceID())
 			return;
-
-		Spell *spell = new Spell(Target, spellInfo ,true, NULL);
-		if( spellid == 31665 && Target->HasDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY) )
-			spell->forced_basepoints[0] = Target->GetDummyAura(SPELL_HASH_MASTER_OF_SUBTLETY)->EffectBasePoints[0];
-
-		SpellCastTargets targets(Target); // SpellCastTargets targets(Target->GetGUID());
-		spell->prepare(&targets);
 	}
 
-	if( m_spellInfo->mechanics == 31 )
-		Target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_ENRAGE);
-
-	// avoid map corruption
-	if(Target->GetInstanceID() != m_caster->GetInstanceID())
-		return;
-
-	std::map<uint32,Aura* >::iterator itr=Target->tmpAura.find(GetSpellProto()->Id);
-	if(itr!=Target->tmpAura.end())
+	std::map<uint32,Aura* >::iterator itr=unitTarget->tmpAura.find(GetSpellProto()->Id);
+	if(itr!=unitTarget->tmpAura.end())
 	{
 		Aura* aura = itr->second;
 		if(aura != NULL)
 		{
 			// did our effects kill the target?
-			if( Target->isDead() && !(m_spellInfo->attributesExC & ATTRIBUTESEXC_CAN_PERSIST_AND_CASTED_WHILE_DEAD))
+			if( unitTarget->isDead() && !(m_spellInfo->attributesExC & ATTRIBUTESEXC_CAN_PERSIST_AND_CASTED_WHILE_DEAD))
 			{
 				// free pointer
 				aura->m_deletedfromtmp = true;
 				aura->Remove();
 				itr->second = NULL;
-				Target->tmpAura.erase(itr);
+				unitTarget->tmpAura.erase(itr);
 				return;
 			}
 
@@ -4098,9 +4095,9 @@ void Spell::NewHandleAddAura(uint64 guid)
 			if(m_spellInfo->Id == 32727 || m_spellInfo->Id == 44521)
 				aura->SetPositive(100);
 
-			Target->AddAura(aura, NULL);
-			if(!aura->m_deletedfromtmp && !Target->tmpAura.empty())
-				Target->tmpAura.erase(itr);
+			unitTarget->AddAura(aura, NULL);
+			if(!aura->m_deletedfromtmp && !unitTarget->tmpAura.empty())
+				unitTarget->tmpAura.erase(itr);
 		}
 	}
 }
