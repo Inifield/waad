@@ -45,6 +45,7 @@ extern "C" SCRIPT_DECL void _exp_script_register(ScriptMgr* mgr)
 	SetupBladeEdgeMountains(mgr);
 	SetupBlastedLands(mgr);
 	SetupBloodmystIsle(mgr);
+	SetupBurningSteppes(mgr);
 	//SetupDarkshore(mgr);
 	SetupDesolace(mgr);
 	SetupDuskwood(mgr);
@@ -62,12 +63,15 @@ extern "C" SCRIPT_DECL void _exp_script_register(ScriptMgr* mgr)
 	SetupOldHillsbrad(mgr);
 	SetupRedrigeMountains(mgr);
 	SetupShadowmoon(mgr);
+	SetupSholazarBasin(mgr);
+	SetupSilithus(mgr);
 	SetupSilvermoonCity(mgr);
 	SetupSilverpineForest(mgr);
 	SetupStormwind(mgr);
 	SetupStranglethornVale(mgr);
 	SetupTanaris(mgr);
 	SetupTerrokarForest(mgr);
+	SetupTheStormPeaks(mgr);
 	SetupThousandNeedles(mgr);
 	SetupTirisfalGlades(mgr);
 	SetupUndercity(mgr);

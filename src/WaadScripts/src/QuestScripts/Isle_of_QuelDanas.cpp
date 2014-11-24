@@ -53,7 +53,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : The Scryer's Scryer");
+			pPlayer->BroadcastMessage("Quête manquante requise : The Scryer's Scryer");
 		}
 	}
 };

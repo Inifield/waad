@@ -357,11 +357,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\src\InstanceScripts\Base.cpp"
+				RelativePath="..\src\QuestScripts\Base.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\src\InstanceScripts\Base.h"
+				RelativePath="..\src\QuestScripts\Base.h"
 				>
 			</File>
 			<File
@@ -379,11 +379,27 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath="..\src\QuestScripts\BurningSteppes.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\src\QuestScripts\QuestGossip.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\src\QuestScripts\QuestHooks.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\QuestScripts\SholazarBasin.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\QuestScripts\Silithus.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\QuestScripts\TheStormPeaks.cpp"
 				>
 			</File>
 			<File

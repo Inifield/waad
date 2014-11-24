@@ -53,6 +53,9 @@
     <ClCompile Include="..\src\SpellHandlers\WarriorSpells.cpp">
       <Filter>Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\SpellHandlers\QIspells.cpp">
+      <Filter>Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\SpellHandlers\Setup.h">

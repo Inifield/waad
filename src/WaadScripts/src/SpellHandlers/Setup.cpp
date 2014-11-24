@@ -35,6 +35,7 @@ extern "C" SCRIPT_DECL void _exp_script_register(ScriptMgr* mgr)
     SetupItemSpells_1(mgr);
     SetupMageSpells(mgr);
     SetupPaladinSpells(mgr);
+	SetupQuestItems(mgr);
     SetupRogueSpells(mgr);
 	SetupOldSpellCPPSuff(mgr);
 	SetupDruidSpells(mgr);

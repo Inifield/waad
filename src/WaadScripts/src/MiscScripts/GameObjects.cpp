@@ -39,11 +39,11 @@ public:
 		}
 		else if(pPlayer->getLevel() <= 57 || pPlayer->HasFinishedQuest(7761) == false)
 		{
-			pPlayer->BroadcastMessage("You need to be level 58 and have completed the quest : Blackhand's Command");
+			pPlayer->BroadcastMessage("Vous devez être au niveau 58 et avoir complété la quête : Blackhand's Command");
 		}
 		else if(pPlayer->HasFinishedQuest(7761) == true && pPlayer->getLevel() >= 58 && pPlayer->InGroup() == false)
 		{
-			pPlayer->BroadcastMessage("Vous devez etre dans un groupe de Raid");
+			pPlayer->BroadcastMessage("Vous devez être dans un groupe de Raid");
 		}
 	}
 };
@@ -64,7 +64,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Vous n'etes pas autorise a utiliser cette Orbe de teleportation");
+			pPlayer->BroadcastMessage("Vous n'êtes pas autorisé à utiliser cette Orbe de téléportation");
 		}
 	}
 };
@@ -85,7 +85,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Vous n'etes pas autorise a utiliser cette Orbe de teleportation");
+			pPlayer->BroadcastMessage("Vous n'êtes pas autorisé à utiliser cette Orbe de téléportation");
 		}
 	}
 };
@@ -228,7 +228,7 @@ public:
 		}
 		else
 		{                                       // Trad a finir (Branruz)
-			pPlayer->BroadcastMessage("Vous devez poseder l'objet 'Time-Lost Offering' et avoir fait la quete 'Terokk's Downfall'");
+			pPlayer->BroadcastMessage("Vous devez posséder l'objet 'Time-Lost Offering' et avoir fait la quête 'Terokk's Downfall'");
 		}
 	}
 };
@@ -275,7 +275,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required item : Mallet of Zul'Farrak");
+			pPlayer->BroadcastMessage("Objet manquant requis : Mallet of Zul'Farrak");
 		}
 	}
 };
@@ -301,7 +301,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : To Rule The Skies");
+			pPlayer->BroadcastMessage("Quête manquante requise : To Rule The Skies");
 		}
 	}
 };
@@ -327,7 +327,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : To Rule The Skies");
+			pPlayer->BroadcastMessage("Quête manquante requise : To Rule The Skies");
 		}
 	}
 };
@@ -353,7 +353,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : To Rule The Skies");
+			pPlayer->BroadcastMessage("Quête manquante requise : To Rule The Skies");
 		}
 	}
 };
@@ -379,7 +379,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : To Rule The Skies");
+			pPlayer->BroadcastMessage("Quête manquante requise : To Rule The Skies");
 		}
 	}
 };
@@ -405,7 +405,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : Call of Water");
+			pPlayer->BroadcastMessage("Quête manquante requise : Call of Water");
 		}
 	}
 };
@@ -431,7 +431,7 @@ public:
 		}
 		else
 		{
-			pPlayer->BroadcastMessage("Missing required quest : Call of Water");
+			pPlayer->BroadcastMessage("Quête manquante requise : Call of Water");
 		}
 	}
 };

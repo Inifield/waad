@@ -197,6 +197,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\GossipScripts\Gossip_BoreanTundra.cpp" />
+    <ClCompile Include="..\src\GossipScripts\Gossip_Dalaran.cpp" />
+    <ClCompile Include="..\src\GossipScripts\Gossip_Teldrassil.cpp" />
+    <ClCompile Include="..\src\GossipScripts\Gossip_Theramore.cpp" />
+    <ClCompile Include="..\src\GossipScripts\Gossip_WyrmrestTemple.cpp" />
     <ClCompile Include="..\src\GossipScripts\Setup.cpp" />
     <ClCompile Include="..\src\GossipScripts\Gossip_Battlemaster.cpp" />
     <ClCompile Include="..\src\GossipScripts\Gossip_DarkmoonFaire.cpp" />

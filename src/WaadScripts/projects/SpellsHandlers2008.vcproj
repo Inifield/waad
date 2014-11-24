@@ -403,6 +403,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\SpellHandlers\QIspells.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\src\SpellHandlers\Raid_BlackTemple.cpp"
 				>
 			</File>

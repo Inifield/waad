@@ -101,6 +101,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\SpellHandlers\QIspells.cpp" />
     <ClCompile Include="..\src\SpellHandlers\Setup.cpp" />
     <ClCompile Include="..\src\SpellHandlers\DeathKnightSpells.cpp" />
     <ClCompile Include="..\src\SpellHandlers\DruidSpells.cpp" />

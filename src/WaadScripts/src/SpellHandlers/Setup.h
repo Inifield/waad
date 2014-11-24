@@ -28,6 +28,7 @@ void SetupHunterSpells(ScriptMgr * mgr);
 void SetupItemSpells_1(ScriptMgr * mgr);
 void SetupMageSpells(ScriptMgr * mgr);
 void SetupPaladinSpells(ScriptMgr * mgr);
+void SetupQuestItems(ScriptMgr* mgr);
 void SetupRogueSpells(ScriptMgr * mgr);
 void SetupDruidSpells(ScriptMgr * mgr);
 void SetupPriestSpells(ScriptMgr * mgr);

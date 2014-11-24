@@ -44,6 +44,21 @@
     <ClCompile Include="..\src\GossipScripts\Gossip_Vendor.cpp">
       <Filter>Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\GossipScripts\Gossip_BoreanTundra.cpp">
+      <Filter>Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\GossipScripts\Gossip_Dalaran.cpp">
+      <Filter>Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\GossipScripts\Gossip_Teldrassil.cpp">
+      <Filter>Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\GossipScripts\Gossip_Theramore.cpp">
+      <Filter>Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\GossipScripts\Gossip_WyrmrestTemple.cpp">
+      <Filter>Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\GossipScripts\Setup.h">

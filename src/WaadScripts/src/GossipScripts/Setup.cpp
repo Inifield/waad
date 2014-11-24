@@ -30,15 +30,19 @@ extern "C" SCRIPT_DECL uint32 _exp_get_script_type()
 extern "C" SCRIPT_DECL void _exp_script_register(ScriptMgr* mgr)
 {
     //SetupInnkeepers(mgr);
+	SetupBoreanTundraGossip(mgr);
     SetupGuardGossip(mgr);
 	SetupTrainerScript(mgr);
 	SetupMulgoreGossip(mgr);
 	SetupShattrathGossip(mgr);
 	SetupTanarisGossip(mgr);
+	SetupTeldrassilGossip(mgr);
+	SetupTheramoreGossip(mgr);
 	SetupMoongladeScript(mgr);
 	SetupStormwindGossip(mgr);
 	SetupDarkmoonFaireGossip(mgr);
 	SetupDarkmoonFaireBarker(mgr);
+	SetupWyrmrestTempleGossip(mgr);
 
 	SetupVendeurDePain(mgr);
     SetupVendeurDeFruit(mgr);

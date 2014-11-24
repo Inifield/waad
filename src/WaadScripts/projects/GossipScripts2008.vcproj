@@ -375,6 +375,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\GossipScripts\Gossip_BoreanTundra.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\GossipScripts\Gossip_Dalaran.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\src\GossipScripts\Gossip_DarkmoonFaire.cpp"
 				>
 			</File>
@@ -403,11 +411,23 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\GossipScripts\Gossip_Teldrassil.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\GossipScripts\Gossip_Theramore.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\src\GossipScripts\Gossip_Trainer.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\src\GossipScripts\Gossip_Vendor.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\src\GossipScripts\Gossip_WyrmrestTemple.cpp"
 				>
 			</File>
 		</Filter>

@@ -20,9 +20,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\InstanceScripts\Base.cpp">
-      <Filter>Main Resources</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\QuestScripts\Setup.cpp">
       <Filter>Main Resources</Filter>
     </ClCompile>
@@ -209,12 +206,27 @@
     <ClCompile Include="..\src\QuestScripts\ZulDrak.cpp">
       <Filter>Scripts\Zone</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\QuestScripts\Base.cpp">
+      <Filter>Main Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\QuestScripts\BurningSteppes.cpp">
+      <Filter>Scripts\Zone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\QuestScripts\SholazarBasin.cpp">
+      <Filter>Scripts\Zone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\QuestScripts\Silithus.cpp">
+      <Filter>Scripts\Zone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\QuestScripts\TheStormPeaks.cpp">
+      <Filter>Scripts\Zone</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\InstanceScripts\Base.h">
+    <ClInclude Include="..\src\QuestScripts\Setup.h">
       <Filter>Main Resources</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\QuestScripts\Setup.h">
+    <ClInclude Include="..\src\QuestScripts\Base.h">
       <Filter>Main Resources</Filter>
     </ClInclude>
   </ItemGroup>

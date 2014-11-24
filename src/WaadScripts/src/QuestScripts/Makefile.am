@@ -17,6 +17,7 @@ Bassin_de_sholazar.cpp \
 BladeEdge_Mountains.cpp \
 BlastedLands.cpp \
 BloodmystIsle.cpp \
+BurningSteppes.cpp\
 Dalaran.cpp \
 Darkshore.cpp \
 Desolace.cpp \

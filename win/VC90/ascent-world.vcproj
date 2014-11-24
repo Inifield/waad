@@ -944,14 +944,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\ascent-world\ClusterInterface.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\ascent-world\ClusterInterface.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\ascent-world\CollideInterface.cpp"
 			>
 		</File>
@@ -1477,18 +1469,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\ascent-world\WordFilter.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\ascent-world\WorkdSocketCluster.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\ascent-world\WorkerServerClient.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\ascent-world\WorkerServerClient.h"
 			>
 		</File>
 		<File
