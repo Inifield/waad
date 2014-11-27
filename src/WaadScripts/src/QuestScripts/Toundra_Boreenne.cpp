@@ -21,6 +21,7 @@ class SeaforiumDepthCharge : public MoonScriptCreatureAI
 		{
 			SetCanMove(false);
 			SetCanEnterCombat(false);
+			_unit->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 21);
 			_unit->_setFaction();
 		}
 
