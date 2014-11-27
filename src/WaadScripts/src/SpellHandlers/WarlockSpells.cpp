@@ -112,6 +112,7 @@ public:
 		else mod = 6;
 
 		damage = _spell->GetSpellProto()->EffectBasePoints[EffectIndex] + 1 + mod * target->GetSpirit() / 2;
+		
 		if (damage < 69)
 			damage = 69;		
 	}
@@ -152,6 +153,173 @@ public:
 		//On donne les points de mana restant au joueur d'un groupe
 		if (_spell->m_caster->IsPlayer() && _spell->damage > valueforplayer && ((Player *)_spell->m_caster)->IsGroupMember(((Player *)_spell->GetPlayerTarget())) != NULL)
 			((Player *)_spell->m_caster)->Energize(((Unit *)_spell->GetPlayerTarget()), _spell->m_spellInfo->Id, damage - valueforplayer, 0);
+	}
+};
+
+class MinorHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	MinorHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(19004);
+		else if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(19005);
+		else
+			_spell->CreateItem(5512);
+	}
+};
+
+class LesserHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(LesserHealthStone);
+
+	LesserHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+			if(!((Player *)_spell->m_caster))
+				return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(19007);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(19006);
+		else
+			_spell->CreateItem(5511);
+	}
+};
+
+class HealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	HealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(19009);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(19008);
+		else
+			_spell->CreateItem(5509);
+	}
+};
+
+class GreaterHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	GreaterHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+	
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(19011);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(19010);
+		else
+			_spell->CreateItem(5510);
+	}
+};
+
+class MajorHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	MajorHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(19013);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(19012);
+		else
+			_spell->CreateItem(9421);
+	}
+};
+
+class MasterHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	MasterHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(22105);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(22104);
+		else
+			_spell->CreateItem(22103);
+	}
+};
+
+class DemonicHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	DemonicHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(36891);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(36890);
+		else
+			_spell->CreateItem(36889);
+	}
+};
+class FelHealthStone : public SpellScript
+{
+public:
+	ADD_SPELL_FACTORY_FUNCTION(MinorHealthStone);
+
+	FelHealthStone(Spell * pSpell) : SpellScript(pSpell){}
+
+	void ScriptEffect(uint32 EffectIndex)
+	{
+		if(!((Player *)_spell->m_caster))
+			return;
+
+		if(((Player *)_spell->m_caster)->HasSpell(18693))
+			_spell->CreateItem(36894);
+		else if(((Player *)_spell->m_caster)->HasSpell(18692))
+			_spell->CreateItem(36893);
+		else
+			_spell->CreateItem(36892);
 	}
 };
 
@@ -388,6 +556,16 @@ void SetupWarlockSpells(ScriptMgr * mgr)
 	*/
 	mgr->register_spell_script(__Soul_Link, &SoulLink::Create);
 
+	/////////////////////Scripted Effect //////////////////////////
+	mgr->register_spell_script(6201, &MinorHealthStone::Create);
+	mgr->register_spell_script(6202, &LesserHealthStone::Create);
+	mgr->register_spell_script(5699, &HealthStone::Create);
+	mgr->register_spell_script(11729, &GreaterHealthStone::Create);
+	mgr->register_spell_script(11730, &MajorHealthStone::Create);
+	mgr->register_spell_script(27230, &MasterHealthStone::Create);
+	mgr->register_spell_script(47871, &DemonicHealthStone::Create);
+	mgr->register_spell_script(47878, &FelHealthStone::Create);
+
 	/*
 	#define __Drain_Life_Rank_1				689
 	#define __Drain_Life_Rank_2				699
@@ -441,4 +619,3 @@ void SetupWarlockSpells(ScriptMgr * mgr)
 	*/
 	mgr->register_spell_script(__Warlock_Pet_Scaling_01, &WarlockPetScaling01::Create);
 }
-

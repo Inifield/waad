@@ -46,8 +46,144 @@ bool PoweringOurDefenses(uint32 i, Spell* pSpell)
 	return true;
 }
 
+static Coords Prospecteur_garde_enclumeWaypoints[] =
+{
+	{ 9294.834f, -6681.092f, 22.428f, 1.284f, 0 },
+	{ 9297.834f, -6671.092f, 22.387f, 0.793f, 0 },
+	{ 9310.375f, -6658.936f, 22.43f,  2.046f, 0 },
+	{ 9306.596f, -6650.905f, 25.222f, 2.666f, 0 },
+	{ 9299.666f, -6648.099f, 28.39f,  3.468f, 0 },
+	{ 9292.345f, -6650.509f, 30.908f, 4.249f, 0 },
+	{ 9289.426f, -6657.825f, 31.829f, 6.154f, 0 },
+	{ 9294.095f, -6658.863f, 34.482f, 6.063f, 0 },
+};
+
+class Prospecteur_garde_enclumeGossip : public GossipScript
+{
+	public:
+		void GossipHello(Object* pObject, Player* Plr);
+		void GossipSelectOption(Object* pObject, Player* Plr, uint32 Id, uint32 IntId, const char* EnteredCode);
+		void GossipEnd(Object* pObject, Player* Plr) {};
+};
+
+void Prospecteur_garde_enclumeGossip::GossipHello(Object* pObject, Player* Plr)
+{
+	GossipMenu* Menu;
+	objmgr.CreateGossipMenuForPlayer(&Menu, pObject->GetGUID(), 2, Plr);
+
+	Menu->AddItem(0, "Montrez-moi...", 1);
+
+	Menu->SendTo(Plr);
+}
+
+void Prospecteur_garde_enclumeGossip::GossipSelectOption(Object* pObject, Player* Plr, uint32 Id, uint32 IntId, const char* EnteredCode)
+{
+	if(!pObject->IsCreature())
+		return;
+	Creature* _unit = static_cast<Creature *>(pObject);
+	switch(IntId)
+	{
+		case 1:
+			{
+				QuestLogEntry* qLogEntry = Plr->GetQuestLogForEntry(8483);
+				if(qLogEntry != NULL)
+				{
+					_unit->SendChatMessage(CHAT_MSG_MONSTER_SAY, LANG_UNIVERSAL, "Suivez-moi !");
+					_unit->m_custom_waypoint_map = new WayPointMap;
+					_unit->GetAIInterface()->SetWaypointMap(_unit->m_custom_waypoint_map);
+					WayPoint* wp = new WayPoint;
+					wp->id = 1;
+					wp->x = _unit->GetSpawnX();
+					wp->y = _unit->GetSpawnY();
+					wp->z = _unit->GetSpawnZ() + 2.05f;
+					wp->o = _unit->GetSpawnO();
+					wp->flags = 256;
+					wp->backwardskinid = wp->forwardskinid = _unit->GetCreatureInfo()->Male_DisplayID;
+					wp->backwardemoteid = wp->forwardemoteid = 0;
+					wp->backwardemoteoneshot = wp->forwardemoteoneshot = false;
+					wp->waittime = 0;
+					_unit->m_custom_waypoint_map->push_back(wp);
+					for(uint32 i = 0; i < sizeof(Prospecteur_garde_enclumeWaypoints) / sizeof(Coords); i++)
+					{
+						wp = new WayPoint;
+						wp->id = i + 2;
+						wp->x = Prospecteur_garde_enclumeWaypoints[i].mX;
+						wp->y = Prospecteur_garde_enclumeWaypoints[i].mY;
+						wp->z = Prospecteur_garde_enclumeWaypoints[i].mZ;
+						wp->o = Prospecteur_garde_enclumeWaypoints[i].mO;
+						wp->flags = 256;
+						wp->backwardskinid = wp->forwardskinid = _unit->GetCreatureInfo()->Male_DisplayID;
+						wp->backwardemoteid = wp->forwardemoteid = 0;
+						wp->backwardemoteoneshot = wp->forwardemoteoneshot = false;
+						wp->waittime = 0;
+						_unit->m_custom_waypoint_map->push_back(wp);
+					}
+				}
+				else
+				{
+					_unit->SendChatMessage(CHAT_MSG_MONSTER_SAY, LANG_UNIVERSAL, "Je n'ai rien pour vous. Disparaissez !");
+				}
+				GossipEnd(pObject, Plr);
+			}
+			break;
+	}
+}
+
+class Prospecteur_garde_enclumeAI : public CreatureAIScript
+{
+	public:
+		ADD_CREATURE_FACTORY_FUNCTION(Prospecteur_garde_enclumeAI);
+		Prospecteur_garde_enclumeAI(Creature* c) : CreatureAIScript(c)
+		{
+		}
+
+		void OnReachWP(uint32 iWaypointId, bool bForwards)
+		{
+			if(iWaypointId == sizeof(Prospecteur_garde_enclumeWaypoints) / sizeof(Coords) && bForwards)
+			{
+				_unit->GetAIInterface()->SetWaypointMap(NULL);
+				_unit->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 14);
+				_unit->_setFaction();
+				RegisterAIUpdateEvent(10000);
+			}
+			else if(iWaypointId == 2 && !bForwards)
+			{
+				_unit->GetAIInterface()->SetWaypointMap(NULL);
+				_unit->m_custom_waypoint_map = NULL;
+				_unit->GetAIInterface()->MoveTo(_unit->GetSpawnX(), _unit->GetSpawnY(), _unit->GetSpawnZ() + 2.05f, _unit->GetSpawnO());
+				_unit->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 35);
+				_unit->_setFaction();
+			}
+		}
+
+		void AIUpdate()
+		{
+			if(!_unit->CombatStatus.IsInCombat())
+			{
+				RemoveAIUpdateEvent();
+				_unit->GetAIInterface()->SetWaypointMap(_unit->m_custom_waypoint_map);
+			}
+		}
+
+		void OnDied(Unit* mKiller)
+		{
+			RemoveAIUpdateEvent();
+			if(_unit->GetAIInterface()->GetWayPointsCount() != NULL)
+				_unit->GetAIInterface()->SetWaypointMap(NULL);
+			else if(_unit->m_custom_waypoint_map != NULL)
+			{
+				for(WayPointMap::iterator itr = _unit->m_custom_waypoint_map->begin(); itr != _unit->m_custom_waypoint_map->end(); ++itr)
+					delete(*itr);
+				delete _unit->m_custom_waypoint_map;
+			}
+			_unit->m_custom_waypoint_map = NULL;
+
+				_unit->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 35);
+				_unit->_setFaction();
+		}
+};
 /*--------------------------------------------------------------------------------------------------------*/
-// Fix quête L'espion des nains par Crash pour AscentWaad
+/* Fix quête L'espion des nains par Crash pour AscentWaad
 
 class Prospecteur_garde_enclume : public QuestScript
 {
@@ -58,6 +194,11 @@ public:
 			return;
 
 		Creature *prospecteur = mTarget->GetMapMgr()->GetInterface()->GetCreatureNearestCoords(mTarget->GetPositionX(), mTarget->GetPositionY(), mTarget->GetPositionZ(), 15420);
+		if(!prospecteur)
+		{
+			Log.Warning("WAADSCRIPT","Impossible de trouver le prospecteur");
+			return;
+		}
 		prospecteur->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 14);
 		prospecteur->_setFaction();
 	}
@@ -67,6 +208,11 @@ public:
 		if ( pPlayer == NULL ) return;
 
 		Creature *prospecteur = pPlayer->GetMapMgr()->GetInterface()->GetCreatureNearestCoords(pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ(), 15420);
+		if(!prospecteur)
+		{
+			Log.Warning("WAADSCRIPT","Impossible de trouver le prospecteur");
+			return;
+		}
 		prospecteur->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 35);
 		prospecteur->_setFaction();
 	}
@@ -77,6 +223,11 @@ public:
 			return;
 
 		Creature *prospecteur = mKiller->GetMapMgr()->GetInterface()->GetCreatureNearestCoords(mKiller->GetPositionX(), mKiller->GetPositionY(), mKiller->GetPositionZ(), 15420);
+		if(!prospecteur)
+		{
+			Log.Warning("WAADSCRIPT","Impossible de trouver le prospecteur");
+			return;
+		}
 		prospecteur->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 14);
 		prospecteur->_setFaction();
 	}
@@ -87,13 +238,19 @@ public:
 			return;
 
 		Creature *prospecteur = pPlayer->GetMapMgr()->GetInterface()->GetCreatureNearestCoords(pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ(), 15420);
+		if(!prospecteur)
+		{
+			Log.Warning("WAADSCRIPT","Impossible de trouver le prospecteur");
+			return;
+		}
 		prospecteur->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, 35);
 		prospecteur->_setFaction();
 	}
-};
+};*/
 
 void SetupEversongWoods(ScriptMgr * mgr)
 {
 	mgr->register_dummy_spell(28247, &PoweringOurDefenses);
-	mgr->register_quest_script(8483, CREATE_QUESTSCRIPT(Prospecteur_garde_enclume));
+	mgr->register_gossip_script(15420, new Prospecteur_garde_enclumeGossip);
+	mgr->register_creature_script(15420, &Prospecteur_garde_enclumeAI::Create);
 }
