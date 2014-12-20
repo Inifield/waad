@@ -1387,7 +1387,7 @@ void Player::_EventAttack( bool offhand )
 	//Can't find victim, stop attacking
 	if (!pVictim)
 	{
-		sLog.outDetail("Player::Update:  No valid current selection to attack, stopping attack");
+		sLog.outDetail("Player::Update:  No valid current selection to attack, stopping attack\n");
 		setHRegenTimer(5000); //prevent clicking off creature for a quick heal
 		EventAttackStop();
 		return;
@@ -2011,6 +2011,9 @@ void Player::smsg_InitialSpells()
 
 void Player::BuildFullTalentsInfo(WorldPacket *data, bool self)
 {
+	if(m_talentSpecsCount > 2)
+		m_talentSpecsCount = 2; // Hack fix
+
 	*data << uint32(GetUInt32Value(PLAYER_CHARACTER_POINTS1)); // Unspent talents
 	// TODO: probably shouldn't send both specs if target is not self
 	*data << uint8(m_talentSpecsCount);
@@ -2510,8 +2513,9 @@ void Player::InitVisibleUpdateBits()
 {
 	Player::m_visibleUpdateMask.SetCount(PLAYER_END);
 	Player::m_visibleUpdateMask.SetBit(OBJECT_FIELD_GUID);
-	Player::m_visibleUpdateMask.SetBit(OBJECT_FIELD_ENTRY);
+	Player::m_visibleUpdateMask.SetBit(OBJECT_FIELD_GUID + 1);
 	Player::m_visibleUpdateMask.SetBit(OBJECT_FIELD_TYPE);
+	Player::m_visibleUpdateMask.SetBit(OBJECT_FIELD_ENTRY);
 	Player::m_visibleUpdateMask.SetBit(OBJECT_FIELD_SCALE_X);
     
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_CHARM);
@@ -2529,7 +2533,7 @@ void Player::InitVisibleUpdateBits()
     Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_CHANNEL_OBJECT);
     Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_CHANNEL_OBJECT + 1);
 	
-    Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BYTES_0);
+	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BYTES_0);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_HEALTH);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_POWER1);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_POWER2);
@@ -2550,7 +2554,6 @@ void Player::InitVisibleUpdateBits()
 
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_LEVEL);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_FACTIONTEMPLATE);
-	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BYTES_0);
     Player::m_visibleUpdateMask.SetBit(UNIT_VIRTUAL_ITEM_SLOT_ID + 0);
     Player::m_visibleUpdateMask.SetBit(UNIT_VIRTUAL_ITEM_SLOT_ID + 1);
     Player::m_visibleUpdateMask.SetBit(UNIT_VIRTUAL_ITEM_SLOT_ID + 2);
@@ -2565,43 +2568,27 @@ void Player::InitVisibleUpdateBits()
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_NATIVEDISPLAYID);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_MOUNTDISPLAYID);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BYTES_1);
-	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_MOUNTDISPLAYID);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_PET_LGUID);
 	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_PET_NAME_TIMESTAMP);
-	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_CHANNEL_OBJECT);
-	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_CHANNEL_OBJECT+1);
-	Player::m_visibleUpdateMask.SetBit(UNIT_CHANNEL_SPELL);
 	Player::m_visibleUpdateMask.SetBit(UNIT_DYNAMIC_FLAGS);
 	
 	Player::m_visibleUpdateMask.SetBit(UNIT_CHANNEL_SPELL);
     Player::m_visibleUpdateMask.SetBit(UNIT_MOD_CAST_SPEED);
+	Player::m_visibleUpdateMask.SetBit(UNIT_NPC_FLAGS);
     Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BASE_MANA);
     Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BYTES_2);
     Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_HOVERHEIGHT);
 	
+	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_ARBITER);
+	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_ARBITER+1);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_FLAGS);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_BYTES);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_BYTES_2);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_BYTES_3);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILD_TIMESTAMP);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_TEAM);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_ARBITER);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_ARBITER+1);
+	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILD_TIMESTAMP);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILDID);
 	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILDRANK);
-	
-	/*Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_HOVERHEIGHT);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_FLAGS);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_BYTES);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_BYTES_2);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_BYTES_3);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILD_TIMESTAMP);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_TEAM);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_ARBITER);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_DUEL_ARBITER+1);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILDID);
-	Player::m_visibleUpdateMask.SetBit(PLAYER_GUILDRANK);
-	Player::m_visibleUpdateMask.SetBit(UNIT_FIELD_BYTES_2);*/
 
 	/* Provoque un crash client dans certaine zone si 2 players au moins (plante aussi appear et summon)
 	// Ce n'est pas les runes: A Verifier

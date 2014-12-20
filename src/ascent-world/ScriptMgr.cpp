@@ -37,9 +37,6 @@
 initialiseSingleton(ScriptMgr);
 initialiseSingleton(HookInterface);
 
-
-
-
 ScriptMgr::ScriptMgr()
 {
 	DefaultGossipScript = new GossipScript();
@@ -186,8 +183,6 @@ void ScriptMgr::LoadScripts()
 			}
 		}
 		Log.Notice("Server","Done loading script engines...");
-
-
 	}
 #else
 	/* Loading system for *nix */
