@@ -12,6 +12,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AscentWaad-logonserver", "V
 		{90297C34-F231-4DF4-848E-A74BCC0E40ED} = {90297C34-F231-4DF4-848E-A74BCC0E40ED}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AscentWaad-voicechat", "VC90\ascent-voicechat.vcproj", "{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}"
+	ProjectSection(ProjectDependencies) = postProject
+		{90297C34-F231-4DF4-848E-A74BCC0E40ED} = {90297C34-F231-4DF4-848E-A74BCC0E40ED}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcre", "..\ascent-windows-libraries\Sources\VC90-pcre.vcproj", "{330F0065-B4E3-4630-B136-28815C335449}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\ascent-windows-libraries\Sources\VC90-zlib.vcproj", "{0404809C-4840-43DE-A3D3-D7A8296829B8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -40,9 +49,30 @@ Global
 		{6E15F06D-5546-474D-BB42-39848DEF77E0}.Release|Win32.ActiveCfg = Release|Win32
 		{6E15F06D-5546-474D-BB42-39848DEF77E0}.Release|Win32.Build.0 = Release|Win32
 		{6E15F06D-5546-474D-BB42-39848DEF77E0}.Release|x64.ActiveCfg = Release|Win32
+		{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}.Debug|Win32.Build.0 = Debug|Win32
+		{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}.Debug|x64.ActiveCfg = Debug|Win32
+		{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}.Release|Win32.ActiveCfg = Release|Win32
+		{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}.Release|Win32.Build.0 = Release|Win32
+		{C36E06CE-9CBF-4B13-AA03-DA3F886F6B59}.Release|x64.ActiveCfg = Release|Win32
+		{330F0065-B4E3-4630-B136-28815C335449}.Debug|Win32.ActiveCfg = Debug|Win32
+		{330F0065-B4E3-4630-B136-28815C335449}.Debug|Win32.Build.0 = Debug|Win32
+		{330F0065-B4E3-4630-B136-28815C335449}.Debug|x64.ActiveCfg = Debug|Win32
+		{330F0065-B4E3-4630-B136-28815C335449}.Release|Win32.ActiveCfg = Release|Win32
+		{330F0065-B4E3-4630-B136-28815C335449}.Release|Win32.Build.0 = Release|Win32
+		{330F0065-B4E3-4630-B136-28815C335449}.Release|x64.ActiveCfg = Release|Win32
+		{0404809C-4840-43DE-A3D3-D7A8296829B8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0404809C-4840-43DE-A3D3-D7A8296829B8}.Debug|Win32.Build.0 = Debug|Win32
+		{0404809C-4840-43DE-A3D3-D7A8296829B8}.Debug|x64.ActiveCfg = Debug|Win32
+		{0404809C-4840-43DE-A3D3-D7A8296829B8}.Release|Win32.ActiveCfg = Release|Win32
+		{0404809C-4840-43DE-A3D3-D7A8296829B8}.Release|Win32.Build.0 = Release|Win32
+		{0404809C-4840-43DE-A3D3-D7A8296829B8}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
 	EndGlobalSection
 	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
 		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
