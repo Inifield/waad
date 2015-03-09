@@ -3739,11 +3739,9 @@ void Spell::SpellEffectLearnSpell(uint32 i) // Learn Spell
 		SpellEffectLearnPetSpell(i);
 		return;
 	}
-                             // 483                           // 55884
-	if( m_spellInfo->Id == __Learning || m_spellInfo->Id == __Learning____0 )		// "Learning"
+													// 483                           // 55884
+	if( m_caster->IsItem() && (m_spellInfo->Id == __Learning || m_spellInfo->Id == __Learning____0 ) )		// "Learning"
 	{
-		if( !m_caster->IsItem()) return; //|| !m_caster->IsPlayer() ) return;
-
 		uint32 spellid = 0;
 		for(int i = 0; i < 5; ++i)
 		{

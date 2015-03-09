@@ -232,8 +232,47 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	
 	spell->extra_cast_number=cn;
 	spell->m_glyphIndex = glyphIndex;
-	spell->m_owner = tmpItem; // spell->m_caster = tmpItem; 
+	
+	/*Note Randdrick : il faut pouvoir faire la différence entre le owner d'un spell et son caster
+	sachant que si le owner (déclencheur du spell) peut être différent du caster (source du spell), 
+	le caster peut très bien être le même que le owner.
+	C'est d'ailleurs le cas pour les Items qui n'ont pas de CLASSE définies. Ils sont à la fois
+	caster et owner. Dans ce cas, il suffit juste de définir le caster */
+	switch(spellInfo->EquippedItemClass)
+	{
+		case ITEM_NO_CLASS_USE     : // -1
+			 spell->m_caster = tmpItem;
+                                      
+			 if(spell->m_caster) Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_caster %u",
+											 GetPlayer()->GetName(),spellInfo->Id,spell->m_caster->GetEntry());
+			 else Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u",GetPlayer()->GetName(),spellInfo->Id);
+			break;
 
+        case ITEM_CLASS_PROJECTILE	: // 6		 
+		case ITEM_CLASS_WEAPON		: // 2         
+        case ITEM_CLASS_CONSUMABLE : // 0
+		case ITEM_CLASS_CONTAINER	: // 1
+		case ITEM_CLASS_JEWELRY	: // 3
+		case ITEM_CLASS_ARMOR		: // 4
+		case ITEM_CLASS_REAGENT	: // 5
+		case ITEM_CLASS_TRADEGOODS	: // 7
+		case ITEM_CLASS_GENERIC	: // 8
+		case ITEM_CLASS_RECIPE		: // 9
+		case ITEM_CLASS_MONEY		: // 10
+		case ITEM_CLASS_QUIVER		: // 11
+		case ITEM_CLASS_QUEST		: // 12
+		case ITEM_CLASS_KEY		: // 13
+		case ITEM_CLASS_PERMANENT	: // 14
+		case ITEM_CLASS_MISCELLANEOUS : // 15
+		case ITEM_CLASS_GLYPHS	    : // 16	
+			spell->m_owner = tmpItem;
+            break;
+
+		default : 
+			Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, EquippedItemClass inconnu %u",
+				                            GetPlayer()->GetName(),spellInfo->Id,spellInfo->EquippedItemClass);
+			break;
+	}
 	// Le LockMaterial de l'Item donne se qui est deverouillé 
 	//spell->g_caster = NULL;
 	if(itemProto->LockMaterial == LOCKTYPE_DISARM_TRAP) // Il faut un g_caster (Dé-armement de piège)

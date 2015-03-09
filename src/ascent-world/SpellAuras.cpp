@@ -4542,14 +4542,8 @@ void Aura::SpellAuraModDecreaseSpeed(bool apply)
 		{
 			if( m_target->MechanicsDispels[MECHANIC_DECELERATION] ) return;
 		}
-				
-		//http://arbonne.games-rpg.net/index.php/topic,2898.msg18891.html		
-		if(!m_spellProto) // IMPOSSIBLEEEEEEEEEEE
-		{
-			Log.Error("[Aura::SpellAuraModDecreaseSpeed]","m_spellProto NULL");
-			return; 
-		}
-		
+
+		Unit * m_caster = GetUnitCaster();
 		switch(m_spellProto->NameHash)
 		{
 			case 0x1931b37a:			// Stealth
@@ -4567,34 +4561,21 @@ void Aura::SpellAuraModDecreaseSpeed(bool apply)
 				break;
 		}
 
-		//let's check Mage talents if we proc anythig 
-		if(m_spellProto->schoolMask & SCHOOL_MASK_FROST)
-		{
-			Unit *caster=GetUnitCaster();
-		}
-		if (m_target->speedReductionMap.find(m_spellProto->Id) != m_target->speedReductionMap.end())
-			return;
-
-		m_target->speedReductionMap.insert(make_pair(m_spellProto->Id, float(mod->m_amount)));
+		m_target->speedReductionMap.insert(make_pair(m_spellProto->Id, mod->m_amount));
 		//m_target->m_slowdown=this;
 		//m_target->m_speedModifier += mod->m_amount;
 	}
 	else
 	{
-		map< uint32, float >::iterator itr = m_target->speedReductionMap.find(m_spellProto->Id), itr2;
-		for (; itr != m_target->speedReductionMap.upper_bound(m_spellProto->Id);)
-		{
-			itr2 = itr++;
-			m_target->speedReductionMap.erase(itr2);
-		}
-		//map< uint32, float >::iterator itr = m_target->speedReductionMap.find(m_spellProto->Id);
-		//if(itr != m_target->speedReductionMap.end())
-		//	m_target->speedReductionMap.erase(itr);
-		//m_target->m_speedModifier -= mod->m_amount;
-		//m_target->m_slowdown=NULL;
+		map< uint32, float >::iterator itr = m_target->speedReductionMap.find(m_spellProto->Id);
+		if(itr != m_target->speedReductionMap.end())
+			m_target->speedReductionMap.erase(itr);
 	}
 	if(m_target->GetSpeedDecrease())
 		m_target->UpdateSpeed();
+
+	if(m_target->IsPlayer())
+		static_cast<Player *>(m_target)->DelaySpeedHack(1000);
 
 }
 

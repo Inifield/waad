@@ -1847,29 +1847,29 @@ void Spell::cast(bool check)
 							}
 						}break;
 					}
-			 }
-			 // handle the rest of shit
-			 if( unitTarget != NULL )
-			 {
-				// aura state
-				if( m_spellInfo->targetAuraState )
-					unitTarget->RemoveFlag(UNIT_FIELD_AURASTATE, uint32(1) << (m_spellInfo->targetAuraState - 1) );
-
-				// proc!
-				if(!m_triggeredSpell)
+				}
+				// handle the rest of shit
+				if( unitTarget != NULL )
 				{
-					if( m_caster->IsUnit() && ((Unit *)m_caster)->IsInWorld() )
+					// aura state
+					if( m_spellInfo->targetAuraState )
+						unitTarget->RemoveFlag(UNIT_FIELD_AURASTATE, uint32(1) << (m_spellInfo->targetAuraState - 1) );
+
+					// proc!
+					if(!m_triggeredSpell)
 					{
+						if( m_caster->IsUnit() && ((Unit *)m_caster)->IsInWorld() )
+						{
 							((Unit *)m_caster)->HandleProc(PROC_ON_HARMFULSPELL_LAND | PROC_ON_CAST_SPELL, unitTarget, m_spellInfo);
 							((Unit *)m_caster)->m_procCounter = 0; //this is required for to be able to count the depth of procs (though i have no idea where/why we use proc on proc)
+						}
+					}
+					if( unitTarget != NULL && unitTarget->IsInWorld() )
+					{
+						unitTarget->HandleProc(PROC_ON_HEALSPELL_LAND_VICTIM , ((Unit *)m_caster), m_spellInfo);
+						unitTarget->m_procCounter = 0; //this is required for to be able to count the depth of procs (though i have no idea where/why we use proc on proc)
 					}
 				}
-				if( unitTarget != NULL && unitTarget->IsInWorld() )
-				{
-					unitTarget->HandleProc(PROC_ON_HEALSPELL_LAND_VICTIM , ((Unit *)m_caster), m_spellInfo);
-					unitTarget->m_procCounter = 0; //this is required for to be able to count the depth of procs (though i have no idea where/why we use proc on proc)
-				}
-			 }
 			}
 
 		    //Handle remaining effects for which we did not find targets.
@@ -2579,18 +2579,17 @@ void Spell::finish()
 
 	if( m_caster->IsItem())
 	{
-			 
 		/*Set cooldown on item*/	
 		if( ((Item *)m_caster)->GetOwner() && (cancastresult == SPELL_CANCAST_OK) && (!GetSpellFailed()) )
 	    {
 			uint32 x;
 		    for(x = 0; x < 5; x++)
 		    {
-			 if(((Item *)m_caster)->GetProto()->Spells[x].Trigger == USE)
-			 {
-				if(((Item *)m_caster)->GetProto()->Spells[x].Id)
-					break;
-			 }
+				if(((Item *)m_caster)->GetProto()->Spells[x].Trigger == USE)
+				{
+					if(((Item *)m_caster)->GetProto()->Spells[x].Id)
+						break;
+				}
 		    }
 		    ((Item *)m_caster)->GetOwner()->Cooldown_AddItem( ((Item *)m_caster)->GetProto() , x );
 		}
@@ -2599,9 +2598,9 @@ void Spell::finish()
 		if(  m_ForceConsumption || ( cancastresult == SPELL_CANCAST_OK && !GetSpellFailed()) )
 		{
 			Log.Notice("[Spell::finish()]","Suppression de la charge de l'Item ou de l'Item utilise dans le sort");
-			RemoveItems((Item *)m_owner);	// Normalement c'est un Item
-											// Attention: L'owner n'est pas forcement definie directement (trames reseaux)
-											// en tout cas, bien verifier que l'item stack se decompte correctement via un SpellEffect si m_owner est NULL
+			RemoveItems((Item *)m_caster);	// C'est forcément un Item.
+											// Attention: Dans ce cas le caster et l'owner sont en principe indentiques.
+											// en tout cas, bien verifier que l'item stack se decompte correctement.
 		}
 	}
 	/*
