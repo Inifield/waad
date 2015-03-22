@@ -105,7 +105,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;HAVE_CONFIG_H"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

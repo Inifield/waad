@@ -31,7 +31,9 @@ void WorldSession::HandleTaxiNodeStatusQueryOpcode( WorldPacket & recv_data )
 
 	recv_data >> guid;
 
-	curloc = sTaxiMgr.GetNearestTaxiNode( GetPlayer( )->GetPositionX( ), GetPlayer( )->GetPositionY( ), GetPlayer( )->GetPositionZ( ), GetPlayer( )->GetMapId( ) );
+	curloc = sTaxiMgr.GetNearestTaxiNode( GetPlayer( )->GetPositionX( ), 
+		                                  GetPlayer( )->GetPositionY( ), 
+										  GetPlayer( )->GetPositionZ( ), GetPlayer( )->GetMapId( ) );
 
 	field = (uint8)((curloc - 1) / 32);
 	submask = 1<<((curloc-1)%32);
@@ -270,12 +272,20 @@ void WorldSession::HandleActivateTaxiOpcode( WorldPacket & recv_data )
 	
 	//sLog.outString("TAXI: Starting taxi trip. Next update in %d msec.", first_node_time);
 }
-
+//
+// CMSG_ACTIVATETAXIEXPRESS
+// Note: Je neutralise le code pour revenir à une gestion plus 'basique' de la prise de griffon.
+//       PLUS DE TRAJET DIRECT, Retour au changement de griffon à chaque Relais.
+// Branruz - 2015/03      
 void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 {
 	if(!_player->IsInWorld()) return;
-	sLog.outDebug( "WORLD: Received CMSG_ACTIVATETAXI" );
+	sLog.outDebug( "WORLD: Received CMSG_ACTIVATETAXIEXPRESS" );
+	sLog.outDebug( "WORLD: Inactif!" );
 
+    return;
+
+/*
 	uint64 guid;
 	uint32 moocost;
 	uint32 nodecount;
@@ -286,25 +296,22 @@ void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 	uint32 submask;
 	uint32 MountId;
 
-	WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
-
 	recvPacket >> guid >> moocost >> nodecount;
 	if(nodecount < 2)
 		return;
 
-	if(nodecount>12)
-	{
-		Log.Error("HandleMultipleActivateTaxiOpcode","NodeCount > 10 (%u)",nodecount);
-		Disconnect();
+	if(nodecount > 12)
+	{		
+		Log.Error("HandleMultipleActivateTaxiOpcode","Player %s :NodeCount > 10 (%u)",GetPlayer()->GetName(),nodecount);
 		return;
 	}
-
-	for(uint32 i = 0; i < nodecount; ++i)
-		pathes.push_back( recvPacket.read<uint32>() );
-
+	
 	if(GetPlayer()->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_LOCK_PLAYER))
 		return;
 
+	for(uint32 i = 0; i < nodecount; ++i)
+		pathes.push_back( recvPacket.read<uint32>() );
+	
 	// get first trip
 	TaxiPath* taxipath = sTaxiMgr.GetTaxiPath(pathes[0], pathes[1]);
 	TaxiNode* taxinode = sTaxiMgr.GetTaxiNode(pathes[0]);
@@ -318,10 +325,13 @@ void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 		return;
 	}
 
+	// Ok, preparation de la reponse
+	WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
+
 	curloc = taxinode->id;
 	field = (uint8)((curloc - 1) / 32);
 	submask = 1<<((curloc-1)%32);
-
+	
 	// Check for known nodes
 	if ( (GetPlayer( )->GetTaximask(field) & submask) != submask )
 	{   
@@ -380,27 +390,27 @@ void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 	else                                     MountId = taxinode->alliance_mount; 
          
 	modelid = GetCreatureModelId(MountId,_player->GetTeam());
-	/*
-	 if( _player->GetTeam() )
-	 {
-		 switch(taxinode->horde_mount) // pnj entry
-		 {
-		  case 2224  : modelid =   295; break; // In case it's a wyvern
-		  case 29488 :                         // Griffon du fleau 
-	      case 29501 : modelid = 26308; break; // Griffon du fleau 
-		  default    : modelid =  1566; break; // In case it's a bat or a bad id
-		 }
-	 }
-	 else
-	 {
-         switch(taxinode->alliance_mount) // pnj entry
-		 {
-		  case 3837  : modelid =   479; break; // Hippogryph
-		  case 29488 :                         // Griffon du fleau 
-		  case 29501 : modelid = 26308; break; // Griffon du fleau 
-		  default    : modelid =  1147; break; // Gryphon
-		 } 
-	 }*/
+	
+	// if( _player->GetTeam() )
+	//{
+    //	 switch(taxinode->horde_mount) // pnj entry
+	//	 {
+	//	  case 2224  : modelid =   295; break; // In case it's a wyvern
+	//	  case 29488 :                         // Griffon du fleau 
+	//     case 29501 : modelid = 26308; break; // Griffon du fleau 
+	//	  default    : modelid =  1566; break; // In case it's a bat or a bad id
+	//	 }
+	//}
+	// else
+	// {
+    //     switch(taxinode->alliance_mount) // pnj entry
+	//	 {
+	//	  case 3837  : modelid =   479; break; // Hippogryph
+	//	  case 29488 :                         // Griffon du fleau 
+	//	  case 29501 : modelid = 26308; break; // Griffon du fleau 
+	//	  default    : modelid =  1147; break; // Gryphon
+	//	 } 
+	// }
 
 	//GetPlayer( )->setDismountCost( newmoney );
 
@@ -421,10 +431,10 @@ void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 	if(_player->GetSummon() != NULL)
 	{
 		_player->GetSummon()->Dismiss(false);
-		/*if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
-			_player->GetSummon()->Dismiss(false);						   // warlock summon -> dismiss
-		else
-			_player->GetSummon()->Remove(false, true, true);					  // hunter pet -> just remove for later re-call*/
+		// if(_player->GetSummon()->GetUInt32Value(UNIT_CREATED_BY_SPELL) > 0)
+		//	_player->GetSummon()->Dismiss(false);						  // warlock summon -> dismiss
+		//else
+		//	_player->GetSummon()->Remove(false, true, true);			  // hunter pet -> just remove for later re-call
 	}
 
 	_player->taxi_model_id = modelid;
@@ -435,18 +445,19 @@ void WorldSession::HandleMultipleActivateTaxiOpcode(WorldPacket & recvPacket)
 		TaxiPath * np = sTaxiMgr.GetTaxiPath(pathes[i-1], pathes[i]);
 		if(!np) return;
 
-/*		if (np->GetID() == 766 || np->GetID() == 767 || np->GetID() == 771 || np->GetID() == 772)
-		{
-			_player->m_taxiPaths.clear();
-			return;
-		}
-*/
+  //		if (np->GetID() == 766 || np->GetID() == 767 || np->GetID() == 771 || np->GetID() == 772)
+  //		{
+  //			_player->m_taxiPaths.clear();
+  //			return;
+  //		}
+
 		// add to the list.. :)
 		_player->m_taxiPaths.push_back(np);
 	}
 
 	// start the first trip :)
 	GetPlayer()->TaxiStart(taxipath, modelid, 0);
+	*/
 }
 
 // Gestion des Taxis en clickant directement sur le griffon

@@ -110,7 +110,7 @@
 				Optimization="4"
 				InlineFunctionExpansion="2"
 				AdditionalIncludeDirectories=""
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS"
 				StringPooling="true"
 				MinimalRebuild="false"
 				RuntimeLibrary="2"
