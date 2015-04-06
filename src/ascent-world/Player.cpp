@@ -7426,24 +7426,31 @@ void Player::EventRepeatSpell()
 
 		//Méthode de Branruz, adaptée pour les armes à distance uniquement.
 		//On recherche l'owner puisque à ce niveau là, il n'existe pas encore.
-		switch(spellInfo->EquippedItemClass)
+		item_used = this->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
+		if(item_used) //Sécurité
 		{
-					case ITEM_SUBCLASS_WEAPON_BOW:
-					case ITEM_SUBCLASS_WEAPON_GUN:
-					case ITEM_SUBCLASS_WEAPON_THROWN:
-					case ITEM_SUBCLASS_WEAPON_CROSSBOW:
-					case ITEM_SUBCLASS_WEAPON_WAND:
-			                          item_used = this->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
-			                          sp->m_owner = item_used; // meme NULL c'est Ok (Brz)
-									  if(sp->m_owner) Log.Debug("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_owner %u",
-										                     this->GetName(),spellInfo->Id,sp->m_owner->GetEntry());
-									  else Log.Debug("[HandleCastSpellOpcode]","(%s) Spell %u",this->GetName(),spellInfo->Id);
-									  break;
+			switch(item_used->GetProto()->SubClass)
+			{
+			case ITEM_SUBCLASS_WEAPON_BOW:
+			case ITEM_SUBCLASS_WEAPON_GUN:
+			case ITEM_SUBCLASS_WEAPON_THROWN:
+			case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+			case ITEM_SUBCLASS_WEAPON_WAND:
+				sp->m_owner = item_used; // meme NULL c'est Ok (Brz)
+				if(sp->m_owner) 
+					Log.Debug("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_owner %u", this->GetName(),spellInfo->Id,sp->m_owner->GetEntry());
+				else
+					Log.Debug("[HandleCastSpellOpcode]","(%s) Spell %u",this->GetName(),spellInfo->Id);
+				break;
 
-					default : Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, EquippedItemClass inconnu %u",
-				                            this->GetName(),spellInfo->Id,spellInfo->EquippedItemClass);
-			                         break;
+			default : 
+				Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Sous-classe d'Item inconnue %u",
+				                            this->GetName(),spellInfo->Id,item_used->GetProto()->SubClass);
+			    break;
+			}
 		}
+		else
+			sp->m_owner = item_used; // meme NULL c'est Ok (Brz)
 
 		SpellCastTargets tgt;
 		tgt.m_target = GetMapMgr()->GetUnit(GetSelection());

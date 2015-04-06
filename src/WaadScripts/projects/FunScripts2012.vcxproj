@@ -49,7 +49,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>..\..\..\bin\release\script_bin\</OutDir>
-    <IntDir>2012_int_release_FunScript\</IntDir>
+    <IntDir>2012_int_release_FunScripts\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -89,16 +89,16 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>AscentWaad-world.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>..\..\..\bin\release\script_bin\FunScript.dll</OutputFile>
+      <OutputFile>..\..\..\bin\release\script_bin\FunScripts.dll</OutputFile>
       <AdditionalLibraryDirectories>..\..\..\bin\release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>../../../bin/release/script_bin/FunScript.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>../../../bin/release/script_bin/FunScripst.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
-      <ImportLibrary>$(OutDir)FunScript.lib</ImportLibrary>
+      <ImportLibrary>$(OutDir)FunScripts.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>

@@ -238,39 +238,45 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	le caster peut très bien être le même que le owner.
 	C'est d'ailleurs le cas pour les Items qui n'ont pas de CLASSE définies. Ils sont à la fois
 	caster et owner. Dans ce cas, il suffit juste de définir le caster */
-	switch(spellInfo->EquippedItemClass)
+	switch(itemProto->Class)
 	{
-		case ITEM_NO_CLASS_USE     : // -1
-			 spell->m_caster = tmpItem;
-                                      
-			 if(spell->m_caster) Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_caster %u",
+		case ITEM_CLASS_MISCELLANEOUS : // 15
+			switch (itemProto->SubClass)
+			{
+				case ITEM_SUBCLASS_MISCELLANEOUS_MOUNT:
+					spell->m_caster = tmpItem;					                                      
+				if(spell->m_caster) Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_caster %u",
 											 GetPlayer()->GetName(),spellInfo->Id,spell->m_caster->GetEntry());
-			 else Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u",GetPlayer()->GetName(),spellInfo->Id);
+				else Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u",GetPlayer()->GetName(),spellInfo->Id);
+					break;
+				default:
+					spell->m_owner = tmpItem;
+					break;
+			}
 			break;
-
-        case ITEM_CLASS_PROJECTILE	: // 6		 
-		case ITEM_CLASS_WEAPON		: // 2         
-        case ITEM_CLASS_CONSUMABLE : // 0
-		case ITEM_CLASS_CONTAINER	: // 1
-		case ITEM_CLASS_JEWELRY	: // 3
+		case ITEM_NO_CLASS_USE		: // -1
+        case ITEM_CLASS_CONSUMABLE	: // 0
+		case ITEM_CLASS_CONTAINER	: // 1	 
+		case ITEM_CLASS_WEAPON		: // 2
+		case ITEM_CLASS_JEWELRY		: // 3
 		case ITEM_CLASS_ARMOR		: // 4
-		case ITEM_CLASS_REAGENT	: // 5
+		case ITEM_CLASS_REAGENT		: // 5
+        case ITEM_CLASS_PROJECTILE	: // 6	
 		case ITEM_CLASS_TRADEGOODS	: // 7
-		case ITEM_CLASS_GENERIC	: // 8
+		case ITEM_CLASS_GENERIC		: // 8
 		case ITEM_CLASS_RECIPE		: // 9
 		case ITEM_CLASS_MONEY		: // 10
 		case ITEM_CLASS_QUIVER		: // 11
 		case ITEM_CLASS_QUEST		: // 12
-		case ITEM_CLASS_KEY		: // 13
+		case ITEM_CLASS_KEY			: // 13
 		case ITEM_CLASS_PERMANENT	: // 14
-		case ITEM_CLASS_MISCELLANEOUS : // 15
 		case ITEM_CLASS_GLYPHS	    : // 16	
 			spell->m_owner = tmpItem;
             break;
 
 		default : 
-			Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, EquippedItemClass inconnu %u",
-				                            GetPlayer()->GetName(),spellInfo->Id,spellInfo->EquippedItemClass);
+			Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Classe Item inconnue %u",
+				                            GetPlayer()->GetName(),spellInfo->Id,itemProto->Class);
 			break;
 	}
 	// Le LockMaterial de l'Item donne se qui est deverouillé 
@@ -665,41 +671,43 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 
 		// Def du spell->m_owner si le spell utilise un Item Stackable (Brz)
 		// Le truc est de savoir comment retrouver l'item
-		switch(spellInfo->EquippedItemClass)
+		item_used = plr->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
+		if(item_used) // sécurité
 		{
-         case ITEM_CLASS_PROJECTILE	: // 6		 
-		 case ITEM_CLASS_WEAPON		: // 2 
-			                          item_used = plr->GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
-			                          spell->m_owner = item_used; // meme NULL c'est Ok (Brz)
-                                      
-									  if(spell->m_owner) Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_owner %u",
-										                     GetPlayer()->GetName(),spellInfo->Id,spell->m_owner->GetEntry());
-									  else Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u",GetPlayer()->GetName(),spellInfo->Id);
-									  break;
-
-         
-         case ITEM_CLASS_CONSUMABLE : // 0
-		 case ITEM_CLASS_CONTAINER	: // 1
-		 case ITEM_CLASS_JEWELRY	: // 3
-		 case ITEM_CLASS_ARMOR		: // 4
-		 case ITEM_CLASS_REAGENT	: // 5
-		 case ITEM_CLASS_TRADEGOODS	: // 7
-		 case ITEM_CLASS_GENERIC	: // 8
-		 case ITEM_CLASS_RECIPE		: // 9
-		 case ITEM_CLASS_MONEY		: // 10
-		 case ITEM_CLASS_QUIVER		: // 11
-		 case ITEM_CLASS_QUEST		: // 12
-		 case ITEM_CLASS_KEY		: // 13
-		 case ITEM_CLASS_PERMANENT	: // 14
-		 case ITEM_CLASS_MISCELLANEOUS : // 15
-		 case ITEM_CLASS_GLYPHS	    : // 16
-
-		 case ITEM_NO_CLASS_USE     : // -1
+			switch(item_used->GetProto()->Class)
+			{
+			case ITEM_CLASS_PROJECTILE	: // 6		 
+			case ITEM_CLASS_WEAPON		: // 2 
+				spell->m_owner = item_used; // meme NULL c'est Ok (Brz)
+				if(spell->m_owner)
+					Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Def m_owner %u",GetPlayer()->GetName(),spellInfo->Id,spell->m_owner->GetEntry());
+				else 
+					Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u",GetPlayer()->GetName(),spellInfo->Id);
+				break;         
+			case ITEM_CLASS_CONSUMABLE : // 0
+			case ITEM_CLASS_CONTAINER	: // 1
+			case ITEM_CLASS_JEWELRY	: // 3
+			case ITEM_CLASS_ARMOR		: // 4
+			case ITEM_CLASS_REAGENT	: // 5
+			case ITEM_CLASS_TRADEGOODS	: // 7
+			case ITEM_CLASS_GENERIC	: // 8
+			case ITEM_CLASS_RECIPE		: // 9
+			case ITEM_CLASS_MONEY		: // 10
+			case ITEM_CLASS_QUIVER		: // 11
+			case ITEM_CLASS_QUEST		: // 12
+			case ITEM_CLASS_KEY		: // 13
+			case ITEM_CLASS_PERMANENT	: // 14
+			case ITEM_CLASS_MISCELLANEOUS : // 15
+			case ITEM_CLASS_GLYPHS	    : // 16
+			case ITEM_NO_CLASS_USE     : // -1
 			                          break;
-		 default : Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, EquippedItemClass inconnu %u",
-				                            GetPlayer()->GetName(),spellInfo->Id,spellInfo->EquippedItemClass);
+			default : Log.Warning("[HandleCastSpellOpcode]","(%s) Spell %u, Classe d'Item inconnue %u",
+				                            GetPlayer()->GetName(),spellInfo->Id,item_used->GetProto()->Class);
 			                         break;
+			}
 		}
+		else
+			spell->m_owner = item_used; // meme NULL c'est Ok (Brz)
 
 		spell->extra_cast_number=cn;
 

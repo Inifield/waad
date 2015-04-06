@@ -4561,7 +4561,15 @@ void Aura::SpellAuraModDecreaseSpeed(bool apply)
 				break;
 		}
 
-		m_target->speedReductionMap.insert(make_pair(m_spellProto->Id, mod->m_amount));
+		//let's check Mage talents if we proc anythig 
+		if(m_spellProto->schoolMask & SCHOOL_MASK_FROST)
+		{
+			Unit *caster=GetUnitCaster();
+		}
+		if (m_target->speedReductionMap.find(m_spellProto->Id) != m_target->speedReductionMap.end())
+			return;
+
+		m_target->speedReductionMap.insert(make_pair(m_spellProto->Id, float(mod->m_amount)));
 		//m_target->m_slowdown=this;
 		//m_target->m_speedModifier += mod->m_amount;
 	}

@@ -61,19 +61,19 @@ static Coords Prospecteur_garde_enclumeWaypoints[] =
 class Prospecteur_garde_enclumeGossip : public GossipScript
 {
 	public:
-		void GossipHello(Object* pObject, Player* Plr);
+		void GossipHello(Object* pObject, Player* Plr, bool AutoSend);
 		void GossipSelectOption(Object* pObject, Player* Plr, uint32 Id, uint32 IntId, const char* EnteredCode);
 		void GossipEnd(Object* pObject, Player* Plr) {};
 };
 
-void Prospecteur_garde_enclumeGossip::GossipHello(Object* pObject, Player* Plr)
+void Prospecteur_garde_enclumeGossip::GossipHello(Object* pObject, Player* Plr, bool AutoSend)
 {
 	GossipMenu* Menu;
-	objmgr.CreateGossipMenuForPlayer(&Menu, pObject->GetGUID(), 2, Plr);
-
+	objmgr.CreateGossipMenuForPlayer(&Menu, pObject->GetGUID(), 1, Plr);
 	Menu->AddItem(0, "Montrez-moi...", 1);
 
-	Menu->SendTo(Plr);
+	if(AutoSend)
+		Menu->SendTo(Plr);
 }
 
 void Prospecteur_garde_enclumeGossip::GossipSelectOption(Object* pObject, Player* Plr, uint32 Id, uint32 IntId, const char* EnteredCode)
@@ -115,7 +115,7 @@ void Prospecteur_garde_enclumeGossip::GossipSelectOption(Object* pObject, Player
 						wp->backwardskinid = wp->forwardskinid = _unit->GetCreatureInfo()->Male_DisplayID;
 						wp->backwardemoteid = wp->forwardemoteid = 0;
 						wp->backwardemoteoneshot = wp->forwardemoteoneshot = false;
-						wp->waittime = 0;
+						wp->waittime = 1000;
 						_unit->m_custom_waypoint_map->push_back(wp);
 					}
 				}
