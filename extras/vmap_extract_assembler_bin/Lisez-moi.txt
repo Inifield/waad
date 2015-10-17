@@ -1,0 +1,7 @@
+Recopiez les fichiers suivants, dans votre répertoire client, World oF Warcraft :
+
+- make_vmaps.bat
+- vmaps_assembler.exe
+- vmapextract_v3.exe
+
+Et excecuter make_vmaps.bat pour lancer l'extraction et l'assemblage automatique des vmaps.

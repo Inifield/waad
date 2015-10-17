@@ -6,7 +6,6 @@ message[1] = "O195\185 est l\'eau, Emma ? Va chercher l\'eau, Emma ! Si je m\'en
 function Action_LavieilleEmma(Unit, event, player)
 	Unit:SendChatMessage(12, 0, message[1])
 	Unit:Emote(1,0)
-	Unit:RegisterEvent("Emote274", 1100, 1000)
 end
 
 function Initialisation_LavieilleEmma(Unit, event, player)

@@ -338,6 +338,19 @@ uint16 TerrainMgr::GetAreaID(float x, float y, float z)
 	if(!AreCoordinatesValid(x, y))
 		return 0;
 
+	if(mapId == 571)
+	{
+		if((y < 1003.5413 && y > 269.7706) && (x < 6125.6840 && x > 5453.6235) && z > 546.0f)
+		{
+			if(z > 639.0f && z < 740.0f) // Better dirty fix for Dalaran
+				return 4395;
+			else if(z < 639.0f) // Dalaran Sewers: The Underbelly
+				return 4560;
+			else if(z > 740.0f) // Dalaran: The Violet Citadel
+				return 4619;
+		}
+	}
+	
 	// Convert the co-ordinates to cells.
 	uint32 CellX = ConvertGlobalXCoordinate(x);
 	uint32 CellY = ConvertGlobalYCoordinate(y);

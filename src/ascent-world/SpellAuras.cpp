@@ -4542,8 +4542,14 @@ void Aura::SpellAuraModDecreaseSpeed(bool apply)
 		{
 			if( m_target->MechanicsDispels[MECHANIC_DECELERATION] ) return;
 		}
-
-		Unit * m_caster = GetUnitCaster();
+				
+		//http://arbonne.games-rpg.net/index.php/topic,2898.msg18891.html		
+		if(!m_spellProto) // IMPOSSIBLEEEEEEEEEEE
+		{
+			Log.Error("[Aura::SpellAuraModDecreaseSpeed]","m_spellProto NULL");
+			return; 
+		}
+		
 		switch(m_spellProto->NameHash)
 		{
 			case 0x1931b37a:			// Stealth
