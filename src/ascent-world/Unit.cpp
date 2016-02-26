@@ -4808,7 +4808,7 @@ void Unit::AddAura(Aura *aur, SpellScript* script)
 			{
 				AreaTable * at = dbcArea.LookupEntry(static_cast<Player*>(this)->GetAreaID());
 
-				if (at && !(at->AreaFlags & AREA_ALLOW_FLYING))
+				if (at && !(at->AreaFlags & !AREA_CANNOT_FLY))
 					return; // Ne devrait-on pas detruire le spell en cours ? (et commencant par l'aura ? )
 			}
 		}

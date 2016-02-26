@@ -9508,7 +9508,7 @@ void Player::ZoneUpdate(uint32 ZoneId)
 
 	AreaTable * at = dbcArea.LookupEntry(GetAreaID());
 
-	if (at && !(at->AreaFlags & AREA_ALLOW_FLYING) && flying_aura)
+	if (at && !(at->AreaFlags & !AREA_CANNOT_FLY) && flying_aura)
 	{
 		RemoveAura(flying_aura);
 		flying_aura = 0;

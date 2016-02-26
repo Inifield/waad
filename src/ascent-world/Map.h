@@ -127,63 +127,56 @@ public:
 	uint32 GameObjectSpawnCount;
 
 	ASCENT_INLINE float  GetLandHeight(float x, float y, float z)
-	{ 
-		if(_terrain)
-		{
-			return _terrain->GetLandHeight(x, y, z);
-		}
-		else
-		{
-			return 999999.0f;
-		}
-	}
-
-	ASCENT_INLINE float  GetWaterHeight(float x, float y) 
-	{ 
-		if(_terrain)
-		{ 
-			return _terrain->GetWaterHeight(x, y); 
-		}
-		else
-		{ 
-			return 999999.0f; 
-		}
-	}
-
-	ASCENT_INLINE uint8  GetWaterType(float x, float y)
 	{
 		if(_terrain)
-		{ 
-			return _terrain->GetWaterType(x, y);
-		}
+			return _terrain->GetLandHeight(x, y,z);
 		else
-		{ 
+			return NO_LAND_HEIGHT;
+	}
+
+	ASCENT_INLINE float  GetWaterHeight(float x, float y, float z)
+	{
+		if(_terrain)
+			return _terrain->GetWaterHeight(x, y, z);
+		else
+			return NO_WATER_HEIGHT;
+	}
+
+	ASCENT_INLINE uint16  GetWaterType(float x, float y)
+	{
+		if(_terrain)
+			return _terrain->GetWaterType(x, y);
+		else
 			return 0;
-		}
 	}
 
 	ASCENT_INLINE uint8  GetWalkableState(float x, float y)
 	{
 		if(_terrain)
-		{ 
 			return _terrain->GetWalkableState(x, y);
-		}
 		else
-		{ 
-			return 1; 
-		}
+			return 1;
 	}
 
 	ASCENT_INLINE uint16 GetAreaID(float x, float y, float z)
 	{
 		if(_terrain)
-		{ 
 			return _terrain->GetAreaID(x, y, z);
-		}
 		else
-		{ 
 			return 0xFFFF;
-		}
+	}
+
+	ASCENT_INLINE void GetCellLimits(uint32 &StartX, uint32 &EndX, uint32 &StartY, uint32 &EndY)
+	{
+		if(_terrain)
+			_terrain->GetCellLimits(StartX, EndX, StartY, EndY);
+	}
+
+	ASCENT_INLINE bool CellHasAreaID(uint32 x, uint32 y, uint16 &AreaID)
+	{
+		if(_terrain)
+			return _terrain->CellHasAreaID(x, y, AreaID);
+		return false;
 	}
 
 	ASCENT_INLINE void CellGoneActive(uint32 x, uint32 y)

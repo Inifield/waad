@@ -88,11 +88,20 @@
 #include "../ascent-shared/ascent_getopt.h"
 #include "../ascent-shared/BufferPool.h"
 
+//Collision --->
+#include "vmap/ModelInstance.h"
+#include "vmap/WorldModel.h"
+#include "vmap/MapTree.h"
+#include "vmap/BIH.h"
+#include "vmap/VMapFactory.h"
+#include "vmap/VMapManager2.h"
+#include "vmap/VMapDefinitions.h"
+// <-----
+
 #include "Const.h"
 #include "UpdateFields.h"
 #include "UpdateMask.h"
 #include "Opcodes.h"
-
 
 #include "SharedEnums.h"
 #include "WorldState.h"
@@ -164,7 +173,7 @@
 #include "ItemInterface.h"
 #include "Stats.h"
 #include "WorldCreator.h"
-
+#include "CollideInterface.h"
 #include "Vehicle.h"
 #include "StrandOfTheAncients.h"
 #include "AchievementInterface.h"
@@ -198,18 +207,6 @@
 #include "WorldIrcRelay/WaadIrcRelay.h"
 #include "IA_Waad/AI_Speak.h"
 #include "IA_Waad/Tokenizer.h"
-
-
-#ifdef COLLISION
-#include "vmap/ModelInstance.h"
-#include "vmap/WorldModel.h"
-#include "vmap/MapTree.h"
-#include "vmap/BIH.h"
-#include "vmap/VMapFactory.h"
-#include "vmap/VMapManager2.h"
-#include "vmap/VMapDefinitions.h"
-#include "CollideInterface.h"
-#endif
 
 #include "Master.h"
 #include "BaseConsole.h"

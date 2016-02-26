@@ -170,6 +170,18 @@ namespace VMAP
         }
         return result;
     }
+	
+	uint32 VMapManager2::GetVmapFlags(unsigned int mapid, float x, float y, float z)
+	{
+		uint32 result;
+		InstanceTreeMap::iterator instanceTree = iInstanceMapTrees.find(mapid);
+		if (instanceTree != iInstanceMapTrees.end())
+		{
+			Vector3 position = convertPositionToInternalRep(x,y,z);
+			result = instanceTree->second->GetVmapFlags(position);
+		}
+		return result;
+	}
     //=========================================================
     /**
     get the hit position and return true if we hit something

@@ -88,7 +88,7 @@ Map::~Map()
 
 // collision
 #ifdef COLLISION
-		CollideInterface.DeactiveMap(_mapId);
+		CollideInterface.DeactivateMap(_mapId);
 #endif
 }
 

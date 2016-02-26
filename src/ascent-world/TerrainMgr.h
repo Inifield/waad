@@ -22,36 +22,37 @@
 
 typedef struct
 {
-	uint16 AreaID[2][2];
-	uint8 LiquidType[2][2];
-	uint32 AeraFlags[2][2];
-	float LiquidLevel[2][2];
-	float Z[32][32];
-}CellTerrainInformation; 
+	uint16 AreaInfo[256];
+	uint16 LiquidInfo[256];
 
-#define FL2UINT (uint32)
-#define TERRAIN_HEADER_SIZE 1048576	 // size of [512][512] array.
+	float V8[128][128];
+	float V9[128+1][128+1];
+
+	float liquid_height[128+1][128+1];
+}TileTerrainInformation;
+
+#define FL2UINT(f) (uint32)(f == 0 ? f : floor(f))
+#define TERRAIN_HEADER_SIZE 16384	 // size of [64][64] array.
+#define TILE_TERRAIN_SIZE 199688	 // size of Tile dump.
 #define MAP_RESOLUTION 256
-
+#define NO_LAND_HEIGHT 999999.0f
+#define NO_WATER_HEIGHT -50000.0f
 
 /* @class TerrainMgr
-   TerrainMgr maintains the MapCellInfo information for accessing water levels,
-   water types, Z levels, area id's, and walkable graph information.
 
-   TerrainMgr can dynamically allocate and un-allocate cell information for main
+   TerrainMgr can dynamically allocate and un-allocate tile information for main
    continents as their information is *quite* large and not needed at all times
    to be loaded. Unloading this in idle times is a nice way to save memory.
 
-   However, on instanced maps, we would want to keep the cell's information
+   However, on instanced maps, we would want to keep the tile's information
    loaded at all times as it is a lot smaller and we can have multiple instances
    wanting to access this information at once.
   */
 
-class TerrainMgr
+class SERVER_DECL TerrainMgr
 {
 public:
-	
-	/* Initializes the terrain interface, allocates all required arrays, and sets 
+	/* Initializes the terrain interface, allocates all required arrays, and sets
 	   all variables.
 	   Parameter 1: The path to the packed map files.
 	   Parameter 2: The map that we'll be retrieving information from.
@@ -60,46 +61,44 @@ public:
 	   No return value.
 	  */
 	TerrainMgr(string MapPath, uint32 MapId, bool Instanced);
-	
-	/* Cleans up all arrays, and unloads any pending cell information.
+
+	/* Cleans up all arrays, and unloads any pending tile information.
 	   No parameters.
 	   No return value.
 	  */
 	~TerrainMgr();
 
-	/* If we're a non-instanced map, we'll unload the cell information as it's
+	/* If we're a non-instanced map, we'll unload the tile information as it's
 	   not needed.
-	   Parameter 1: The x co-ordinate of the cell that's gone idle.
-	   Parameter 2: The y co-ordinate of the cell that's gone idle.
+	   Parameter 1: The x co-ordinate of the tile that's gone idle.
+	   Parameter 2: The y co-ordinate of the tile that's gone idle.
 	   No return value.
 	  */
 	void CellGoneIdle(uint32 x, uint32 y);
 
-	/* Loads the cell information if it has not already been loaded.
-	   Parameter 1: The x co-ordinate of the cell that's gone active.
-	   Parameter 2: The y co-ordinate of the cell that's gone active.
+	/* Loads the tile information if it has not already been loaded.
+	   Parameter 1: The x co-ordinate of the tile that's gone active.
+	   Parameter 2: The y co-ordinate of the tile that's gone active.
 	   No return value.
 	  */
 	void CellGoneActive(uint32 x, uint32 y);
 
 	/* Information retrieval functions
 	   These functions all take the same input values, an x and y global co-ordinate.
-	   They will all return 0 if the cell information is not loaded or does not exist,
+	   They will all return 0 if the tile information is not loaded or does not exist,
 	   apart from the water function which will return '-999999.0'.
 	  */
 	float GetADTLandHeight(float x, float y);
 	float GetLandHeight(float x, float y, float z);
 	
-	float  GetWaterHeight(float x, float y);
-	uint8  GetWaterType(float x, float y);
+	float  GetWaterHeight(float x, float y, float z);
+	uint16 GetWaterType(float x, float y);
 	uint8  GetWalkableState(float x, float y);
-	uint32 getAreaFlag(float x, float y);
 	uint16 GetAreaID(float x, float y, float z);
-	AreaTable* GetArea(float x, float y, float z);
-	AreaTable* GetArea2D(float x, float y);
+	bool CellHasAreaID(uint32 x, uint32 y, uint16 &AreaID);
+	void GetCellLimits(uint32 &StartX, uint32 &EndX, uint32 &StartY, uint32 &EndY);
 
 private:
-
 	/// MapPath contains the location of all mapfiles.
 	string mapPath;
 
@@ -112,30 +111,23 @@ private:
 	/// We don't want to be reading from a file from more than one thread at once
 	Mutex mutex;
 
-#ifndef USE_MEMORY_MAPPING_FOR_MAPS
-	
 	/// Our main file descriptor for accessing the binary terrain file.
 	FILE * FileDescriptor;
 
-	/// This holds the offsets of the cell information for each cell.
-	uint32 CellOffsets[_sizeX][_sizeY];
+	/// Our memory saving system for small allocations
+	uint32 TileCountX, TileCountY;
+	uint32 TileStartX, TileEndX;
+	uint32 TileStartY, TileEndY;
 
-#else
+	/// This holds the offsets of the tile information for each tile.
+	uint32 TileOffsets[64][64];
 
-	/// Mapped file handle
-	HANDLE hMappedFile;
-	HANDLE hMap;
-	uint32 mFileSize;
+	/// Load counter
+	uint32 LoadCounter[64][64];
 
-	/// This holds the offsets of the cell information for each cell.
-	uint32 CellOffsets[_sizeX][_sizeY];
-	uint8 * m_Memory;
+	/// Our storage array. This contains pointers to all allocated TileInfo's.
+	TileTerrainInformation *** TileInformation;
 
-#endif
-
-	/// Our storage array. This contains pointers to all allocated CellInfo's.
-	CellTerrainInformation *** CellInformation;
-	
 public:
 	/* Initializes the file descriptor and readys it for data retreival.
 	   No parameters taken.
@@ -143,109 +135,83 @@ public:
 	  */
 	bool LoadTerrainHeader();
 
-protected:
-	/* Retrieves the cell data for the specified co-ordinates from the file and sets it in
-	   the CellInformation array.
-	   Parameter 1: x co-ordinate of the cell information to load.
-	   Parameter 2: y co-ordinate of the cell information to load.
-	   Returns true if the cell information exists and was loaded, false if not.
+	/* Checks that the co-ordinates are within range.
 	  */
-	bool LoadCellInformation(uint32 x, uint32 y);
+	ASCENT_INLINE static bool AreCoordinatesValid(float x, float y)
+	{
+		if(x > _maxX || x < _minX)
+			return false;
+		if(y > _maxY || y < _minY)
+			return false;
+		if(isnan(x) || isnan(y))
+			return false;
+		if(x > std::numeric_limits<float>::max())
+			return false;
+		if(y > std::numeric_limits<float>::max())
+			return false;
+		return true;
+	}
 
-	/* Unloads the cell data at the specified co-ordinates and frees the memory.
-	   Parameter 1: x co-ordinate of the cell information to free.
-	   Parameter 2: y co-ordinate of the cell information to free.
+protected:
+	/* Retrieves the tile data for the specified co-ordinates from the file and sets it in
+	   the TileInformation array.
+	   Parameter 1: x co-ordinate of the tile information to load.
+	   Parameter 2: y co-ordinate of the tile information to load.
+	   Returns true if the tile information exists and was loaded, false if not.
+	  */
+	bool LoadTileInformation(uint32 x, uint32 y);
+
+	/* Unloads the tile data at the specified co-ordinates and frees the memory.
+	   Parameter 1: x co-ordinate of the tile information to free.
+	   Parameter 2: y co-ordinate of the tile information to free.
 	   Returns true if the free was successful, otherwise false.
 	  */
-	bool UnloadCellInformation(uint32 x, uint32 y);
+	bool UnloadTileInformation(uint32 x, uint32 y);
 
-	/* Gets the offset for the specified cell from the cached offset index.
-	   Parameter 1: cell x co-ordinate.
-	   Parameter 2: cell y co-ordinate.
-	   Returns the offset in bytes of that cell's information, or 0 if it doesn't exist.
+	/* Gets a tile information pointer so that another function can access its data.
+	   Parameter 1: tile x co-ordinate.
+	   Parameter 2: tile y co-ordinate.
+	   Returns the memory address of the information for that tile.
 	  */
-	ASCENT_INLINE uint32 GetCellInformationOffset(uint32 x, uint32 y)
+	ASCENT_INLINE TileTerrainInformation* GetTileInformation(uint32 x, uint32 y)
 	{
-		return CellOffsets[x][y];
+		return TileInformation[x][y];
 	}
 
-	/* Gets a cell information pointer so that another function can access its data.
-	   Parameter 1: cell x co-ordinate.
-	   Parameter 2: cell y co-ordinate.
-	   Returns the memory address of the information for that cell.
-	  */
-	ASCENT_INLINE CellTerrainInformation* GetCellInformation(uint32 x, uint32 y)
-	{
-		return CellInformation[x][y];
-	}
-
-	/* Converts a global x co-ordinate into a cell x co-ordinate.
+	/* Converts a global x co-ordinate into a tile x co-ordinate.
 	   Parameter 1: global x co-ordinate.
-	   Returns the cell x co-ordinate.
+	   Returns the tile x co-ordinate.
 	  */
 	ASCENT_INLINE uint32 ConvertGlobalXCoordinate(float x)
 	{
-		return FL2UINT((_maxX-x)/_cellSize);
+		return int32(32-(x/533.33333f));
 	}
 
-	/* Converts a global y co-ordinate into a cell y co-ordinate.
+	/* Converts a global y co-ordinate into a tile y co-ordinate.
 	   Parameter 1: global y co-ordinate.
-	   Returns the cell y co-ordinate.
+	   Returns the tile y co-ordinate.
 	*/
 	ASCENT_INLINE uint32 ConvertGlobalYCoordinate(float y)
 	{
-		return FL2UINT((_maxY-y)/_cellSize);
+		return int32(32-(y/533.33333f));
 	}
 
-	/* Converts a global x co-ordinate into a INTERNAL cell x co-ordinate.
-	   Parameter 1: global x co-ordinate.
-	   Parameter 2: the cell x co-ordinate.
-	   Returns the internal x co-ordinate.
-	*/
-	ASCENT_INLINE float ConvertInternalXCoordinate(float x, uint32 cellx)
-	{
-		float X = (_maxX - x);
-		X -= (cellx * _cellSize);
-		return X;
-	}
-
-	/* Converts a global y co-ordinate into a INTERNAL cell y co-ordinate.
-	   Parameter 1: global y co-ordinate.
-	   Parameter 2: the cell y co-ordinate.
-	   Returns the internal y co-ordinate.
-	*/
-	ASCENT_INLINE float ConvertInternalYCoordinate(float y, uint32 celly)
-	{
-		float Y = (_maxY - y);
-		Y -= (celly * _cellSize);
-		return Y;
-	}
-
-	/* Checks whether a cell information is loaded or not.
+	/* Checks whether a tile information is loaded or not.
 	  */
-	ASCENT_INLINE bool CellInformationLoaded(uint32 x, uint32 y)
+	ASCENT_INLINE bool TileInformationLoaded(uint32 x, uint32 y)
 	{
-		if(CellInformation[x][y] != 0)
+		if(TileInformation[x][y] != 0)
 			return true;
-		else
-			return false;
-	}
-
-	/* Converts the internal co-ordinate to an index in the 
-	   2 dimension areaid, or liquid type arrays.
-	  */
-	ASCENT_INLINE uint32 ConvertTo2dArray(float c)
-	{
-		return FL2UINT(c*(16/CellsPerTile/_cellSize));
+		return false;
 	}
 
 	/* Checks that the co-ordinates are within range.
 	  */
-	ASCENT_INLINE bool AreCoordinatesValid(float x, float y)
+	ASCENT_INLINE bool AreTilesValid(uint32 x, uint32 y)
 	{
-		if(x > _maxX || x <= _minX)
+		if(x < TileStartX || x > TileEndX)
 			return false;
-		if(y > _maxY || y <= _minY)
+		if(y < TileStartY || y > TileEndY)
 			return false;
 		return true;
 	}

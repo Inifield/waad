@@ -4448,44 +4448,54 @@ uint8 Spell::CanCast(bool tolerate)
   if(!m_targets.m_target->IsInWorld()) return(SPELL_FAILED_CANT_CAST_ON_TAPPED); // "Cible indisponible"
 
 #ifdef COLLISION
+  float SourceTaille = m_caster->GetSize();
+  float TargetTaille = m_targets.m_target->GetSize();
+  
   if (m_spellInfo->mechanics == MECHANIC_MONTURE)
   {
-   // Qiraj battletanks work everywhere on map 531
-   if ( m_caster->GetMapId() == 531 && ( m_spellInfo->Id == 25953 || m_spellInfo->Id == 26054 || m_spellInfo->Id == 26055 || m_spellInfo->Id == 26056 ) )
-   {
-    //Log.Warning("CanCast","SPELL_CANCAST_OK");
-	return(SPELL_CANCAST_OK);
-   }
-
-   if (CollideInterface.IsIndoor( m_caster->GetMapId(), m_caster->GetPositionNC() ))
-   {
-    //Log.Warning("CanCast","SPELL_FAILED_NO_MOUNTS_ALLOWED");
-	return(SPELL_FAILED_NO_MOUNTS_ALLOWED); // "Vous ne pouvez pas utiliser une monture ici"
-   }
+	  // Qiraj battletanks work everywhere on map 531
+	  if ( m_caster->GetMapId() == 531 && ( m_spellInfo->Id == 25953 || m_spellInfo->Id == 26054 || m_spellInfo->Id == 26055 || m_spellInfo->Id == 26056 ) )
+	  {
+		  //Log.Warning("CanCast","SPELL_CANCAST_OK");
+		  return(SPELL_CANCAST_OK);
+	  }
+	  
+	  if (CollideInterface.IsIndoor( m_caster->GetMapId(), m_caster->GetPosition().x,m_caster->GetPosition().y,m_caster->GetPosition().z+SourceTaille ))
+	  {
+		  //Log.Warning("CanCast","SPELL_FAILED_NO_MOUNTS_ALLOWED");
+		  return(SPELL_FAILED_NO_MOUNTS_ALLOWED); // "Vous ne pouvez pas utiliser une monture ici"
+	  }
   }
   else if( m_spellInfo->attributes & ATTRIBUTES_ONLY_OUTDOORS )
   {
-   // On test sur la cible
-   if( !CollideInterface.IsOutdoor( m_targets.m_target->GetMapId(), m_targets.m_target->GetPositionNC() ) )
-   {
-    //Log.Warning("CanCast","SPELL_FAILED_ONLY_OUTDOORS");
-	return(SPELL_FAILED_ONLY_OUTDOORS); // "A utiliser en exterieur"
-   }
+	  // On test sur la cible
+	  if( CollideInterface.IsIndoor( m_targets.m_target->GetMapId(), m_targets.m_target->GetPosition().x,m_targets.m_target->GetPosition().y,m_targets.m_target->GetPosition().z+TargetTaille ) )
+	  {
+		  //Log.Warning("CanCast","SPELL_FAILED_ONLY_OUTDOORS");
+		  return(SPELL_FAILED_ONLY_OUTDOORS); // "A utiliser en exterieur"
+	  }
   }
 
   // Check LOS
-  float SourceTaille = m_caster->GetSize();
-  float TargetTaille = m_targets.m_target->GetSize();
   if(!m_caster->IsGO() && !m_targets.m_target->IsGO())
   {
-   if (!CollideInterface.CheckLOS( m_caster->GetMapId(),m_caster->GetPosition().x,m_caster->GetPosition().y,m_caster->GetPosition().z+SourceTaille,
-	                              m_targets.m_target->GetPosition().x,m_targets.m_target->GetPosition().y,m_targets.m_target->GetPosition().z+TargetTaille ))
-   {
-    Log.Warning("CanCast","La cible n'est plus en vue");
-	return(SPELL_FAILED_LINE_OF_SIGHT); // "Cible hors du champ de vision"
-   }
+	  if (!CollideInterface.CheckLOS( m_caster->GetMapId(),m_caster->GetPosition().x,m_caster->GetPosition().y,m_caster->GetPosition().z+SourceTaille,
+									  m_targets.m_target->GetPosition().x,m_targets.m_target->GetPosition().y,m_targets.m_target->GetPosition().z+TargetTaille ))
+	  {
+		  //Log.Warning("CanCast","La cible n'est plus en vue");
+		  return(SPELL_FAILED_LINE_OF_SIGHT); // "Cible hors du champ de vision"
+	  }
   }
+
+  //Check IsInCity
+  if(m_caster->IsPlayer() && m_spellInfo->Id == __Duel) //7266
+  {
+  	  if(CollideInterface.IsIncity(m_caster->GetMapId(), m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ()))
+		  return SPELL_FAILED_NO_DUELING; //Les duels sont interdits en ville
+  }
+
 #endif
+
 // Laissé en dur, pas trouver de meilleur solution grrrrrrrrrrrrr f*ck blizz (Brz)
   switch(m_spellInfo->Id)
   {
@@ -5744,7 +5754,7 @@ uint8 Spell::CanCast(bool tolerate)
 						posy = py + r * si;
 						/*if(!(map->GetWaterType(posx,posy) & 1))//water 
 							continue;*/
-						posz = map->GetWaterHeight(posx,posy);
+						posz = map->GetWaterHeight(posx,posy,NO_WATER_HEIGHT);
 						if(posz > map->GetLandHeight(posx,posy,pz))//water
 							break;
 					}

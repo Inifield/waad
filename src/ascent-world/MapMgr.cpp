@@ -22,6 +22,7 @@
 //
 
 #include "StdAfx.h"
+
 #define MAP_MGR_UPDATE_PERIOD 100
 #define MAPMGR_INACTIVE_MOVE_TIME 10
 extern bool bServerShutdown;
@@ -31,45 +32,39 @@ MapMgr::MapMgr(Map *map, uint32 mapId, uint32 instanceid) : CellHandler<MapCell>
 	_shutdown = false;
 	m_instanceID = instanceid;
 	pMapInfo = WorldMapInfoStorage.LookupEntry(mapId);
-	m_UpdateDistance = pMapInfo->update_distance * pMapInfo->update_distance;
+	pdbcMap = dbcMap.LookupEntry(mapId);
+	m_UpdateDistance = MAX_VIEW_DISTANCE;
 	iInstanceMode = 0;
-
-	// Create script interface
-	// ScriptInterface = new MapScriptInterface(*this);
 
 	// Set up storage arrays
 	m_CreatureArraySize = map->CreatureSpawnCount;
-	m_GOArraySize = map->GameObjectSpawnCount;
 	m_VehicleArraySize = 0;
 
-	//m_CreatureStorage = new Creature*[m_CreatureArraySize];
-	//m_CreatureStorage = (Creature**)malloc(sizeof(Creature*) * m_CreatureArraySize);
-	//memset(m_CreatureStorage,0,sizeof(Creature*)*m_CreatureArraySize);
-
-	//m_GOStorage = new GameObject*[m_GOArraySize];
-	//m_GOStorage = (GameObject**)malloc(sizeof(GameObject*) * m_GOArraySize);
-	//memset(m_GOStorage,0,sizeof(GameObject*)*m_GOArraySize);
-	
-	//Franck
-	//m_VehicleStorage
-	//m_VehicleStorage = (Vehicle**)malloc(sizeof(Vehicle*) * m_VehicleArraySize);
-	//memset (m_VehicleStorage,0,sizeof(Vehicle*) * m_VehicleArraySize);
-	
-	m_GOHighGuid = m_CreatureHighGuid = 0;
-	m_DynamicObjectHighGuid=0; 
+	m_GOHighGuid = 0;
+	m_CreatureHighGuid = 0;
+	m_VehicleHighGuid = 0;
+	m_DynamicObjectHighGuid=0;
 	lastUnitUpdate = getMSTime();
+	lastDynamicUpdate = getMSTime();
 	lastGameobjectUpdate = getMSTime();
 	m_battleground = NULL;
-	m_VehicleHighGuid = 0;
+
 	m_holder = &eventHolder;
 	m_event_Instanceid = eventHolder.GetInstanceID();
 	forced_expire = false;
 	InactiveMoveTime = 0;
-	mLoopCounter=0;
+	mLoopCounter = 0;
 	pInstance = NULL;
 	thread_kill_only = false;
 	thread_running = false;
-	
+
+	// buffers
+	m_updateBuffer.reserve(50000);
+	m_createBuffer.reserve(20000);
+
+	m_updateBuildBuffer.reserve(48000);
+	m_compressionBuffer.reserve(54000); // uint32 destsize = size + size/10 + 16;
+
 	m_PlayerStorage.clear();
 	m_PetStorage.clear();
 	m_DynamicObjectStorage.clear();
@@ -78,11 +73,14 @@ MapMgr::MapMgr(Map *map, uint32 mapId, uint32 instanceid) : CellHandler<MapCell>
 	_mapWideStaticObjects.clear();
 	_updates.clear();
 	_processQueue.clear();
-	//Sessions.clear();
+	Sessions.clear();
 
+	ActiveLock.Acquire();
 	activeGameObjects.clear();
 	activeCreatures.clear();
 	activeVehicles.clear();
+	ActiveLock.Release();
+
 	m_corpses.clear();
 	_sqlids_vehicles.clear();
 	_sqlids_creatures.clear();
@@ -105,27 +103,36 @@ void MapMgr::Init()
 MapMgr::~MapMgr()
 {
 	_shutdown=true;
+
 	sEventMgr.RemoveEvents(this);
 	sEventMgr.RemoveEventHolder(m_instanceID);
 	delete ScriptInterface;
-	delete m_DBstateManager;
 
 	if ( mInstanceScript != NULL )
 		mInstanceScript->Destroy();
 
+	if( m_DBstateManager != NULL )
+	{
+		delete m_DBstateManager;
+		m_DBstateManager = NULL;
+	}
+
 	// Remove objects
+	MapCell* cell = NULL;
 	if(_cells)
 	{
 		for (uint32 i = 0; i < _sizeX; i++)
 		{
-			if(_cells[i] != 0)
+			if(_cells[i] != NULL)
 			{
 				for (uint32 j = 0; j < _sizeY; j++)
 				{
-					if(_cells[i][j] != 0)
+					cell = _cells[i][j];
+					if(cell != NULL)
 					{
-						_cells[i][j]->_unloadpending=false;
-						_cells[i][j]->RemoveObjects();
+						cell->_unloadpending = false;
+						cell->RemoveObjects();
+						cell = NULL;
 					}
 				}
 			}
@@ -195,17 +202,22 @@ MapMgr::~MapMgr()
 	_processQueue.clear();
 	Sessions.clear();
 	pMapInfo = NULL;
+	pdbcMap = NULL;
 
-	activeGameObjects.clear();
-	activeCreatures.clear();
+	ActiveLock.Acquire();
 	activeVehicles.clear();
+	activeCreatures.clear();
+	activeGameObjects.clear();
+	ActiveLock.Release();
+
 	_sqlids_vehicles.clear();
 	_sqlids_creatures.clear();
 	_sqlids_gameobjects.clear();
-	_reusable_guids_creature.clear();
 	_reusable_guids_vehicle.clear();
+	_reusable_guids_creature.clear();
 
 	m_battleground = NULL;
+
 	Log.Notice("MapMgr", "Instance %u shut down. (%s)" , m_instanceID, GetBaseMap()->GetName());
 }
 
@@ -229,19 +241,14 @@ void MapMgr::PushObject(Object *obj)
 	// Assertions
 	/////////////
 	ASSERT(obj);
-	
+
 	// That object types are not map objects. TODO: add AI groups here?
 	if(obj->GetTypeId() == TYPEID_ITEM || obj->GetTypeId() == TYPEID_CONTAINER)
-	{
 		// mark object as updatable and exit
 		return;
-	}
 
 	if(obj->GetTypeId() == TYPEID_CORPSE)
-	{
 		m_corpses.insert(((Corpse*)obj));
-	}	
-	
 	Player* plObj = NULL;
 
 	if(obj->GetTypeId() == TYPEID_PLAYER)
@@ -252,16 +259,16 @@ void MapMgr::PushObject(Object *obj)
 			sLog.outDebug("MapMgr","Could not get a valid playerobject from object while trying to push to world");
 			return;
 		}
-		WorldSession * plSession = NULL;
-		plSession = plObj->GetSession();
+		plObj->ClearInRangeSet();
+
+		WorldSession * plSession = plObj->GetSession();
 		if(plSession == NULL)
 		{
 			sLog.outDebug("MapMgr","Could not get a valid session for player while trying to push to world");
 			return;
 		}
 	}
-	
-	obj->ClearInRangeSet();
+	else obj->ClearInRangeSet();
 
 	///////////////////////
 	// Get cell coordinates
@@ -314,38 +321,18 @@ void MapMgr::PushObject(Object *obj)
 		objCell->Init(cx, cy, _mapId, this);
 	}
 
+	uint32 count;
 	uint32 endX = (cx <= _sizeX) ? cx + 1 : (_sizeX-1);
 	uint32 endY = (cy <= _sizeY) ? cy + 1 : (_sizeY-1);
 	uint32 startX = cx > 0 ? cx - 1 : 0;
 	uint32 startY = cy > 0 ? cy - 1 : 0;
-	uint32 posX, posY;
-	MapCell *cell;
-	MapCell::ObjectSet::iterator iter;
 
-	ByteBuffer * buf = 0;
-	uint32 count;
 	if(plObj)
 	{
 		Log.Debug("WORLD","Creating player LGuid: %u", obj->GetLowGUID()); // "Creating player "I64FMT".",obj->GetGUID());
-		ByteBuffer pbuf(10000);
-		count = plObj->BuildCreateUpdateBlockForPlayer(&pbuf, plObj);
-		plObj->PushCreationData(&pbuf, count);
-	}
-
-	//////////////////////
-	// Build in-range data
-	//////////////////////
-
-	for (posX = startX; posX <= endX; posX++ )
-	{
-		for (posY = startY; posY <= endY; posY++ )
-		{
-			cell = GetCell(posX, posY);
-			if (cell)
-			{
-				UpdateInRangeSet(obj, plObj, cell, &buf);
-			}
-		}
+		count = plObj->BuildCreateUpdateBlockForPlayer(&m_createBuffer, plObj);
+		plObj->PushCreationData(&m_createBuffer, count);
+		m_createBuffer.clear();
 	}
 
 	//Add to the cell's object list
@@ -416,26 +403,22 @@ void MapMgr::PushObject(Object *obj)
 		/* Add the map wide objects */
 		if(_mapWideStaticObjects.size())
 		{
-			if(!buf)
-				buf = new ByteBuffer(300);
-
-			for(set<Object*>::iterator itr = _mapWideStaticObjects.begin(); itr != _mapWideStaticObjects.end(); ++itr)
+			for(set<Object* >::iterator itr = _mapWideStaticObjects.begin(); itr != _mapWideStaticObjects.end(); itr++)
 			{
-				count = (*itr)->BuildCreateUpdateBlockForPlayer(buf, plObj);
-				plObj->PushCreationData(buf, count);
+				count = (*itr)->BuildCreateUpdateBlockForPlayer(&m_createBuffer, plObj);
+				plObj->PushCreationData(&m_createBuffer, count);
+				m_createBuffer.clear();
 			}
-			//VLack: It seems if we use the same buffer then it is a BAD idea to try and push created data one by one, add them at once!
-			//       If you try to add them one by one, then as the buffer already contains data, they'll end up repeating some object.
-			//       Like 6 object updates for Deeprun Tram, but the built package will contain these entries: 2AFD0, 2AFD0, 2AFD1, 2AFD0, 2AFD1, 2AFD2
-			if( count>0 ) plObj->PushCreationData(buf, count);
 		}
 	}
 
-	if(buf)
-		delete buf;
-
 	if(plObj && InactiveMoveTime && !forced_expire)
 		InactiveMoveTime = 0;
+
+	//////////////////////
+	// Build in-range data
+	//////////////////////
+	UpdateInrangeSetOnCells(obj->GetGUID(), startX, endX, startY, endY);
 }
 
 
@@ -463,9 +446,7 @@ void MapMgr::PushStaticObject(Object *obj)
 	}
 }
 
-#define OPTIONAL_IN_RANGE_SETS
-
-void MapMgr::RemoveObject(Object *obj, bool free_guid)
+void MapMgr::RemoveObject(Object* obj, bool free_guid)
 {
 	/////////////
 	// Assertions <= t'a vu ca branruz ? / Ben maintenant si, lol (Branruz)
@@ -490,13 +471,9 @@ void MapMgr::RemoveObject(Object *obj, bool free_guid)
 	if(obj->Active)
 		obj->Deactivate(this);
 
-	//there is a very small chance that on double player ports on same update player is added to multiple insertpools but not removed
-	//one clear example was the double port proc when exploiting double resurrect
-	m_objectinsertlock.Acquire();
-	m_objectinsertpool.erase(obj);
-	m_objectinsertlock.Release();
-
+	m_updateMutex.Acquire();
 	_updates.erase(obj);
+	m_updateMutex.Release();
 	obj->ClearUpdateMask();
 	Player* plObj = (obj->GetTypeId() == TYPEID_PLAYER) ? static_cast< Player* >( obj ) : 0;
 
@@ -580,15 +557,8 @@ void MapMgr::RemoveObject(Object *obj, bool free_guid)
 	if(!obj->GetMapCell())
 	{
 		/* set the map cell correctly */
-		if(obj->GetPositionX() >= _maxX || obj->GetPositionX() <= _minY ||
-			obj->GetPositionY() >= _maxY || obj->GetPositionY() <= _minY)
-		{
-			// do nothing
-		}
-		else
-		{
-			obj->SetMapCell(this->GetCellByCoords(obj->GetPositionX(), obj->GetPositionY()));
-		}		
+		if(!(obj->GetPositionX() >= _maxX || obj->GetPositionX() <= _minY || obj->GetPositionY() >= _maxY || obj->GetPositionY() <= _minY))
+			obj->SetMapCell(GetCellByCoords(obj->GetPositionX(), obj->GetPositionY()));
 	}
 
 	if(obj->GetMapCell())
@@ -610,8 +580,7 @@ void MapMgr::RemoveObject(Object *obj, bool free_guid)
 	}
 
 	// Remove object from all objects 'seeing' him
-	for (Object::InRangeSet::iterator iter = obj->GetInRangeSetBegin();
-		iter != obj->GetInRangeSetEnd(); ++iter)
+	for (Object::InRangeSet::iterator iter = obj->GetInRangeSetBegin(); iter != obj->GetInRangeSetEnd(); iter++)
 	{
 		if( (*iter) )
 		{
@@ -640,7 +609,7 @@ void MapMgr::RemoveObject(Object *obj, bool free_guid)
 		m_PlayerStorage.erase( static_cast< Player* >( obj )->GetLowGUID() );
 
 		// Remove the session from our set if it is a player.
-		for(set<Object* >::iterator itr = _mapWideStaticObjects.begin(); itr != _mapWideStaticObjects.end(); ++itr)
+		for(set<Object* >::iterator itr = _mapWideStaticObjects.begin(); itr != _mapWideStaticObjects.end(); itr++)
 		{
 			plObj->PushOutOfRange((*itr)->GetNewGUID());
 		}
@@ -656,30 +625,20 @@ void MapMgr::RemoveObject(Object *obj, bool free_guid)
 
 	if(!HasPlayers() && !InactiveMoveTime && !forced_expire && GetMapInfo()->type != INSTANCE_NULL)
 	{
-		InactiveMoveTime = UNIXTIME + (MAPMGR_INACTIVE_MOVE_TIME * 60);	   // 5 mins -> move to inactive
+		InactiveMoveTime = UNIXTIME + (MAPMGR_INACTIVE_MOVE_TIME * 60);	   // 10 mins -> move to inactive
 	}
 }
 
-void MapMgr::ChangeObjectLocation( Object *obj )
+void MapMgr::ChangeObjectLocation( Object* obj )
 {
 	// Items and containers are of no interest for us
 	if( obj->GetTypeId() == TYPEID_ITEM || obj->GetTypeId() == TYPEID_CONTAINER || obj->GetMapMgr() != this )
-	{
 		return;
-	}
 
-	Player* plObj;
-	ByteBuffer * buf = 0;
+	Player* plObj = NULL;
 
 	if( obj->GetTypeId() == TYPEID_PLAYER )
-	{
 		plObj = static_cast< Player* >( obj );
-	}
-	else
-	{
-		plObj = NULL;
-	}
-
 	Object* curObj = NULL;
 	float fRange = 0.0f;
 
@@ -687,9 +646,9 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 	// Update in-range data for old objects
 	///////////////////////////////////////
 
-	if(obj->HasInRangeObjects()) {
-		for (Object::InRangeSet::iterator iter = obj->GetInRangeSetBegin(), iter2;
-			iter != obj->GetInRangeSetEnd();)
+	if(obj->HasInRangeObjects())
+	{
+		for (Object::InRangeSet::iterator iter = obj->GetInRangeSetBegin(), iter2; iter != obj->GetInRangeSetEnd();)
 		{
 			curObj = *iter;
 			iter2 = iter++;
@@ -699,12 +658,14 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 				fRange = 0.0f; // unlimited distance for people on same vehicle
 			else if( curObj->GetTypeFromGUID() == HIGHGUID_TYPE_TRANSPORTER || curObj->GetTypeFromGUID() ==  HIGHGUID_TYPE_VEHICLE)
 				fRange = 0.0f; // unlimited distance for transporters (only up to 2 cells +/- anyway.)
-			//If the object announcing its position is a transport, or other special object, then deleting it from visible objects should be avoided. - By: VLack
-			else if(obj->IsGO() && (static_cast< GameObject* >(obj)->GetPhase() & ALL_PHASES) && obj->GetMapId() == curObj->GetMapId())
-				fRange = 0.0f;
-			//If the object we're checking for possible removal is a transport or other special object, and we are players on the same map, don't remove it...
-			else if(plObj && curObj->IsGO() && (static_cast< GameObject* >(curObj)->GetPhase() & ALL_PHASES) && obj->GetMapId() == curObj->GetMapId())
-				fRange = 0.0f;
+			else if( curObj->IsGO() && static_cast< GameObject * >(curObj)->GetInfo() )
+			{	// Crow: Arc, previous changes were only supporting Destructible.
+				uint32 type = static_cast< GameObject * >(curObj)->GetInfo()->Type;
+				if( type == GAMEOBJECT_TYPE_TRANSPORT || type == GAMEOBJECT_TYPE_MAP_OBJECT || type == GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING )
+					fRange = 0.0f;
+				else
+					fRange = m_UpdateDistance; // normal distance
+			}
 			else
 				fRange = m_UpdateDistance; // normal distance
 
@@ -733,10 +694,7 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 	// Get new cell coordinates
 	///////////////////////////
 	if(obj->GetMapMgr() != this)
-	{
-		/* Something removed us. */
-		return;
-	}
+		return; /* Something removed us. */
 
 	if(obj->GetPositionX() >= _maxX || obj->GetPositionX() <= _minX ||
 		obj->GetPositionY() >= _maxY || obj->GetPositionY() <= _minY)
@@ -769,9 +727,7 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 	uint32 cellY = GetPosY(obj->GetPositionY());
 
 	if(cellX >= _sizeX || cellY >= _sizeY)
-	{
 		return;
-	}
 
 	MapCell *objCell = GetCell(cellX, cellY);
 	MapCell * pOldCell = obj->GetMapCell();
@@ -794,7 +750,7 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 
 		if(obj->GetMapCell())
 			obj->GetMapCell()->RemoveObject(obj);
-	
+
 		objCell->AddObject(obj);
 		obj->SetMapCell(objCell);
 
@@ -821,16 +777,13 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 	//////////////////////////////////////
 	// Update in-range set for new objects
 	//////////////////////////////////////
-
-	uint32 endX = cellX <= _sizeX ? cellX + 1 : (_sizeX-1);
-	uint32 endY = cellY <= _sizeY ? cellY + 1 : (_sizeY-1);
 	uint32 startX = cellX > 0 ? cellX - 1 : 0;
 	uint32 startY = cellY > 0 ? cellY - 1 : 0;
-	uint32 posX, posY;
-	MapCell *cell;
-	
+	uint32 endX = cellX <= _sizeX ? cellX + 1 : (_sizeX-1);
+	uint32 endY = cellY <= _sizeY ? cellY + 1 : (_sizeY-1);
+
 	//If the object announcing it's position is a special one, then it should do so in a much wider area - like the distance between the two transport towers in Orgrimmar, or more. - By: VLack
-	if(obj->IsGO() && (static_cast< GameObject* >(obj)->GetPhase() & ALL_PHASES))
+	if(obj->IsGO() && (static_cast< GameObject * >(obj)->GetPhase() & ALL_PHASES))
 	{
 		endX = cellX + 5 <= _sizeX ? cellX + 6 : (_sizeX - 1);
 		endY = cellY + 5 <= _sizeY ? cellY + 6 : (_sizeY - 1);
@@ -838,30 +791,31 @@ void MapMgr::ChangeObjectLocation( Object *obj )
 		startY = cellY - 5 > 0 ? cellY - 6 : 0;
 	}
 
-	for (posX = startX; posX <= endX; ++posX )
-	{
-		for (posY = startY; posY <= endY; ++posY )
-		{
-			cell = GetCell(posX, posY);
-			if (cell)
-			UpdateInRangeSet(obj, plObj, cell, &buf);
-		}
-	}
-
-	if(buf)
-		delete buf;
-
+	UpdateInrangeSetOnCells(obj->GetGUID(), startX, endX, startY, endY);
 	if(obj->IsUnit())
 	{
-		Unit* pobj = static_cast<Unit *>(obj);
+		Unit* pobj = static_cast< Unit* >(obj);
 		pobj->OnPositionChange();
 	}
 }
 
-void MapMgr::UpdateInRangeSet( Object *obj, Player *plObj, MapCell* cell, ByteBuffer ** buf )
+void MapMgr::UpdateInrangeSetOnCells(uint64 guid, uint32 startX, uint32 endX, uint32 startY, uint32 endY)
 {
-	#define CHECK_BUF if(!*buf) *buf = new ByteBuffer(2500)
+	MapCell* cell;
+	uint32 posX, posY;
+	for (posX = startX; posX <= endX; posX++ )
+	{
+		for (posY = startY; posY <= endY; posY++ )
+		{
+			cell = GetCell(posX, posY);
+			if (cell)
+				UpdateInRangeSet(guid, cell);
+		}
+	}
+}
 
+void MapMgr::UpdateInRangeSet( Object* obj, Player* plObj, MapCell* cell )
+{
 	if( cell == NULL )
 		return;
 
@@ -877,23 +831,21 @@ void MapMgr::UpdateInRangeSet( Object *obj, Player *plObj, MapCell* cell, ByteBu
 	{
 		curObj = *iter;
 		++iter;
-
-		if( curObj == NULL )
-			continue;
-
-		if( curObj->IsPlayer() && obj->IsPlayer() && plObj && plObj->m_TransporterGUID && plObj->m_TransporterGUID == static_cast<Player *>( curObj )->m_TransporterGUID )
+			
+		if( curObj->IsPlayer() && obj->IsPlayer() && plObj->m_TransporterGUID && plObj->m_TransporterGUID == static_cast< Player* >( curObj )->m_TransporterGUID )
 			fRange = 0.0f; // unlimited distance for people on same boat
-		else if( curObj->IsPlayer() && obj->IsPlayer() && plObj && plObj->m_CurrentVehicle && plObj->m_CurrentVehicle == static_cast<Player *>( curObj )->m_CurrentVehicle )
+		else if( curObj->IsPlayer() && obj->IsPlayer() && plObj->m_CurrentVehicle && plObj->m_CurrentVehicle == static_cast< Player* >( curObj )->m_CurrentVehicle )
 			fRange = 0.0f; // unlimited distance for people on same vehicle
 		else if( curObj->GetTypeFromGUID() == HIGHGUID_TYPE_TRANSPORTER || curObj->GetTypeFromGUID() ==  HIGHGUID_TYPE_VEHICLE)
-			fRange = 0.0f; // unlimited distance for transporters (only up to 2 cells +/- anyway.)
-
-		//If the object announcing its position is a transport, or other special object, then deleting it from visible objects should be avoided. - By: VLack
-		else if(obj->IsGO() && (static_cast< GameObject* >(obj)->GetPhase() & ALL_PHASES) && obj->GetMapId() == curObj->GetMapId())
-			fRange = 0.0f;
-		//If the object we're checking for possible removal is a transport or other special object, and we are players on the same map, don't remove it, and add it whenever possible...
-		else if(plObj && curObj->IsGO() && (static_cast< GameObject* >(curObj)->GetPhase() & ALL_PHASES) && obj->GetMapId() == curObj->GetMapId())
-			fRange = 0.0f;
+				fRange = 0.0f; // unlimited distance for transporters (only up to 2 cells +/- anyway.)
+		else if( curObj->IsGO() && static_cast< GameObject * >(curObj)->GetInfo() )
+		{	// Crow: Arc, previous changes were only supporting Destructible.
+			uint32 type = static_cast< GameObject * >(curObj)->GetInfo()->Type;
+			if( type == GAMEOBJECT_TYPE_TRANSPORT || type == GAMEOBJECT_TYPE_MAP_OBJECT || type == GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING )
+				fRange = 0.0f;
+			else
+				fRange = m_UpdateDistance; // normal distance
+		}
 		else
 			fRange = m_UpdateDistance; // normal distance
 
@@ -912,11 +864,10 @@ void MapMgr::UpdateInRangeSet( Object *obj, Player *plObj, MapCell* cell, ByteBu
 
 					if( plObj2->CanSee( obj ) && !plObj2->IsVisible( obj ) )
 					{
-						CHECK_BUF;
-						count = obj->BuildCreateUpdateBlockForPlayer(*buf, plObj2);
-						plObj2->PushCreationData(*buf, count);
+						count = obj->BuildCreateUpdateBlockForPlayer(&m_createBuffer, plObj2);
+						plObj2->PushCreationData(&m_createBuffer, count);
 						plObj2->AddVisibleObject(obj);
-						(*buf)->clear();
+						m_createBuffer.clear();
 					}
 				}
 
@@ -924,11 +875,10 @@ void MapMgr::UpdateInRangeSet( Object *obj, Player *plObj, MapCell* cell, ByteBu
 				{
 					if( plObj->CanSee( curObj ) && !plObj->IsVisible( curObj ) )
 					{
-						CHECK_BUF;
-						count = curObj->BuildCreateUpdateBlockForPlayer( *buf, plObj );
-						plObj->PushCreationData( *buf, count );
+						count = curObj->BuildCreateUpdateBlockForPlayer( &m_createBuffer, plObj );
+						plObj->PushCreationData( &m_createBuffer, count );
 						plObj->AddVisibleObject( curObj );
-						(*buf)->clear();
+						m_createBuffer.clear();
 					}
 				}
 			}
@@ -947,11 +897,10 @@ void MapMgr::UpdateInRangeSet( Object *obj, Player *plObj, MapCell* cell, ByteBu
 					}
 					else if(cansee && !isvisible)
 					{
-						CHECK_BUF;
-						count = obj->BuildCreateUpdateBlockForPlayer(*buf, plObj2);
-						plObj2->PushCreationData(*buf, count);
+						count = obj->BuildCreateUpdateBlockForPlayer(&m_createBuffer, plObj2);
+						plObj2->PushCreationData(&m_createBuffer, count);
 						plObj2->AddVisibleObject(obj);
-						(*buf)->clear();
+						m_createBuffer.clear();
 					}
 				}
 
@@ -966,168 +915,163 @@ void MapMgr::UpdateInRangeSet( Object *obj, Player *plObj, MapCell* cell, ByteBu
 					}
 					else if(cansee && !isvisible)
 					{
-						CHECK_BUF;
-						count = curObj->BuildCreateUpdateBlockForPlayer( *buf, plObj );
-						plObj->PushCreationData( *buf, count );
+						count = curObj->BuildCreateUpdateBlockForPlayer( &m_createBuffer, plObj );
+						plObj->PushCreationData( &m_createBuffer, count );
 						plObj->AddVisibleObject( curObj );
-						(*buf)->clear();
+						m_createBuffer.clear();
 					}
 				}
 			}
 		}
 	}
-/*
-#define IN_RANGE_LOOP_P1 \
-	while(iter != cell->End()) \
-	{ \
-		curObj = *iter; \
-		++iter; \
-		if(curObj->IsPlayer() && obj->IsPlayer() && plObj && plObj->m_TransporterGUID && plObj->m_TransporterGUID == static_cast< Player* >( curObj )->m_TransporterGUID) \
-			fRange = 0.0f; \
-		else if((curObj->GetGUIDHigh() == HIGHGUID_TRANSPORTER ||obj->GetGUIDHigh() == HIGHGUID_TRANSPORTER)) \
-			fRange = 0.0f; \
-		else if((curObj->GetGUIDHigh() == HIGHGUID_GAMEOBJECT && curObj->GetByte(GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_TYPE_ID) == GAMEOBJECT_TYPE_TRANSPORT || obj->GetGUIDHigh() == HIGHGUID_GAMEOBJECT && obj->GetByte(GAMEOBJECT_BYTES_1, GAMEOBJECT_BYTES_TYPE_ID) == GAMEOBJECT_TYPE_TRANSPORT)) \
-			fRange = 0.0f; \
-		else \
-			fRange = m_UpdateDistance; \
-		if ( curObj != obj && (fRange == 0.0f || curObj->GetDistance2dSq(obj) < fRange ) ) \
-		{ \
-			if(!obj->IsInRangeSet(curObj)) \
-			{ \
-				if(curObj->NeedsInRangeSet()) \
-				{ \
-					curObj->AddInRangeObject(obj); \
-				} else if(obj->IsPlayer()) \
-				{ \
-					curObj->AddInRangePlayer(obj); \
-				} \
-				if(curObj->IsPlayer()) \
-				{ \
-					plObj2 = static_cast< Player* >( curObj ); \
-					if (plObj2->CanSee(obj) && !plObj2->IsVisible(obj))  \
-					{ \
-						CHECK_BUF; \
-						count = obj->BuildCreateUpdateBlockForPlayer(*buf, plObj2); \
-						plObj2->PushCreationData(*buf, count); \
-						plObj2->AddVisibleObject(obj); \
-						(*buf)->clear(); \
-					} \
-				} 
+}
 
-#define IN_RANGE_LOOP_P2 \
-			} \
-			else \
-			{ \
-				if(curObj->IsPlayer()) \
-				{ \
-					plObj2 = static_cast< Player* >( curObj ); \
-					cansee = plObj2->CanSee(obj); \
-					isvisible = plObj2->GetVisibility(obj, &itr); \
-					if(!cansee && isvisible) \
-					{ \
-						plObj2->RemoveVisibleObject(itr); \
-						plObj2->PushOutOfRange(obj->GetNewGUID()); \
-					} \
-					else if(cansee && !isvisible) \
-					{ \
-						CHECK_BUF; \
-						count = obj->BuildCreateUpdateBlockForPlayer(*buf, plObj2); \
-						plObj2->PushCreationData(*buf, count); \
-						plObj2->AddVisibleObject(obj); \
-						(*buf)->clear(); \
-					} \
-				} \
+void MapMgr::UpdateInRangeSet(uint64 guid, MapCell* cell )
+{
+	if( cell == NULL )
+		return;
 
-#define IN_RANGE_LOOP_P3 \
-			} \
-		} \
-	} \
+	int count;
+	float fRange;
+	Object* obj = NULL;
+	Player* plObj = NULL;
+	Object* curObj = NULL;
+	Player* plObj2 = NULL;
+	bool cansee, isvisible;
+	ObjectSet::iterator itr;
+	ObjectSet::iterator iter = cell->Begin();
+	obj = _GetObject(guid);
+	if(obj == NULL)
+		return;
+	if(obj->IsPlayer())
+		plObj = static_cast<Player *>(obj);
 
-
-	if(plObj)
+	while( iter != cell->End() )
 	{
-		IN_RANGE_LOOP_P1
+		curObj = *iter;
+		++iter;
 
-			obj->AddInRangeObject(curObj);
-			if(plObj->CanSee(curObj) && !plObj->IsVisible(curObj))
+		if( curObj == NULL )
+			continue;
+
+		if( curObj->IsPlayer() && obj->IsPlayer() && plObj->m_TransporterGUID && plObj->m_TransporterGUID == static_cast< Player* >( curObj )->m_TransporterGUID )
+			fRange = 0.0f; // unlimited distance for people on same boat
+		else if( curObj->IsPlayer() && obj->IsPlayer() && plObj->m_CurrentVehicle && plObj->m_CurrentVehicle == static_cast< Player* >( curObj )->m_CurrentVehicle )
+			fRange = 0.0f; // unlimited distance for people on same vehicle
+		else if( curObj->GetTypeFromGUID() == HIGHGUID_TYPE_TRANSPORTER || curObj->GetTypeFromGUID() ==  HIGHGUID_TYPE_VEHICLE)
+				fRange = 0.0f; // unlimited distance for transporters (only up to 2 cells +/- anyway.)
+		else if( curObj->IsGO() && static_cast< GameObject * >(curObj)->GetInfo() )
+		{	// Crow: Arc, previous changes were only supporting Destructible.
+			uint32 type = static_cast< GameObject * >(curObj)->GetInfo()->Type;
+			if( type == GAMEOBJECT_TYPE_TRANSPORT || type == GAMEOBJECT_TYPE_MAP_OBJECT || type == GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING )
+				fRange = 0.0f;
+			else
+				fRange = m_UpdateDistance; // normal distance
+		}
+		else
+			fRange = m_UpdateDistance; // normal distance
+
+		// Add if we are not ourself and range == 0 or distance is withing range.
+		if ( curObj != obj && (fRange == 0.0f || IsInRange(fRange, obj, curObj)))
+		{
+			if( !obj->IsInRangeSet( curObj ) )
 			{
-				CHECK_BUF;
-				count = curObj->BuildCreateUpdateBlockForPlayer(*buf, plObj);
-				plObj->PushCreationData(*buf, count);
-				plObj->AddVisibleObject(curObj);
-				(*buf)->clear();
-			}
+				// Object in range, add to set
+				obj->AddInRangeObject( curObj );
+				curObj->AddInRangeObject( obj );
 
-		IN_RANGE_LOOP_P2
-
-			if(plObj)
-			{
-				cansee = plObj->CanSee(curObj);
-				isvisible = plObj->GetVisibility(curObj, &itr);
-				if(!cansee && isvisible)
+				if( curObj->IsPlayer() )
 				{
-					plObj->PushOutOfRange(curObj->GetNewGUID());
-					plObj->RemoveVisibleObject(itr);
+					plObj2 = static_cast<Player *>( curObj );
+
+					if( plObj2->CanSee( obj ) && !plObj2->IsVisible( obj ) )
+					{
+						count = obj->BuildCreateUpdateBlockForPlayer(&m_createBuffer, plObj2);
+						plObj2->PushCreationData(&m_createBuffer, count);
+						plObj2->AddVisibleObject(obj);
+						m_createBuffer.clear();
+					}
 				}
-				else if(cansee && !isvisible)
+
+				if( plObj != NULL )
 				{
-					CHECK_BUF;
-					count = curObj->BuildCreateUpdateBlockForPlayer(*buf, plObj);
-					plObj->PushCreationData(*buf, count);
-					plObj->AddVisibleObject(curObj);
-					(*buf)->clear();
+					if( plObj->CanSee( curObj ) && !plObj->IsVisible( curObj ) )
+					{
+						count = curObj->BuildCreateUpdateBlockForPlayer( &m_createBuffer, plObj );
+						plObj->PushCreationData( &m_createBuffer, count );
+						plObj->AddVisibleObject( curObj );
+						m_createBuffer.clear();
+					}
 				}
 			}
+			else
+			{
+				// Check visiblility
+				if( curObj->IsPlayer() )
+				{
+					plObj2 = static_cast<Player *>( curObj );
+					cansee = plObj2->CanSee(obj);
+					isvisible = plObj2->GetVisibility(obj, &itr);
+					if(!cansee && isvisible)
+					{
+						plObj2->PushOutOfRange(obj->GetNewGUID());
+						plObj2->RemoveVisibleObject(itr);
+					}
+					else if(cansee && !isvisible)
+					{
+						count = obj->BuildCreateUpdateBlockForPlayer(&m_createBuffer, plObj2);
+						plObj2->PushCreationData(&m_createBuffer, count);
+						plObj2->AddVisibleObject(obj);
+						m_createBuffer.clear();
+					}
+				}
 
-		IN_RANGE_LOOP_P3
-	} else if(obj->NeedsInRangeSet())
-	{
-		IN_RANGE_LOOP_P1
-			obj->AddInRangeObject(curObj);
-		IN_RANGE_LOOP_P2
-		IN_RANGE_LOOP_P3
+				if( plObj )
+				{
+					cansee = plObj->CanSee( curObj );
+					isvisible = plObj->GetVisibility( curObj, &itr );
+					if(!cansee && isvisible)
+					{
+						plObj->PushOutOfRange( curObj->GetNewGUID() );
+						plObj->RemoveVisibleObject( itr );
+					}
+					else if(cansee && !isvisible)
+					{
+						count = curObj->BuildCreateUpdateBlockForPlayer( &m_createBuffer, plObj );
+						plObj->PushCreationData( &m_createBuffer, count );
+						plObj->AddVisibleObject( curObj );
+						m_createBuffer.clear();
+					}
+				}
+			}
+		}
 	}
-	else
-	{
-		IN_RANGE_LOOP_P1
-			if(curObj->IsPlayer())
-				obj->AddInRangePlayer(obj);
-
-		IN_RANGE_LOOP_P2
-		IN_RANGE_LOOP_P3
-	}
-
-#undef IN_RANGE_LOOP_P1
-#undef IN_RANGE_LOOP_P2
-#undef IN_RANGE_LOOP_P3*/
 }
 
 void MapMgr::_UpdateObjects()
 {
+	m_updateMutex.Acquire();
 	if(!_updates.size() && !_processQueue.size())
 	{
+		m_updateMutex.Release();
 		return;
 	}
-	//m_updateMutex.Release();
 
-	Object *pObj;
-	Player *pOwner;
-	//std::set<Object*>::iterator it_start, it_end, itr;
+	Object* pObj;
+	Player* pOwner;
 	std::set<Player*>::iterator it_start, it_end, itr;
-	Player * lplr;
-	ByteBuffer update(2500);
+	Player* lplr;
 	uint32 count = 0;
-	
-	//m_updateMutex.Acquire();
+
 	UpdateQueue::iterator iter = _updates.begin();
-	//m_updateMutex.Release();
 	PUpdateQueue::iterator it, eit;
 
 	for(; iter != _updates.end();)
 	{
 		pObj = *iter;
 		++iter;
-		if(!pObj) continue;
+		if(!pObj)
+			continue;
 
 		if(pObj->GetTypeId() == TYPEID_ITEM || pObj->GetTypeId() == TYPEID_CONTAINER)
 		{
@@ -1135,12 +1079,12 @@ void MapMgr::_UpdateObjects()
 			pOwner = static_cast< Item* >(pObj)->GetOwner();
 			if( pOwner != NULL )
 			{
-				count = static_cast< Item* >( pObj )->BuildValuesUpdateBlockForPlayer( &update, pOwner );
+				count = static_cast< Item* >( pObj )->BuildValuesUpdateBlockForPlayer( &m_updateBuffer, pOwner );
 				// send update to owner
 				if( count )
 				{
-					pOwner->PushUpdateData( &update, count );
-					update.clear();
+					pOwner->PushUpdateData( &m_updateBuffer, count );
+					m_updateBuffer.clear();
 				}
 			}
 		}
@@ -1152,11 +1096,11 @@ void MapMgr::_UpdateObjects()
 				if( pObj->GetTypeId() == TYPEID_PLAYER )
 				{
 					// need to be different! ;)
-					count = pObj->BuildValuesUpdateBlockForPlayer( &update, static_cast< Player* >( pObj ) );
+					count = pObj->BuildValuesUpdateBlockForPlayer( &m_updateBuffer, static_cast< Player* >( pObj ) );
 					if( count )
 					{
-						static_cast< Player* >( pObj )->PushUpdateData( &update, count );
-						update.clear();
+						static_cast< Player* >( pObj )->PushUpdateData( &m_updateBuffer, count );
+						m_updateBuffer.clear();
 					}
 				}
 
@@ -1164,8 +1108,7 @@ void MapMgr::_UpdateObjects()
 					static_cast< Unit* >( pObj )->EventHealthChangeSinceLastUpdate();
 
 				// build the update
-				count = pObj->BuildValuesUpdateBlockForPlayer( &update, static_cast< Player* >( NULL ) );
-
+				count = pObj->BuildValuesUpdateBlockForPlayer( &m_updateBuffer, static_cast< Player* >( NULL ) );
 				if( count )
 				{
 					it_start = pObj->GetInRangePlayerSetBegin();
@@ -1176,20 +1119,18 @@ void MapMgr::_UpdateObjects()
 						++itr;
 						// Make sure that the target player can see us.
 						if(lplr && lplr->GetTypeId() == TYPEID_PLAYER && lplr->IsVisible( pObj ) )
-							lplr->PushUpdateData( &update, count );
+							lplr->PushUpdateData( &m_updateBuffer, count );
 					}
-					update.clear();
+					m_updateBuffer.clear();
 				}
 			}
 		}
 		pObj->ClearUpdateMask();
 	}
-	//_updates.clear();
-	//m_updateMutex.Release();
-	
+	_updates.clear();
+
 	// generate pending a9packets and send to clients.
-	Player *plyr;
-	m_updateMutex.Acquire();
+	Player* plyr;
 	for(it = _processQueue.begin(); it != _processQueue.end();)
 	{
 		plyr = *it;
@@ -1201,54 +1142,66 @@ void MapMgr::_UpdateObjects()
 	}
 	m_updateMutex.Release();
 }
-void MapMgr::LoadAllCells()
+
+void MapMgr::UpdateAllCells(bool apply, uint32 areamask)
 {
 	// eek
+	uint16 AreaID = 0;
 	MapCell * cellInfo;
 	CellSpawns * spawns;
-
-	for( uint32 x = 0 ; x < _sizeX ; x ++ )
+	uint32 StartX = 0, EndX = 0, StartY = 0, EndY = 0;
+	GetBaseMap()->GetCellLimits(StartX, EndX, StartY, EndY);
+	if(!areamask)
+		Log.Notice("MapMgr", "Updating all cells for map %03u, server might lag.", _mapId);
+	for( uint32 x = StartX ; x < EndX ; x ++ )
 	{
-		for( uint32 y = 0 ; y < _sizeY ; y ++ )
+		for( uint32 y = StartY ; y < EndY ; y ++ )
 		{
-			cellInfo = GetCell( x , y );
-			
-			if( !cellInfo )
-			{
-				// Cell doesn't exist, create it.
-				// There is no spoon. Err... cell.
-				cellInfo = Create( x , y );
-				cellInfo->Init( x , y , _mapId , this );
-				sLog.outDebug( "Created cell [%u,%u] on map %d (instance %d)." , x , y , _mapId , m_instanceID );
-				cellInfo->SetActivity( true );
-				_map->CellGoneActive( x , y );
-				ASSERT( !cellInfo->IsLoaded() );
 
-				spawns = _map->GetSpawnsList( x , y );
-				if( spawns )
-					cellInfo->LoadObjects( spawns );
+			if(areamask)
+			{
+				if(!GetBaseMap()->CellHasAreaID(x, y, AreaID))
+					continue;
+
+				AreaTable* at = dbcArea.LookupEntry( AreaID );
+				if(at == NULL)
+					continue;
+				if(at->ZoneId != areamask)
+					if(at->AreaId != areamask)
+						continue;
+				AreaID = 0;
+			}
+
+			cellInfo = GetCell( x , y );
+			if(apply)
+			{
+				if( !cellInfo )
+				{	// Cell doesn't exist, create it.
+					// There is no spoon. Err... cell.
+					cellInfo = Create( x , y );
+					cellInfo->Init( x , y , _mapId , this );
+					sLog.outDebug("MapMgr","Created cell [%u,%u] on map %u (instance %u)." , x , y , _mapId , m_instanceID );
+				}
+
+				AddForcedCell(cellInfo, 0);
+				if (!cellInfo->IsLoaded())
+				{
+					spawns = _map->GetSpawnsList( x , y );
+					if( spawns )
+						cellInfo->LoadObjects( spawns );
+				}
 			}
 			else
 			{
-				// Cell exists, but is inactive
-				if ( !cellInfo->IsActive() )
-				{
-					sLog.outDebug("Activated cell [%u,%u] on map %d (instance %d).", x, y, _mapId, m_instanceID );
-					_map->CellGoneActive( x , y );
-					cellInfo->SetActivity( true );
+				if(!cellInfo)
+					continue;
 
-					if (!cellInfo->IsLoaded())
-					{
-						//sLog.outDetail("Loading objects for Cell [%d][%d] on map %d (instance %d)...", 
-						//	posX, posY, this->_mapId, m_instanceID);
-						spawns = _map->GetSpawnsList( x , y );
-						if( spawns )
-							cellInfo->LoadObjects( spawns );
-					}
-				}
+				RemoveForcedCell(cellInfo);
 			}
 		}
 	}
+	if(!areamask)
+		Log.Success("MapMgr", "Cell updating success for map %03u", _mapId);
 }
 
 void MapMgr::UpdateCellActivity(uint32 x, uint32 y, int radius)
@@ -1266,8 +1219,10 @@ void MapMgr::UpdateCellActivity(uint32 x, uint32 y, int radius)
 	{
 		for (posY = startY; posY <= endY; posY++ )
 		{
-			objCell = GetCell(posX, posY);
+			if( posX >= _sizeX ||  posY >= _sizeY )
+				continue;
 
+			objCell = GetCell(posX, posY);
 			if (!objCell)
 			{
 				if (_CellActive(posX, posY))
@@ -1321,6 +1276,56 @@ void MapMgr::UpdateCellActivity(uint32 x, uint32 y, int radius)
 
 }
 
+float MapMgr::GetLandHeight(float x, float y, float z)
+{
+	return GetBaseMap()->GetLandHeight(x, y, z);
+}
+
+float MapMgr::GetWaterHeight(float x, float y, float z)
+{
+	return GetBaseMap()->GetWaterHeight(x, y, z);
+}
+
+uint16 MapMgr::GetWaterType(float x, float y)
+{
+	return GetBaseMap()->GetWaterType(x, y);
+}
+
+uint8 MapMgr::GetWalkableState(float x, float y)
+{
+	return GetBaseMap()->GetWalkableState(x, y);
+}
+
+uint16 MapMgr::GetAreaID(float x, float y, float z)
+{
+	uint16 aid = GetBaseMap()->GetAreaID(x, y, z);
+	if(_mapId == 571)
+	{
+		if((y < 1003.5413 && y > 269.7706) && (x < 6125.6840 && x > 5453.6235) && z > 546.0f)
+		{
+			if(z > 639.0f && z < 740.0f) // Better dirty fix for Dalaran
+				return 4395;
+			else if(z < 639.0f) // Dalaran Sewers: The Underbelly
+				return 4560;
+			else if(z > 740.0f) // Dalaran: The Violet Citadel
+				return 4619;
+		}
+	}
+	return aid;
+}
+
+void MapMgr::AddForcedCell(MapCell * c, uint32 range)
+{
+	m_forcedcells.insert(c);
+	UpdateCellActivity(c->GetPositionX(), c->GetPositionY(), range);
+}
+
+void MapMgr::RemoveForcedCell(MapCell * c, uint32 range)
+{
+	m_forcedcells.erase(c);
+	UpdateCellActivity(c->GetPositionX(), c->GetPositionY(), range);
+}
+
 bool MapMgr::_CellActive(uint32 x, uint32 y)
 {
 	uint32 endX = ((x+1) <= _sizeX) ? x + 1 : (_sizeX-1);
@@ -1330,23 +1335,18 @@ bool MapMgr::_CellActive(uint32 x, uint32 y)
 	uint32 posX, posY;
 
 	MapCell *objCell;
-
 	for (posX = startX; posX <= endX; posX++ )
 	{
 		for (posY = startY; posY <= endY; posY++ )
 		{
 			objCell = GetCell(posX, posY);
-
 			if (objCell)
 			{
 				if (objCell->HasActivity() || m_forcedcells.find(objCell) != m_forcedcells.end() || !sWorld.UnloadCells)
-				{
 					return true;
-				}
 			}
 		}
 	}
-
 	return false;
 }
 
@@ -1355,7 +1355,9 @@ void MapMgr::ObjectUpdated(Object* obj)
 	// set our fields to dirty
 	// stupid fucked up code in places.. i hate doing this but i've got to :<
 	// - burlex
+	m_updateMutex.Acquire();
 	_updates.insert(obj);
+	m_updateMutex.Release();
 }
 
 void MapMgr::PushToProcessed(Player* plr)
@@ -1363,14 +1365,13 @@ void MapMgr::PushToProcessed(Player* plr)
 	_processQueue.insert(plr);
 }
 
-
 void MapMgr::ChangeFarsightLocation(Player* plr, Unit* farsight, bool apply)
 {
 	if(!apply)
 	{
 		// We're clearing.
 		for(ObjectSet::iterator itr = plr->m_visibleFarsightObjects.begin(); itr != plr->m_visibleFarsightObjects.end();
-			++itr)
+			itr++)
 		{
 			// Send destroy
 			plr->PushOutOfRange((*itr)->GetNewGUID());
@@ -1400,7 +1401,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, Unit* farsight, bool apply)
 				{
 					iter = cell->Begin();
 					iend = cell->End();
-					for(; iter != iend; ++iter)
+					for(; iter != iend; iter++)
 					{
 						obj = (*iter);
 						if(!plr->IsVisible(obj) && plr->CanSee(obj) && farsight->GetDistance2dSq(obj) <= m_UpdateDistance)
@@ -1411,6 +1412,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, Unit* farsight, bool apply)
 							plr->m_visibleFarsightObjects.insert(obj);
 						}
 					}
+
 				}
 			}
 		}
@@ -1423,7 +1425,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, float X, float Y, bool apply)
 	{
 		// We're clearing.
 		for(ObjectSet::iterator itr = plr->m_visibleFarsightObjects.begin(); itr != plr->m_visibleFarsightObjects.end();
-			++itr)
+			itr++)
 		{
 			// Send destroy
 			plr->PushOutOfRange((*itr)->GetNewGUID());
@@ -1452,7 +1454,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, float X, float Y, bool apply)
 				{
 					iter = cell->Begin();
 					iend = cell->End();
-					for(; iter != iend; ++iter)
+					for(; iter != iend; iter++)
 					{
 						obj = (*iter);
 						if(!plr->IsVisible(obj) && plr->CanSee(obj) && obj->GetDistance2dSq(X, Y) <= m_UpdateDistance)
@@ -1463,7 +1465,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, float X, float Y, bool apply)
 							plr->m_visibleFarsightObjects.insert(obj);
 						}
 					}
-					
+
 				}
 			}
 		}
@@ -1515,7 +1517,7 @@ bool MapMgr::Do()
 	}
 
 	/* add static objects */
-	for(set<Object* >::iterator itr = _mapWideStaticObjects.begin(); itr != _mapWideStaticObjects.end(); ++itr)
+	for(set<Object* >::iterator itr = _mapWideStaticObjects.begin(); itr != _mapWideStaticObjects.end(); itr++)
 		PushStaticObject(*itr);
 
 	/* load corpses */
@@ -1535,6 +1537,9 @@ bool MapMgr::Do()
      //sHookInterface.OnContinentCreate(this);
 	}
     //-------------------------------------------
+
+	/*if(sWorld.ServerPreloading && _mapId == 0)
+		UpdateAllCells(true);*/
 
 	// always declare local variables outside of the loop!
 	// otherwise theres a lot of sub esp; going on.
@@ -1723,6 +1728,47 @@ Object* MapMgr::_GetObject(const uint64 & guid)
 	}
 }
 
+Object* MapMgr::GetObjectClosestToCoords(uint32 entry, float x, float y, float z, float ClosestDist, int32 forcedtype)
+{
+	MapCell * pCell = GetCell(GetPosX(x), GetPosY(y));
+	if(pCell == NULL)
+		return NULL;
+
+	Object* ClosestObject = NULL;
+	float CurrentDist = 0;
+	ObjectSet::const_iterator iter;
+	for(iter = pCell->Begin(); iter != pCell->End(); iter++)
+	{
+		CurrentDist = (*iter)->CalcDistance(x, y, (z != 0.0f ? z : (*iter)->GetPositionZ()));
+		if(CurrentDist < ClosestDist)
+		{
+			if(forcedtype > -1 && forcedtype != (*iter)->GetTypeId())
+				continue;
+
+			if((entry && (*iter)->GetEntry() == entry) || !entry)
+			{
+				ClosestDist = CurrentDist;
+				ClosestObject = (*iter);
+			}
+		}
+	}
+
+	return ClosestObject;
+}
+
+bool MapMgr::CanUseCollision(Object* obj)
+{
+	if(collision)
+	{
+		uint32 tileX = (GetPosX(obj->GetPositionX())/8);
+		uint32 tileY = (GetPosY(obj->GetPositionY())/8);
+		if(CollideInterface.IsActiveTile(_mapId, tileX, tileY))
+			return true;
+	}
+
+	return false;
+}
+
 void MapMgr::_PerformObjectDuties()
 {
 	++mLoopCounter;
@@ -1732,50 +1778,66 @@ void MapMgr::_PerformObjectDuties()
 		difftime = 500;
 
 	// Update our objects.
-
-	Creature* ptr;
-	__creature_iterator = activeCreatures.begin();
-	for(; __creature_iterator != activeCreatures.end();)
 	{
-		ptr = *__creature_iterator;
-		++__creature_iterator;
+		ActiveLock.Acquire();
+		if(activeCreatures.size())
+		{
+			Creature* ptr;
+			__creature_iterator = activeCreatures.begin();
+			for(; __creature_iterator != activeCreatures.end();)
+			{
+				ptr = *__creature_iterator;
+				++__creature_iterator;
 
-		ptr->Update(difftime);
-	}
+				ptr->Update(difftime);
+			}
+		}
 
-	Pet* ptr2;
-	__pet_iterator = m_PetStorage.begin();
-	for(; __pet_iterator != m_PetStorage.end();)
-	{
-		ptr2 = __pet_iterator->second;
-		++__pet_iterator;
 
-		ptr2->Update(difftime);
-	}		
+		if(activeVehicles.size())
+		{
+			Vehicle* ptr3;
+			__vehicle_iterator = activeVehicles.begin();
+			for(; __vehicle_iterator != activeVehicles.end();)
+			{
+				ptr3 = *__vehicle_iterator;
+				++__vehicle_iterator;
 
-	Vehicle* ptr3;
-	__vehicle_iterator = activeVehicles.begin();
-	for(; __vehicle_iterator != activeVehicles.end();)
-	{
-		ptr3 = *__vehicle_iterator;
-		++__vehicle_iterator;
- 
-		ptr3->Update(difftime);
+				ptr3->Update(difftime);
+			}
+		}
+
+
+
+		if(m_PetStorage.size())
+		{
+			Pet* ptr2;
+			__pet_iterator = m_PetStorage.begin();
+			for(; __pet_iterator != m_PetStorage.end();)
+			{
+				ptr2 = __pet_iterator->second;
+				++__pet_iterator;
+
+				ptr2->Update(difftime);
+			}
+		}
+		ActiveLock.Release();
 	}
 
 	// Update any events.
 	eventHolder.Update(difftime);
 
+
 	// Update players.
 	Player* ptr4;
 	__player_iterator = m_PlayerStorage.begin();
-	 for(; __player_iterator != m_PlayerStorage.end();)
-	 {
-		ptr4 = __player_iterator->second;;
+	for(; __player_iterator != m_PlayerStorage.end();)
+	{
+		ptr4 = __player_iterator->second;
 		++__player_iterator;
 
 		ptr4->Update( difftime );
-	 }
+	}
 
 	lastUnitUpdate = mstime;
 
@@ -1793,9 +1855,20 @@ void MapMgr::_PerformObjectDuties()
 
 			ptr5->Update( difftime );
 		}
-
 		lastGameobjectUpdate = mstime;
-	}	
+
+		difftime = mstime - lastDynamicUpdate;
+		DynamicObject* ptr6;
+		DynamicObjectStorageMap::iterator itr = m_DynamicObjectStorage.begin();
+		for(; itr != m_DynamicObjectStorage.end(); )
+		{
+			ptr6 = itr->second;
+			++itr;
+
+			ptr6->UpdateTargets();
+		}
+		lastDynamicUpdate = mstime;
+	}
 
 	// Sessions are updated every loop.
 	{
@@ -1881,16 +1954,18 @@ void MapMgr::TeleportPlayers()
 			else
 			{
 				delete ptr;
+				ptr = NULL;
 				m_PlayerStorage.erase(__player_iterator);
 			}
 		}
 	}
 }
 
-void MapMgr::UnloadCell(uint32 x,uint32 y)
+void MapMgr::UnloadCell(uint32 x, uint32 y)
 {
 	MapCell * c = GetCell(x,y);
-	if(c == NULL || c->HasActivity() || _CellActive(x,y) || !c->IsUnloadPending()) return;
+	if(c == NULL || c->HasActivity() || _CellActive(x,y) || !c->IsUnloadPending())
+		return;
 
 	sLog.outDetail("Unloading Cell [%d][%d] on map %d (instance %d)...", 
 		x,y,_mapId,m_instanceID);
@@ -1931,7 +2006,48 @@ void MapMgr::EventRespawnGameObject(GameObject* o, MapCell * c)
 	}
 }
 
-void MapMgr::SendChatMessageToCellPlayers(Object* obj, WorldPacket* packet, uint32 cell_radius, uint32 langpos, int32 lang, WorldSession* originator)
+bool MapMgr::IsInRange(float fRange, Object* obj, Object* currentobj)
+{
+	// First distance check, are we in range?
+	if(currentobj->GetDistance2dSq( obj ) > fRange )
+		return false;
+	return true;
+}
+
+void MapMgr::SendMessageToCellPlayers(Object* obj, WorldPacket * packet, uint32 cell_radius /* = 2 */)
+{
+	uint32 cellX = GetPosX(obj->GetPositionX());
+	uint32 cellY = GetPosY(obj->GetPositionY());
+	uint32 endX = ((cellX+cell_radius) <= _sizeX) ? cellX + cell_radius : (_sizeX-1);
+	uint32 endY = ((cellY+cell_radius) <= _sizeY) ? cellY + cell_radius : (_sizeY-1);
+	uint32 startX = (cellX-cell_radius) > 0 ? cellX - cell_radius : 0;
+	uint32 startY = (cellY-cell_radius) > 0 ? cellY - cell_radius : 0;
+
+	MapCell *cell;
+	uint32 posX, posY;
+	MapCell::ObjectSet::iterator iter, iend;
+	for (posX = startX; posX <= endX; ++posX )
+	{
+		for (posY = startY; posY <= endY; ++posY )
+		{
+			cell = GetCell(posX, posY);
+			if (cell && cell->HasActivity() )
+			{
+				iter = cell->Begin();
+				iend = cell->End();
+				for(; iter != iend; iter++)
+				{
+					if((*iter)->IsPlayer())
+					{
+						static_cast<Player *>(*iter)->GetSession()->SendPacket(packet);
+					}
+				}
+			}
+		}
+	}
+}
+
+void MapMgr::SendChatMessageToCellPlayers(Object* obj, WorldPacket * packet, uint32 cell_radius, uint32 langpos, int32 lang, WorldSession * originator)
 {
 	uint32 cellX = GetPosX(obj->GetPositionX());
 	uint32 cellY = GetPosY(obj->GetPositionY());
@@ -2115,7 +2231,6 @@ void MapMgr::EventSendPacketToPlayers(int32 iZoneMask, int32 iFactionMask, World
 void MapMgr::SendPacketToPlayers(int32 iZoneMask, int32 iFactionMask, WorldPacket *pData)
 {
 	// Update all players on map.
-
 	Player * ptr = NULL;
 	PlayerStorageMap::iterator itr1 = m_PlayerStorage.begin();
 	for(itr1 = m_PlayerStorage.begin(); itr1 != m_PlayerStorage.end();)
@@ -2136,7 +2251,6 @@ void MapMgr::SendPacketToPlayers(int32 iZoneMask, int32 iFactionMask, WorldPacke
 		}
 	}
 }
-
 
 void MapMgr::RemoveAuraFromPlayers(int32 iFactionMask, uint32 uAuraId)
 {
@@ -2190,65 +2304,12 @@ void MapMgr::CastSpellOnPlayers(int32 iFactionMask, uint32 uSpellId)
 			if( iFactionMask != FACTION_MASK_ALL && ptr->GetTeam() != (uint32)iFactionMask )
 				continue;
 
-			ptr->CastSpell(static_cast<Unit *>(__player_iterator->second), sp, true);
+			if(sp != NULL)
+				sEventMgr.AddEvent(static_cast<Unit * >(ptr), &Unit::EventCastSpell, static_cast<Unit * >(__player_iterator->second), sp, EVENT_AURA_APPLY, 250, 1,EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 		}
 	}
 }
 
-void MapMgr::AddForcedCell(MapCell* c)
-{
-	m_forcedcells.insert(c);
-	UpdateCellActivity(c->GetPositionX(), c->GetPositionY(), 1);
-}
-
-void MapMgr::RemoveForcedCell(MapCell* c)
-{
-	m_forcedcells.erase(c);
-	UpdateCellActivity(c->GetPositionX(), c->GetPositionY(), 1);
-}
-/*
-void MapMgr::SetWorldState(uint32 zoneid, uint32 index, uint32 value)
-{   
-	//do we have a worldstate already?
-	HM_NAMESPACE::hash_map<uint32, WorldState*>::iterator itr=m_worldStates.find(zoneid);
-
-	if (itr != m_worldStates.end())
-		itr->second->SetState(index, value);
-	else
-	{
-		//we got here, no state set
-		WorldState* ws=new WorldState;
-		ws->SetState(index, value);
-		m_worldStates.insert(std::make_pair<uint32, WorldState*>(zoneid, ws));
-	}
-
-	WorldPacket data(SMSG_UPDATE_WORLD_STATE, 8);
-	data << index << value;
-
-	//update all players in this zone
-	for (PlayerStorageMap::iterator itr=m_PlayerStorage.begin(); itr!=m_PlayerStorage.end(); ++itr)
-		if (itr->second->GetSession() != NULL && itr->second->GetZoneId() == zoneid)
-			itr->second->GetSession()->SendPacket(&data);
-		
-}
-*/
-/*
-void MapMgr::SendInitialStates(Player* plr)
-{
-	HM_NAMESPACE::hash_map<uint32, WorldState*>::iterator itr=m_worldStates.find(plr->GetZoneId());
-
-	if (itr == m_worldStates.end())
-		return;
-
-	WorldPacket data(SMSG_INIT_WORLD_STATES, 14 + (itr->second->m_states.size() * 8));
-	data << GetMapId() << uint32(0) << uint32(0) << uint16(itr->second->m_states.size());
-
-	for (HM_NAMESPACE::hash_map<uint32, uint32>::iterator itr2=itr->second->m_states.begin(); itr2!=itr->second->m_states.end(); ++itr2)
-		data << itr2->first << itr2->second;
-
-	plr->GetSession()->SendPacket(&data);
-}
-*/
 void MapMgr::SendPvPCaptureMessage(int32 iZoneMask, uint32 ZoneId, const char * Format, ...)
 {
 	va_list ap;

@@ -230,7 +230,15 @@ namespace VMAP
         }
         return(height);
     }
-
+	
+	uint32 StaticMapTree::GetVmapFlags(Vector3& pos)
+ 	{
+ 		uint32 flags = 0;
+ 		int32 adtId = 0, rootId = 0, groupid = 0;
+ 		getAreaInfo(pos, flags, adtId, rootId, groupid);
+		return flags;
+ 	}
+	
     //=========================================================
 
     bool StaticMapTree::CanLoadMap(const std::string &vmapPath, uint32 mapID, uint32 tileX, uint32 tileY)

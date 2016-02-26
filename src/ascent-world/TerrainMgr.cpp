@@ -23,15 +23,18 @@
 
 TerrainMgr::TerrainMgr(string MapPath, uint32 MapId, bool Instanced) : mapPath(MapPath), mapId(MapId), Instance(Instanced)
 {
-#ifndef USE_MEMORY_MAPPING_FOR_MAPS
+	TileCountX = TileCountY = 0;
+	TileStartX = TileEndX = 0;
+	TileStartY = TileEndY = 0;
 	FileDescriptor = NULL;
-#endif
-	CellInformation = NULL;
+	TileInformation = NULL;
+	for(uint8 x = 0; x < 64; x++)
+		for(uint8 y = 0; y < 64; y++)
+			LoadCounter[x][y] = 0;
 }
 
 TerrainMgr::~TerrainMgr()
 {
-#ifndef USE_MEMORY_MAPPING_FOR_MAPS
 	if(FileDescriptor)
 	{
 		// Free up our file pointer.
@@ -42,40 +45,138 @@ TerrainMgr::~TerrainMgr()
 	}
 
 	// Big memory cleanup, whee.
-	if(CellInformation)
+	if(TileInformation)
 	{
-		for(uint32 x = 0; x < _sizeX; ++x)
+		for(uint32 x = 0; x < TileCountX; ++x)
 		{
-			for(uint32 y = 0; y < _sizeY; ++y)
+			for(uint32 y = 0; y < TileCountY; ++y)
 			{
-				if(CellInformation[x][y] != 0)
-					delete CellInformation[x][y];
+				if(TileInformation[x][y] != 0)
+					delete TileInformation[x][y];
+				TileInformation[x][y] = 0;
 			}
-			delete [] CellInformation[x];
+			delete [] TileInformation[x];
+			TileInformation[x] = 0;
 		}
-		delete [] CellInformation;
-		CellInformation = NULL;
+		delete [] TileInformation;
+		TileInformation = NULL;
 	}
-#else
+}
 
-	mutex.Acquire();
-
-	// Big memory cleanup, whee.
-	for(uint32 x = 0; x < _sizeX; ++x)
+float GetHeightF(float x, float y, int x_int, int y_int, TileTerrainInformation* Tile)
+{
+	float a, b, c;
+	// Select triangle:
+	if(x + y < 1)
 	{
-		delete [] CellInformation[x];
+		if(x > y)
+		{
+			// 1 triangle (h1, h2, h5 points)
+			float h1 = Tile->V9[x_int][y_int];
+			float h2 = Tile->V9[x_int+1][y_int];
+			float h5 = 2 * Tile->V8[x_int][y_int];
+			a = h2 - h1;
+			b = h5 - h1 - h2;
+			c = h1;
+		}
+		else
+		{
+			// 2 triangle (h1, h3, h5 points)
+			float h1 = Tile->V9[x_int][y_int];
+			float h3 = Tile->V9[x_int][y_int+1];
+			float h5 = 2 * Tile->V8[x_int][y_int];
+			a = h5 - h1 - h3;
+			b = h3 - h1;
+			c = h1;
+		}
 	}
-	delete [] CellInformation;
+	else
+	{
+		if(x > y)
+		{
+			// 3 triangle (h2, h4, h5 points)
+			float h2 = Tile->V9[x_int+1][y_int];
+			float h4 = Tile->V9[x_int+1][y_int+1];
+			float h5 = 2 * Tile->V8[x_int][y_int];
+			a = h2 + h4 - h5;
+			b = h4 - h2;
+			c = h5 - h4;
+		}
+		else
+		{
+			// 4 triangle (h3, h4, h5 points)
+			float h3 = Tile->V9[x_int][y_int+1];
+			float h4 = Tile->V9[x_int+1][y_int+1];
+			float h5 = 2 * Tile->V8[x_int][y_int];
+			a = h4 - h3;
+			b = h3 + h4 - h5;
+			c = h5 - h4;
+		}
+	}
+	// Calculate height
+	return a * x + b * y + c;
+}
 
-#ifdef WIN32
-	UnmapViewOfFile(m_Memory);
-	CloseHandle(hMap);
-	CloseHandle(hMappedFile);
-#else
-#error moo
-#endif
-	mutex.Release();
-#endif
+float GetHeight(float x, float y, TileTerrainInformation* Tile)
+{
+	if(Tile == NULL)
+		return NO_LAND_HEIGHT;
+
+	x = 128 * (32 - x / 533.3333333f);
+	y = 128 * (32 - y / 533.3333333f);
+
+	int x_int = (int)x;
+	int y_int = (int)y;
+
+	x -= x_int;
+	y -= y_int;
+
+	x_int &= (128 - 1);
+	y_int &= (128 - 1);
+
+	return GetHeightF(x, y, x_int, y_int, Tile);
+}
+
+float GetLiquidHeight(float x, float y, TileTerrainInformation* Tile)
+{
+	if(Tile == NULL)
+		return NO_WATER_HEIGHT;
+
+	x = 128 * (32 - x / 533.3333333f);
+	y = 128 * (32 - y / 533.3333333f);
+
+	int cx_int = ((int)x & (128 - 1));
+	int cy_int = ((int)y & (128 - 1));
+
+	return Tile->liquid_height[cx_int][cy_int];
+}
+
+uint16 GetLiquidType(float x, float y, TileTerrainInformation* Tile)
+{
+	if(Tile == NULL)
+		return 0;
+
+	x = 16 * (32 - x / 533.3333333f);
+	y = 16 * (32 - y / 533.3333333f);
+
+	int lx = (int)x & 15;
+	int ly = (int)y & 15;
+
+	return Tile->LiquidInfo[lx * 16 + ly];
+}
+
+uint32 GetAreaFlags(float x, float y, TileTerrainInformation* Tile)
+{
+	if(Tile == NULL)
+		return 0;
+
+	x = 16 * (32 - x / 533.3333333f);
+	y = 16 * (32 - y / 533.3333333f);
+
+	int lx = (int)x & 15;
+	int ly = (int)y & 15;
+
+	return Tile->AreaInfo[lx * 16 + ly];
 }
 
 bool TerrainMgr::LoadTerrainHeader()
@@ -85,10 +186,7 @@ bool TerrainMgr::LoadTerrainHeader()
 
 	snprintf(File, 200, "%s/Map_%u.bin", mapPath.c_str(), (unsigned int)mapId);
 
-#ifndef USE_MEMORY_MAPPING_FOR_MAPS
-
 	FileDescriptor = fopen(File, "rb");
-
 	if(FileDescriptor == 0)
 	{
 		Log.Error("TerrainMgr", "Map load failed for %s. Missing file?", File);
@@ -97,117 +195,74 @@ bool TerrainMgr::LoadTerrainHeader()
 
 	/* check file size */
 	fseek(FileDescriptor, 0, SEEK_END);
-	if(ftell(FileDescriptor) == 1048576)
+	if(ftell(FileDescriptor) == TERRAIN_HEADER_SIZE)
 	{
+		sLog.outDebug("Map file %s Ignored.", File);
+
 		/* file with no data */
 		fclose(FileDescriptor);
-		FileDescriptor=NULL;
+		FileDescriptor = NULL;
 		return false;
 	}
 
 	// Read in the header.
-	fseek(FileDescriptor,0,SEEK_SET);
-	size_t dread = fread(CellOffsets, 1, TERRAIN_HEADER_SIZE, FileDescriptor);
+	fseek(FileDescriptor, 0, SEEK_SET);
+	size_t dread = fread(TileOffsets, 1, TERRAIN_HEADER_SIZE, FileDescriptor);
 	if(dread != TERRAIN_HEADER_SIZE)
 	{
+		Log.Error("TerrainMgr", "Terrain header read failed for %s! %u/%u | %u", File, dread, TERRAIN_HEADER_SIZE, sizeof(TileOffsets));
 		fclose(FileDescriptor);
-		FileDescriptor=NULL;
+		FileDescriptor = NULL;
 		return false;
 	}
 
-	// Allocate both storage arrays.
-	CellInformation = new CellTerrainInformation**[_sizeX];
-	for(uint32 x = 0; x < _sizeX; ++x)
+	for(uint32 x = 0; x < 64; ++x)
 	{
-		CellInformation[x] = new CellTerrainInformation*[_sizeY];
-		for(uint32 y = 0; y < _sizeY; ++y)
+		for(uint32 y = 0; y < 64; ++y)
+		{
+			if(TileOffsets[x][y])
+			{
+				if(!TileStartX || TileStartX > x)
+					TileStartX = x;
+				if(!TileStartY || TileStartY > y)
+					TileStartY = y;
+				if(x > TileEndX)
+					TileEndX = x;
+				if(y > TileEndY)
+					TileEndY = y;
+			}
+		}
+	}
+	TileCountX = (TileEndX-TileStartX)+1;
+	TileCountY = (TileEndY-TileStartY)+1;
+
+	// Allocate both storage arrays.
+	TileInformation = new TileTerrainInformation**[TileCountX];
+	for(uint32 x = 0; x < TileCountX; ++x)
+	{
+		TileInformation[x] = new TileTerrainInformation*[TileCountY];
+		for(uint32 y = 0; y < TileCountY; ++y)
 		{
 			// Clear the pointer.
-			CellInformation[x][y] = 0;
+			TileInformation[x][y] = 0;
 		}
 	}
-
-#ifdef USING_BIG_ENDIAN
-	uint32 x,y;
-	for(x=0;x<512;++x) {
-		for(y=0;y<512;++y) {
-			CellOffsets[x][y] = swap32(CellOffsets[x][y]);
-		}
-	}
-#endif
-
 	return true;
-
-#else
-
-#ifdef WIN32
-	
-	DWORD sizehigh;
-
-	hMappedFile = CreateFile(File, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_ARCHIVE, NULL);
-	if(hMappedFile == INVALID_HANDLE_VALUE)
-		return false;
-
-	hMap = CreateFileMapping(hMappedFile, NULL, PAGE_READONLY, 0, 0, NULL);
-	if(hMap==INVALID_HANDLE_VALUE)
-	{
-		CloseHandle(hMappedFile);
-		return false;
-	}
-
-	mFileSize = GetFileSize(hMappedFile, &sizehigh);
-
-	ASSERT(ReadFile(hMappedFile, CellOffsets, TERRAIN_HEADER_SIZE, &sizehigh, NULL));
-	ASSERT(sizehigh==TERRAIN_HEADER_SIZE);
-
-	SetFilePointer(hMappedFile, 0, NULL, FILE_BEGIN);
-	m_Memory = (uint8*)MapViewOfFile(hMap, FILE_MAP_READ, 0, TERRAIN_HEADER_SIZE, mFileSize-TERRAIN_HEADER_SIZE);
-	if(m_Memory==NULL)
-	{
-		CloseHandle(hMap);
-		CloseHandle(hMappedFile);
-	}
-
-	// Allocate both storage arrays.
-	CellInformation = new CellTerrainInformation**[_sizeX];
-	for(uint32 x = 0; x < _sizeX; ++x)
-	{
-		CellInformation[x] = new CellTerrainInformation*[_sizeY];
-		for(uint32 y = 0; y < _sizeY; ++y)
-		{
-			// Set pointer
-			if(CellOffsets[x][y] != 0)
-				CellInformation[x][y] = (CellTerrainInformation*)m_Memory+CellOffsets[x][y]-TERRAIN_HEADER_SIZE;
-			else
-				CellInformation[x][y] = 0;
-		}
-	}
-
-#else
-#error unimplemented in *nix
-#endif
-	return true;
-#endif
 }
 
-bool TerrainMgr::LoadCellInformation(uint32 x, uint32 y)
+bool TerrainMgr::LoadTileInformation(uint32 x, uint32 y)
 {
-#ifdef USE_MEMORY_MAPPING_FOR_MAPS
-	if(CellOffsets[x][y]==0)
-		return false;
-	else
-		return true;
-#else
 	if(!FileDescriptor)
 		return false;
 
+	uint32 offsX = x-TileStartX, offsY = y-TileStartY;
 	// Make sure that we're not already loaded.
-	assert(CellInformation[x][y] == 0);
+	assert(TileInformation[offsX][offsY] == 0);
 
 	// Find our offset in our cached header.
-	uint32 Offset = CellOffsets[x][y];
+	uint32 Offset = TileOffsets[x][y];
 
-	// If our offset = 0, it means we don't have cell information for 
+	// If our offset = 0, it means we don't have tile information for
 	// these coords.
 	if(Offset == 0)
 		return false;
@@ -216,114 +271,124 @@ bool TerrainMgr::LoadCellInformation(uint32 x, uint32 y)
 	mutex.Acquire();
 
 	// Check that we haven't been loaded by another thread.
-	if(CellInformation[x][y] != 0)
+	if(TileInformation[offsX][offsY] != 0)
 	{
 		mutex.Release();
 		return true;
 	}
-	
+
 	// Seek to our specified offset.
 	if(fseek(FileDescriptor, Offset, SEEK_SET) == 0)
 	{
-		// Allocate the cell information.
-		CellInformation[x][y] = new CellTerrainInformation;
+		// Allocate the tile information.
+		TileTerrainInformation* tile = TileInformation[offsX][offsY] = new TileTerrainInformation();
 
 		// Read from our file into this newly created struct.
-		fread(CellInformation[x][y], sizeof(CellTerrainInformation), 1, FileDescriptor);
-
-#ifdef USING_BIG_ENDIAN
-		uint32 i,j;
-		/* Swap all the data */
-
-		for(i = 0; j < 2; ++j) {
-			for(j = 0; j < 2; ++j) {
-				CellInformation[x][y]->AreaID[i][j] = swap16(CellInformation[x][y]->AreaID[i][j]);
-				CellInformation[x][y]->LiquidLevel[i][j] = swapfloat(CellInformation[x][y]->LiquidLevel[i][j]);
-			}
-		}
-
-		for(i = 0; i < 32; ++j) {
-			for(j = 0; j < 32; ++j) {
-				CellInformation[x][y]->Z[i][j] = swapfloat(CellInformation[x][y]->Z[i][j]);
-			}
-		}
-#endif
+		fread(&tile->AreaInfo, sizeof(uint16), 256, FileDescriptor);
+		fread(&tile->LiquidInfo, sizeof(uint16), 256, FileDescriptor);
+		fread(&tile->V8, sizeof(float), 128*128, FileDescriptor);
+		fread(&tile->V9, sizeof(float), 129*129, FileDescriptor);
+		fread(&tile->liquid_height, sizeof(float), 129*129, FileDescriptor);
 	}
 	// Release the mutex.
 	mutex.Release();
 
 	// If we don't equal 0, it means the load was successful.
-	if(CellInformation[x][y] != 0)
+	if(TileInformation[offsX][offsY] != 0)
 		return true;
 	else
 		return false;
-#endif
 }
 
-bool TerrainMgr::UnloadCellInformation(uint32 x, uint32 y)
+bool TerrainMgr::UnloadTileInformation(uint32 x, uint32 y)
 {
-#ifdef USE_MEMORY_MAPPING_FOR_MAPS
-	return true;
-#else
 	uint32 Start = getMSTime();
 
 	assert(!Instance);
+
+	mutex.Acquire();
+
+	uint32 offsX = x-TileStartX, offsY = y-TileStartY;
 	// Find our information pointer.
-	CellTerrainInformation * ptr = CellInformation[x][y];
+	TileTerrainInformation * ptr = TileInformation[offsX][offsY];
 	assert(ptr != 0);
 
 	// Set the spot to unloaded (null).
-	CellInformation[x][y] = 0;
+	TileInformation[offsX][offsY] = 0;
 
 	// Free the memory.
 	delete ptr;
+	mutex.Release();
 
-	sLog.outDebug("Unloaded cell information for cell [%u][%u] in %ums.", x, y, getMSTime() - Start);
+	sLog.outDebug("TerrainMgr","Unloaded tile information for tile [%u][%u] in %ums.", x, y, getMSTime() - Start);
 	// Success
 	return true;
-#endif
 }
 
-uint8 TerrainMgr::GetWaterType(float x, float y)
+uint16 TerrainMgr::GetWaterType(float x, float y)
 {
 	if(!AreCoordinatesValid(x, y))
 		return 0;
 
-	// Convert the co-ordinates to cells.
-	uint32 CellX = ConvertGlobalXCoordinate(x);
-	uint32 CellY = ConvertGlobalYCoordinate(y);
+	// Convert the co-ordinates to tiles.
+	uint32 TileX = ConvertGlobalXCoordinate(x);
+	uint32 TileY = ConvertGlobalYCoordinate(y);
 
-	if(!CellInformationLoaded(CellX, CellY))
+	if(!AreTilesValid(TileX, TileY))
+		return false;
+
+	uint32 OffsetTileX = TileX-TileStartX;
+	uint32 OffsetTileY = TileY-TileStartY;
+
+	mutex.Acquire();
+	if(!TileInformationLoaded(OffsetTileX, OffsetTileY))
+	{
+		mutex.Release();
 		return 0;
+	}
 
-	// Convert the co-ordinates to cell's internal
-	// system.
-	float IntX = ConvertInternalXCoordinate(x, CellX);
-	float IntY = ConvertInternalYCoordinate(y, CellY);
+	// Find the offset.
+	uint16 Liquid = GetLiquidType(x, y, GetTileInformation(OffsetTileX, OffsetTileY));
 
-	// Find the offset in the 2d array.
-	return GetCellInformation(CellX, CellY)->LiquidType[ConvertTo2dArray(IntX)][ConvertTo2dArray(IntY)];
+	// Return our cached information.
+	mutex.Release();
+	return Liquid;
 }
 
-float TerrainMgr::GetWaterHeight(float x, float y)
+float TerrainMgr::GetWaterHeight(float x, float y, float z)
 {
 	if(!AreCoordinatesValid(x, y))
-		return 0.0f;
+		return NO_WATER_HEIGHT;
 
-	// Convert the co-ordinates to cells.
-	uint32 CellX = ConvertGlobalXCoordinate(x);
-	uint32 CellY = ConvertGlobalYCoordinate(y);
+	// Convert the co-ordinates to tiles.
+	uint32 TileX = ConvertGlobalXCoordinate(x);
+	uint32 TileY = ConvertGlobalYCoordinate(y);
 
-	if(!CellInformationLoaded(CellX, CellY))
-		return 0.0f;
+	if(!AreTilesValid(TileX, TileY))
+		return false;
 
-	// Convert the co-ordinates to cell's internal
-	// system.
-	float IntX = ConvertInternalXCoordinate(x, CellX);
-	float IntY = ConvertInternalYCoordinate(y, CellY);
+	uint32 OffsetTileX = TileX-TileStartX;
+	uint32 OffsetTileY = TileY-TileStartY;
 
-	// Find the offset in the 2d array.
-	return GetCellInformation(CellX, CellY)->LiquidLevel[ConvertTo2dArray(IntX)][ConvertTo2dArray(IntY)];
+	mutex.Acquire();
+	if(!TileInformationLoaded(OffsetTileX, OffsetTileY))
+	{
+		mutex.Release();
+		return NO_WATER_HEIGHT;
+	}
+
+	float WaterHeight = GetLiquidHeight(x, y, GetTileInformation(OffsetTileX, OffsetTileY));
+	if(WaterHeight == 0.0f && !(GetLiquidType(x, y, GetTileInformation(OffsetTileX, OffsetTileY)) & 0x02))
+		WaterHeight = NO_WATER_HEIGHT;
+	else if(z != 0.0f && z != NO_WATER_HEIGHT)
+	{
+		if(z < GetHeight(x, y, GetTileInformation(OffsetTileX, OffsetTileY)))
+			WaterHeight = NO_WATER_HEIGHT;
+	}
+
+	// Return our cached information.
+	mutex.Release();
+	return WaterHeight;
 }
 
 uint8 TerrainMgr::GetWalkableState(float x, float y)
@@ -334,82 +399,85 @@ uint8 TerrainMgr::GetWalkableState(float x, float y)
 
 uint16 TerrainMgr::GetAreaID(float x, float y, float z)
 {
-	// ZONE DE DEBUG
 	if(!AreCoordinatesValid(x, y))
 		return 0;
 
-	if(mapId == 571)
+	// Convert the co-ordinates to tiles.
+	uint32 TileX = ConvertGlobalXCoordinate(x);
+	uint32 TileY = ConvertGlobalYCoordinate(y);
+
+	if(!AreTilesValid(TileX, TileY))
+		return false;
+
+	uint32 OffsetTileX = TileX-TileStartX;
+	uint32 OffsetTileY = TileY-TileStartY;
+
+	mutex.Acquire();
+	if(!TileInformationLoaded(OffsetTileX, OffsetTileY))
 	{
-		if((y < 1003.5413 && y > 269.7706) && (x < 6125.6840 && x > 5453.6235) && z > 546.0f)
-		{
-			if(z > 639.0f && z < 740.0f) // Better dirty fix for Dalaran
-				return 4395;
-			else if(z < 639.0f) // Dalaran Sewers: The Underbelly
-				return 4560;
-			else if(z > 740.0f) // Dalaran: The Violet Citadel
-				return 4619;
-		}
-	}
-	
-	// Convert the co-ordinates to cells.
-	uint32 CellX = ConvertGlobalXCoordinate(x);
-	uint32 CellY = ConvertGlobalYCoordinate(y);
-
-	if(!CellInformationLoaded(CellX, CellY) && !LoadCellInformation(CellX, CellY))
+		mutex.Release();
 		return 0;
-
-	// Convert the co-ordinates to cell's internal
-	// system.
-	float IntX = ConvertInternalXCoordinate(x, CellX);
-	float IntY = ConvertInternalYCoordinate(y, CellY);
+	}
 
 	// Find the offset in the 2d array.
-	return GetCellInformation(CellX, CellY)->AreaID[ConvertTo2dArray(IntX)][ConvertTo2dArray(IntY)];
+	uint16 AreaId = GetAreaFlags(x, y, GetTileInformation(OffsetTileX, OffsetTileY));
+
+	// Return our cached information.
+	mutex.Release();
+	return AreaId;
 }
 
-// Note Randdrick : Permet la detection d'une zone à travers son aire d'effet.
-AreaTable* TerrainMgr::GetArea( float x, float y, float z )
+void TerrainMgr::GetCellLimits(uint32 &StartX, uint32 &EndX, uint32 &StartY, uint32 &EndY)
 {
-	AreaTable* area = NULL;
-	float vmap_z = z;
-	VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager();	
+	StartX = TileStartX*8;
+	StartY = TileStartY*8;
+	EndX = TileEndX*8;
+	EndY = TileEndY*8;
+}
 
-	uint32 flags;
-	int32 adtid, rootid, groupid;
-	
-	if (vmgr->getAreaInfo(mapId, x, y, vmap_z, flags, adtid, rootid, groupid))
+bool TerrainMgr::CellHasAreaID(uint32 CellX, uint32 CellY, uint16 &AreaID)
+{
+	uint32 TileX = CellX/8;
+	uint32 TileY = CellY/8;
+
+	if(!AreTilesValid(TileX, TileY))
+		return false;
+
+	uint32 OffsetTileX = TileX-TileStartX;
+	uint32 OffsetTileY = TileY-TileStartY;
+
+	mutex.Acquire();
+	uint32 areaid = 0;
+	bool Required, Result = false;
+	if((Required = !TileInformationLoaded(OffsetTileX, OffsetTileY)))
 	{
-		float adtz = GetADTLandHeight(x, y);
-
-		if (adtz > vmap_z && z + 1 > adtz)
-			return GetArea2D(x,y);
-
-		AreaTableEntry* wmoArea = sWorld.GetAreaData(rootid, adtid, groupid);
-		if (wmoArea != NULL)
+		if(!LoadTileInformation(TileX, TileY))
 		{
-			area = dbcArea.LookupEntryForced(wmoArea->areaId);
+			mutex.Release();
+			return Result;
 		}
-
 	}
 
-	if (area == NULL) //fall back to 2d if no vmaps or vmap has no areaid set
-		return area = GetArea2D(x, y);
-	else
-		return area;	
+	for(uint32 xc = (CellX%CellsPerTile)*16/CellsPerTile;xc<(CellX%CellsPerTile)*16/CellsPerTile+16/CellsPerTile;xc++)
+	{
+		for(uint32 yc = (CellY%CellsPerTile)*16/CellsPerTile;yc<(CellY%CellsPerTile)*16/CellsPerTile+16/CellsPerTile;yc++)
+		{
+			areaid = GetTileInformation(OffsetTileX, OffsetTileY)->AreaInfo[yc*16+xc];
+			if(areaid)
+			{
+				AreaID = areaid;
+				Result = true;
+				break;
+			}
+		}
+	}
+
+	if(Required)
+		UnloadTileInformation(TileX, TileY);
+	mutex.Release();
+	return Result;
 }
 
-AreaTable* TerrainMgr::GetArea2D( float x, float y )
-{
-	uint32 exploreFlag = getAreaFlag(x, y);
-	
-	std::map<uint32, AreaTable*>::iterator itr = sWorld.mAreaIDToTable.find(exploreFlag);
-
-	if (itr == sWorld.mAreaIDToTable.end())
-		return NULL;
-
-	AreaTable * at = dbcArea.LookupEntryForced(itr->second->AreaId);	
-}
-	
 float TerrainMgr::GetLandHeight(float x, float y, float z)
 {
 		float adtheight = GetADTLandHeight(x, y);
@@ -425,67 +493,80 @@ float TerrainMgr::GetLandHeight(float x, float y, float z)
 float TerrainMgr::GetADTLandHeight(float x, float y)
 {
 	if(!AreCoordinatesValid(x, y))
-		return 0.0f;
+		return NO_LAND_HEIGHT;
 
-	// Convert the co-ordinates to cells.
-	uint32 CellX = ConvertGlobalXCoordinate(x);
-	uint32 CellY = ConvertGlobalYCoordinate(y);
+	// Convert the co-ordinates to tiles.
+	uint32 TileX = ConvertGlobalXCoordinate(x);
+	uint32 TileY = ConvertGlobalYCoordinate(y);
 
-	if(!CellInformationLoaded(CellX, CellY) && !LoadCellInformation(CellX, CellY))
-		return 0.0f;
+	if(!AreTilesValid(TileX, TileY))
+		return NO_LAND_HEIGHT;
 
-	// Convert the co-ordinates to cell's internal
-	// system.
-	float IntX = ConvertInternalXCoordinate(x, CellX);
-	float IntY = ConvertInternalYCoordinate(y, CellY);
+	uint32 OffsetTileX = TileX-TileStartX;
+	uint32 OffsetTileY = TileY-TileStartY;
 
-	// Calculate x index.
-	float TempFloat = IntX * (MAP_RESOLUTION / CellsPerTile / _cellSize);
-	uint32 XOffset = FL2UINT(TempFloat);
-	if((TempFloat - (XOffset * _cellSize)) >= 0.5f)
-		++XOffset;
+	mutex.Acquire();
+	if(!TileInformationLoaded(OffsetTileX, OffsetTileY))
+	{
+		mutex.Release();
+		return NO_LAND_HEIGHT;
+	}
 
-	// Calculate y index.
-	TempFloat = IntY * (MAP_RESOLUTION / CellsPerTile / _cellSize);
-	uint32 YOffset = FL2UINT(TempFloat);
-	if((TempFloat - (YOffset * _cellSize)) >= 0.5f)
-		++YOffset;
+	float LandHeight = GetHeight(x, y, GetTileInformation(OffsetTileX, OffsetTileY));
 
 	// Return our cached information.
-	return GetCellInformation(CellX, CellY)->Z[XOffset][YOffset];
-}
-
-uint32 TerrainMgr::getAreaFlag(float x, float y)
-{
-	if(!AreCoordinatesValid(x, y))
-		return 0;
-
-	// Convert the co-ordinates to cells.
-	uint32 CellX = ConvertGlobalXCoordinate(x);
-	uint32 CellY = ConvertGlobalYCoordinate(y);
-
-	if(!CellInformationLoaded(CellX, CellY))
-		return 0;
-
-	// Convert the co-ordinates to cell's internal
-	// system.
-	float IntX = ConvertInternalXCoordinate(x, CellX);
-	float IntY = ConvertInternalYCoordinate(y, CellY);
-
-	// Find the offset in the 2d array.
-	return GetCellInformation(CellX, CellY)->AeraFlags[ConvertTo2dArray(IntX)][ConvertTo2dArray(IntY)];
+	mutex.Release();
+	return LandHeight;
 }
 
 void TerrainMgr::CellGoneActive(uint32 x, uint32 y)
 {
-	// Load cell information if it's not already loaded.
-	if(!CellInformationLoaded(x, y))
-		LoadCellInformation(x, y);
+	uint32 tileX = x/8, tileY = y/8;
+	mutex.Acquire();
+	LoadCounter[tileX][tileY]++;
+
+	if(!AreTilesValid(tileX, tileY))
+	{
+		mutex.Release();
+		return;
+	}
+
+	uint32 OffsetTileX = tileX-TileStartX;
+	uint32 OffsetTileY = tileY-TileStartY;
+	if(TileInformationLoaded(OffsetTileX, OffsetTileY))
+	{
+		mutex.Release();
+		return;
+	}
+	mutex.Release();
+
+	// Load Tile information if it's not already loaded.
+	if(LoadCounter[tileX][tileY] == 1)
+		LoadTileInformation(tileX, tileY);
 }
 
 void TerrainMgr::CellGoneIdle(uint32 x, uint32 y)
 {
-	// If we're not an instance, unload our cell info.
-	if(!Instance && CellInformationLoaded(x, y) && sWorld.UnloadMapFiles)
-		UnloadCellInformation(x, y);
+	uint32 tileX = x/8, tileY = y/8;
+	mutex.Acquire();
+	LoadCounter[tileX][tileY]--;
+
+	if(!AreTilesValid(tileX, tileY))
+	{
+		mutex.Release();
+		return;
+	}
+
+	uint32 OffsetTileX = tileX-TileStartX;
+	uint32 OffsetTileY = tileY-TileStartY;
+	if(Instance || !TileInformationLoaded(OffsetTileX, OffsetTileY))
+	{
+		mutex.Release();
+		return;
+	}
+	mutex.Release();
+
+	// If we're not an instance, unload our Tile info.
+	if(LoadCounter[tileX][tileY] == 0)
+		UnloadTileInformation(tileX, tileY);
 }

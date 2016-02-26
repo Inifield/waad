@@ -4264,7 +4264,7 @@ void Spell::SpellEffectSummonObject(uint32 i)
 			posy = py+r*si;
 			if( !(map->GetWaterType( posx, posy ) & 1) )//water 
 				continue;
-			posz = map->GetWaterHeight( posx, posy );
+			posz = map->GetWaterHeight( posx, posy, NO_WATER_HEIGHT);
 			if( posz > map->GetLandHeight( posx, posy, pz ) )//water 
 				break;
 		}

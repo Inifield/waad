@@ -21,281 +21,251 @@
 #include "StdAfx.h"
 
 #ifdef COLLISION
-#define MAX_MAP 800
-
-CCollideInterface CollideInterface;
-Mutex m_loadLock;
-volatile long m_tilesLoaded[MAX_MAP][64][64];
-
-#ifdef WIN32
-#ifdef COLLISION_DEBUG
-
-uint64 c_GetTimerValue()
+struct CollisionMap
 {
-	LARGE_INTEGER li;
-	QueryPerformanceCounter( &li );
-	return li.QuadPart;
-}
+	uint32 m_loadCount;
+	uint32 m_tileLoadCount[64][64];
+	RWLock m_lock;
+};
 
-uint32 c_GetNanoSeconds(uint64 t1, uint64 t2)
-{
-	LARGE_INTEGER li;
-	double val;
-	QueryPerformanceFrequency( &li );
-	val = double( t1 - t2 ) * 1000000;
-	val /= li.QuadPart;
-    return long2int32( val );	
-}
-
-#define COLLISION_BEGINTIMER uint64 v1 = c_GetTimerValue();
-
-#endif	// COLLISION_DEBUG
-#endif	// WIN32
-
-
-// Debug functions
-#ifdef COLLISION_DEBUG
+SERVER_DECL CCollideInterface CollideInterface;
+VMAP::VMapManager2* CollisionMgr;
+CollisionMap *m_mapLocks[NUM_MAPS];
+Mutex m_mapCreateLock;
 
 void CCollideInterface::Init()
 {
 	Log.Notice("CollideInterface", "Init");
-	COLLISION_BEGINTIMER;
-	CollisionMgr = ((IVMapManager*)collision_init());
-	printf("[%u ns] collision_init\n", c_GetNanoSeconds(c_GetTimerValue(), v1));
+	CollisionMgr = new VMAP::VMapManager2;
+	for(uint32 i = 0; i < NUM_MAPS; i++)
+		m_mapLocks[i] = NULL;
 }
 
-void CCollideInterface::ActivateTile(uint32 mapId, uint32 tileX, uint32 tileY)
+void CCollideInterface::ActivateMap(uint32 mapId)
 {
-	m_loadLock.Acquire();
-	if(m_tilesLoaded[mapId][tileX][tileY] == 0)
+	if( !CollisionMgr )
+		return;
+
+	m_mapCreateLock.Acquire();
+	if( m_mapLocks[mapId] == NULL )
 	{
-		COLLISION_BEGINTIMER;
-		CollisionMgr->loadMap(sWorld.vMapPath.c_str, mapId, tileY, tileX);
-		printf("[%u ns] collision_activate_cell %u %u %u\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, tileX, tileY);
+		m_mapLocks[mapId] = new CollisionMap();
+		m_mapLocks[mapId]->m_loadCount = 1;
+		memset(&m_mapLocks[mapId]->m_tileLoadCount, 0, sizeof(uint32)*64*64);
+	}
+	else
+		m_mapLocks[mapId]->m_loadCount++;
+
+	m_mapCreateLock.Release();
+}
+
+void CCollideInterface::DeactivateMap(uint32 mapId)
+{
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return;
+
+	m_mapCreateLock.Acquire();
+	--m_mapLocks[mapId]->m_loadCount;
+	if( m_mapLocks[mapId]->m_loadCount == 0 )
+	{
+		// no instances using this anymore
+		delete m_mapLocks[mapId];
+		CollisionMgr->unloadMap(mapId);
+		m_mapLocks[mapId] = NULL;
+	}
+	m_mapCreateLock.Release();
+}
+
+bool CCollideInterface::ActivateTile(uint32 mapId, uint32 tileX, uint32 tileY)
+{
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return false;
+
+	// acquire write lock
+	m_mapLocks[mapId]->m_lock.AcquireWriteLock();
+	if( m_mapLocks[mapId]->m_tileLoadCount[tileX][tileY] == 0 )
+	{
+		if(CollisionMgr->loadMap(sWorld.vMapPath.c_str(), mapId, tileX, tileY))
+			sLog.outDebug("Loading VMap [%u/%u] successful", tileX, tileY);
+		else
+		{
+			sLog.outDebug("Loading VMap [%u/%u] unsuccessful", tileX, tileY);
+			m_mapLocks[mapId]->m_lock.ReleaseWriteLock();
+			return false;
+		}
 	}
 
-	++m_tilesLoaded[mapId][tileX][tileY];
-	m_loadLock.Release();
+	// increment count
+	m_mapLocks[mapId]->m_tileLoadCount[tileX][tileY]++;
+
+	// release lock
+	m_mapLocks[mapId]->m_lock.ReleaseWriteLock();
+	return true;
 }
 
 void CCollideInterface::DeactivateTile(uint32 mapId, uint32 tileX, uint32 tileY)
 {
-	m_loadLock.Acquire();
-	if(!(--m_tilesLoaded[mapId][tileX][tileY]))
-	{
-		COLLISION_BEGINTIMER;
-		CollisionMgr->unloadMap(mapId, tileY, tileX);
-		printf("[%u ns] collision_deactivate_cell %u %u %u\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, tileX, tileY);
-	}
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return;
 
-	m_loadLock.Release();
+	// get write lock
+	m_mapLocks[mapId]->m_lock.AcquireWriteLock();
+	if( (--m_mapLocks[mapId]->m_tileLoadCount[tileX][tileY]) == 0 )
+		CollisionMgr->unloadMap(mapId, tileX, tileY);
+
+	// release write lock
+	m_mapLocks[mapId]->m_lock.ReleaseWriteLock();
 }
 
-void CCollideInterface::DeInit()
+bool CCollideInterface::IsActiveTile(uint32 mapId, uint32 tileX, uint32 tileY)
 {
-	Log.Notice("CollideInterface", "DeInit");
-	COLLISION_BEGINTIMER;
-	collision_shutdown();
-	printf("[%u ns] collision_shutdown\n", c_GetNanoSeconds(c_GetTimerValue(), v1));
-}
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return false;
 
-float CCollideInterface::GetHeight(uint32 mapId, float x, float y, float z)
-{
-	COLLISION_BEGINTIMER;
-	float v = CollisionMgr->getHeight(mapId, x, y, z);
-	printf("[%u ns] GetHeight Map:%u %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, x, y, z);
-	return v;
-}
+	bool isactive = false;
 
-float CCollideInterface::GetHeight(uint32 mapId, LocationVector & pos)
-{
-	COLLISION_BEGINTIMER;
-	float v = CollisionMgr->getHeight(mapId, pos);
-	printf("[%u ns] GetHeight Map:%u %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, pos.x, pos.y, pos.z);
-	return v;
-}
+	// acquire write lock
+	m_mapLocks[mapId]->m_lock.AcquireWriteLock();
+	if(m_mapLocks[mapId]->m_tileLoadCount[tileX][tileY])
+		isactive = true;
+	m_mapLocks[mapId]->m_lock.ReleaseWriteLock(); // release lock
 
-bool CCollideInterface::IsIndoor(uint32 mapId, LocationVector & pos)
-{
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->isInDoors(mapId, pos);
-	printf("[%u ns] IsIndoor Map:%u %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, pos.x, pos.y, pos.z);
-	return r;
-}
-
-bool CCollideInterface::IsOutdoor(uint32 mapId, LocationVector & pos)
-{
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->isOutDoors(mapId, pos);
-	printf("[%u ns] IsOutdoor Map:%u %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, pos.x, pos.y, pos.z);
-	return r;
-}
-
-bool CCollideInterface::IsIndoor(uint32 mapId, float x, float y, float z)
-{
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->isInDoors(mapId, x, y, z);
-	printf("[%u ns] IsIndoor Map:%u %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, x, y, z);
-	return r;
-}
-
-bool CCollideInterface::IsOutdoor(uint32 mapId, float x, float y, float z)
-{
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->isOutDoors(mapId, x, y, z);
-	printf("[%u ns] IsOutdoor Map:%u %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, x, y, z);
-	return r;
-}
-
-bool CCollideInterface::CheckLOS(uint32 mapId, LocationVector & pos1, LocationVector & pos2)
-{
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->isInLineOfSight(mapId, pos1, pos2);
-	printf("[%u ns] CheckLOS Map:%u %f %f %f -> %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
-	return r;
+	return isactive;
 }
 
 bool CCollideInterface::CheckLOS(uint32 mapId, float x1, float y1, float z1, float x2, float y2, float z2)
 {
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->isInLineOfSight(mapId, x1, y1, z1, x2, y2, z2);
-	printf("[%u ns] CheckLOS Map:%u %f %f %f -> %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, x1, y1, z1, x2, y2, z2);
-	return r;
-}
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return false;
 
-bool CCollideInterface::GetFirstPoint(uint32 mapId, LocationVector & pos1, LocationVector & pos2, LocationVector & outvec, float distmod)
-{
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->getObjectHitPos(mapId, pos1, pos2, outvec, distmod);
-	printf("[%u ns] GetFirstPoint Map:%u %f %f %f -> %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
-	return r;
+	// get read lock
+	m_mapLocks[mapId]->m_lock.AcquireReadLock();
+
+	// get data
+	bool res = CollisionMgr ? CollisionMgr->isInLineOfSight(mapId, x1, y1, z1, x2, y2, z2) : true;
+
+	// release write lock
+	m_mapLocks[mapId]->m_lock.ReleaseReadLock();
+
+	// return
+	return res;
 }
 
 bool CCollideInterface::GetFirstPoint(uint32 mapId, float x1, float y1, float z1, float x2, float y2, float z2, float & outx, float & outy, float & outz, float distmod)
 {
-	bool r;
-	COLLISION_BEGINTIMER;
-	r = CollisionMgr->getObjectHitPos(mapId, x1, y1, z1, x2, y2, z2, outx, outy, outz, distmod);
-	printf("[%u ns] GetFirstPoint Map:%u %f %f %f -> %f %f %f\n", c_GetNanoSeconds(c_GetTimerValue(), v1), mapId, x1, y1, z1, x2, y2, z2);
-	return r;
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return false;
+
+	// get read lock
+	m_mapLocks[mapId]->m_lock.AcquireReadLock();
+
+	// get data
+	bool res = (CollisionMgr ? CollisionMgr->getObjectHitPos(mapId, x1, y1, z1, x2, y2, z2, outx, outy, outz, distmod) : false);
+
+	// release write lock
+	m_mapLocks[mapId]->m_lock.ReleaseReadLock();
+
+	// return
+	return res;
 }
 
-#else
-
-void CCollideInterface::Init()
+float CCollideInterface::GetHeight(uint32 mapId, float x, float y, float z)
 {
-	Log.Notice("CollideInterface", "Init");
-	//CollisionMgr = ((IVMapManager*)collision_init());
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return false;
+
+	// get read lock
+	m_mapLocks[mapId]->m_lock.AcquireReadLock();
+
+	// get data
+	float res = CollisionMgr ? CollisionMgr->getHeight(mapId, x, y, z) : NO_WMO_HEIGHT;
+
+	// release write lock
+	m_mapLocks[mapId]->m_lock.ReleaseReadLock();
+
+	// return
+	return res;
 }
 
-void CCollideInterface::ActivateTile(uint32 mapId, uint32 tileX, uint32 tileY)
+/* Crow: Systematic calculations based on Mangos, a big thank you to them! */
+bool CCollideInterface::IsIndoor(uint32 mapId, float x, float y, float z)
 {
-	VMAP::IVMapManager* mgr = VMAP::VMapFactory::createOrGetVMapManager();
-	m_loadLock.Acquire();
-	if(m_tilesLoaded[mapId][tileX][tileY] == 0)
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if(!CollisionMgr)
+		return false;
+
+	uint32 flags = 0;
+	int32 adtId = 0, rootId = 0, groupid = 0;
+	if(CollisionMgr->getAreaInfo(mapId, x, y, z, flags, adtId, rootId, groupid))
 	{
-		mgr->loadMap(sWorld.vMapPath.c_str(), mapId, tileX, tileY);
-		LoadNavMeshTile(mapId, tileX, tileY);
-	}
-	++m_tilesLoaded[mapId][tileX][tileY];
-	m_loadLock.Release();
-}
-
-void CCollideInterface::DeactivateTile(uint32 mapId, uint32 tileX, uint32 tileY)
-{
-	VMAP::IVMapManager* mgr = VMAP::VMapFactory::createOrGetVMapManager();
-	m_loadLock.Acquire();
-	if(!(--m_tilesLoaded[mapId][tileX][tileY]))
-	{
-		mgr->unloadMap(mapId, tileX, tileY);
-
-		NavMeshData* nav = GetNavMesh(mapId);
-
-		if (nav != NULL)
+		bool indoor = false;
+		AreaTableEntry * WMOEntry = sWorld.GetAreaData(adtId, rootId, groupid);
+		if(WMOEntry != NULL)
 		{
-			uint32 key = tileX | (tileY << 16);
-			nav->tilelock.Acquire();
-			std::map<uint32, dtTileRef>::iterator itr = nav->tilerefs.find(key);
-
-			if (itr != nav->tilerefs.end())
+			AreaTable* ate = dbcArea.LookupEntry(WMOEntry->adtId);
+			if(ate != NULL)
 			{
-				nav->mesh->removeTile(itr->second, NULL, NULL);
-				nav->tilerefs.erase(itr);
+				if(ate->AreaFlags & AREA_OUTSIDE)
+					return false;
+				if(ate->AreaFlags & AREA_INSIDE)
+					return true;
 			}
-
-			nav->tilelock.Release();
 		}
-	}
 
-	m_loadLock.Release();
-}
+		if( flags != 0 )
+			if(flags & VA_FLAG_INDOORS && !(flags & VA_FLAG_IN_CITY) && !(flags & VA_FLAG_OUTSIDE) && !(flags & VA_FLAG_IN_CITY2) && !(flags & VA_FLAG_IN_CITY3))
+				indoor = true;
 
-void CCollideInterface::DeInit()
-{
-	Log.Notice("CollideInterface", "DeInit");
-	//collision_shutdown();
-}
-
-void CCollideInterface::ActivateMap( uint32 mapid )
-{
-	m_navmaplock.Acquire();
-	std::map<uint32, NavMeshData*>::iterator itr = m_navdata.find(mapid);
-
-	if (itr != m_navdata.end())
-		++itr->second->refs;
-
-	else
-	{
-
-		//load params
-		char filename[1024];
-		sprintf(filename, "mmaps/%03i.mmap", mapid);
-		FILE* f = fopen(filename, "rb");
-
-		if (f == NULL)
+		if(WMOEntry != NULL)
 		{
-			m_navmaplock.Release();
-			return;
+			if(WMOEntry->flags & 4)
+				return false;
+
+			if((WMOEntry->flags & 2) != 0)
+				indoor = true;
 		}
 
-		dtNavMeshParams params;
-		fread(&params, sizeof(params), 1, f);
-		fclose(f);
-
-		NavMeshData* d = new NavMeshData;
-		d->mesh = dtAllocNavMesh();
-		d->query = dtAllocNavMeshQuery();
-		d->mesh->init(&params);
-		d->query->init(d->mesh, 1024);
-		d->AddRef();
-		m_navdata.insert(std::make_pair(mapid, d));
+		return indoor;
 	}
-	m_navmaplock.Release();
+
+	return false; // If we have no info, then we are outside.
 }
 
-void CCollideInterface::DeactiveMap( uint32 mapid )
+bool CCollideInterface::IsIncity(uint32 mapId, float x, float y, float z)
 {
-	m_navmaplock.Acquire();
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if(!CollisionMgr)
+		return false;
 
-	std::map<uint32, NavMeshData*>::iterator itr = m_navdata.find(mapid);
-
-	if (itr != m_navdata.end())
+	uint32 flags = 0;
+	int32 adtId = 0, rootId = 0, groupid = 0;
+	if(CollisionMgr->getAreaInfo(mapId, x, y, z, flags, adtId, rootId, groupid))
 	{
-		if (itr->second->DecRef())
+		AreaTableEntry * WMOEntry = sWorld.GetAreaData(adtId, rootId, groupid);
+		if(WMOEntry != NULL)
 		{
-			delete(itr->second);
-			m_navdata.erase(itr);
+			AreaTable* ate = dbcArea.LookupEntry(WMOEntry->adtId);
+			if(ate != NULL)
+			{
+				if(ate->AreaFlags & AREA_CITY_AREA)
+					return true;
+				if(ate->AreaFlags & AREA_CITY)
+					return true;
+			}
 		}
+
+		if((flags & VA_FLAG_IN_CITY) || (flags & VA_FLAG_IN_CITY2) || (flags & VA_FLAG_IN_CITY3))
+			return true;
 	}
 
-	m_navmaplock.Release();
+	return false; // If we have no info, then we are not in a city.
 }
 
 NavMeshData* CCollideInterface::GetNavMesh( uint32 mapId )
@@ -314,50 +284,27 @@ NavMeshData* CCollideInterface::GetNavMesh( uint32 mapId )
 	return retval;
 }
 
-void CCollideInterface::LoadNavMeshTile( uint32 mapId, uint32 tileX, uint32 tileY )
+uint32 CCollideInterface::GetVmapAreaFlags(uint32 mapId, float x, float y, float z)
 {
-	NavMeshData* nav = GetNavMesh(mapId);
+	ASSERT(m_mapLocks[mapId] != NULL);
+	if( !CollisionMgr )
+		return 0;
 
-	if (nav == NULL)
-		return;
+	// get read lock
+	m_mapLocks[mapId]->m_lock.AcquireReadLock();
 
-	char filename[1024];
-	sprintf(filename, "mmaps/%03i%02i%02i.mmtile", mapId, tileX, tileY);
-	FILE* f = fopen(filename, "rb");
+	// get data
+	uint32 flags = CollisionMgr ? CollisionMgr->GetVmapFlags(mapId, x, y, z) : 0;
 
-	if (f == NULL)
-		return;
+	// release write lock
+	m_mapLocks[mapId]->m_lock.ReleaseReadLock();
 
-	MmapTileHeader header;
-
-	fread(&header, sizeof(MmapTileHeader), 1, f);
-
-	if (header.mmapMagic != MMAP_MAGIC || header.mmapVersion != MMAP_VERSION)
-	{
-		sLog.outDebug("NavMesh", "Load failed (%u %u %u): tile headers incorrect", mapId, tileX, tileY);
-		fclose(f);
-		return;
-	}
-
-	uint8* data = (uint8*)dtAlloc(header.size, DT_ALLOC_PERM);
-
-	if (data == NULL)
-	{
-		fclose(f);
-		return;
-	}
-
-	fread(data, 1, header.size, f);
-
-	fclose(f);
-
-	dtTileRef dtref;
-	nav->mesh->addTile(data, header.size, DT_TILE_FREE_DATA, 0, &dtref);
-
-	nav->tilelock.Acquire();
-	nav->tilerefs.insert(std::make_pair(tileX | (tileY << 16), dtref));
-	nav->tilelock.Release();
+	// return
+	return flags;
 }
 
-#endif		// COLLISION_DEBUG
+void CCollideInterface::DeInit()
+{
+	// bleh.
+}
 #endif		// COLLISION

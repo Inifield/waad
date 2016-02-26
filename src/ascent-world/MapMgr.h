@@ -73,6 +73,7 @@ typedef std::set<Vehicle *> VehicleSet;
 typedef HM_NAMESPACE::hash_map<uint32, Vehicle *> VehicleSqlIdMap;
 //--
 
+#define MAX_VIEW_DISTANCE 38000
 #define MAX_TRANSPORTERS_PER_MAP 25
 
 class Transporter;
@@ -86,22 +87,13 @@ class SERVER_DECL MapMgr : public CellHandler <MapCell>, public EventableObject,
 	friend class MapScriptInterface;
 	friend class Vehicle;
 public:
-		
+
 	//This will be done in regular way soon
 	std::set<MapCell*> m_forcedcells;
-
-	//worldstates
-	//HM_NAMESPACE::hash_map<uint32, WorldState*> m_worldStates;
-
-	//void SendInitialStates(Player* plr);
-	//void SetWorldState(uint32 zoneid, uint32 index, uint32 value);
-
-	void AddForcedCell(MapCell* c);
-	void RemoveForcedCell(MapCell* c);
-
 	Mutex m_objectinsertlock;
 	ObjectSet m_objectinsertpool;
-	void AddObject(Object *);
+	void AddObject(Object*);
+	Object* GetObjectClosestToCoords(uint32 entry, float x, float y, float z, float ClosestDist, int32 forcedtype = -1);
 
 ////////////////////////////////////////////////////////
 // Local (mapmgr) storage/generation of GameObjects
@@ -130,10 +122,10 @@ public:
 /////////////////////////////////////////////
 	uint32 m_VehicleArraySize;
 	uint32 m_VehicleHighGuid;
-	HM_NAMESPACE::hash_map< uint32, Vehicle *> m_VehicleStorage;
+	HM_NAMESPACE::hash_map<uint32,Vehicle*> m_VehicleStorage;
 	Vehicle* CreateVehicle(uint32 entry);
 
-	__inline Vehicle* GetVehicle( uint32 guid)
+	__inline Vehicle* GetVehicle(uint32 guid)
 	{
 		return guid <= m_VehicleHighGuid ? m_VehicleStorage[guid] : NULL;
 	}
@@ -143,7 +135,7 @@ public:
 	uint32 m_CreatureArraySize;
 	uint32 m_CreatureHighGuid;
 	HM_NAMESPACE::hash_map<uint32,Creature*> m_CreatureStorage;
-	Creature * CreateCreature(uint32 entry);
+	Creature* CreateCreature(uint32 entry);
 
 	__inline Creature* GetCreature(uint32 guid)
 	{
@@ -155,8 +147,8 @@ public:
 	uint32 m_DynamicObjectHighGuid;
 	typedef HM_NAMESPACE::hash_map<uint32, DynamicObject*> DynamicObjectStorageMap;
 	DynamicObjectStorageMap m_DynamicObjectStorage;
-	DynamicObject * CreateDynamicObject();
-	
+	DynamicObject* CreateDynamicObject();
+
 	ASCENT_INLINE DynamicObject* GetDynamicObject(uint32 guid)
 	{
 		DynamicObjectStorageMap::iterator itr = m_DynamicObjectStorage.find(guid);
@@ -199,12 +191,19 @@ public:
 	{
 		_combatProgress.erase(guid);
 	}
+	ASCENT_INLINE bool IsCombatInProgress()
+	{
+		//if all players are out, list should be empty.
+		if(!HasPlayers())
+			_combatProgress.clear();
+		return (_combatProgress.size() > 0);
+	}
 
 //////////////////////////////////////////////////////////
 // Lookup Wrappers
 ///////////////////////////////////
-	Unit * GetUnit(const uint64 & guid);
-	Object * _GetObject(const uint64 & guid);
+	Unit* GetUnit(const uint64 & guid);
+	Object* _GetObject(const uint64 & guid);
 
 	bool run();
 	bool Do();
@@ -213,64 +212,70 @@ public:
 	~MapMgr();
 	void Init();
 
-	void PushObject(Object *obj);
-	void PushStaticObject(Object * obj);
-	void RemoveObject(Object *obj, bool free_guid);
-	void ChangeObjectLocation(Object *obj); // update inrange lists
-	void ChangeFarsightLocation(Player *plr, Unit *farsight, bool apply);
-	void ChangeFarsightLocation(Player *plr, float X, float Y, bool apply);
+	void PushObject(Object* obj);
+	void PushStaticObject(Object* obj);
+	void RemoveObject(Object* obj, bool free_guid);
+	void ChangeObjectLocation(Object* obj); // update inrange lists
+	void ChangeFarsightLocation(Player* plr, Unit* farsight, bool apply);
+	void ChangeFarsightLocation(Player* plr, float X, float Y, bool apply);
+	bool IsInRange(float fRange, Object* obj, Object* currentobj);
 
 	//! Mark object as updated
-	void ObjectUpdated(Object *obj);
+	void ObjectUpdated(Object* obj);
 	void UpdateCellActivity(uint32 x, uint32 y, int radius);
 
 	// Terrain Functions
-	ASCENT_INLINE float  GetLandHeight(float x, float y, float z) { return GetBaseMap()->GetLandHeight(x, y, z); }
-	ASCENT_INLINE float  GetWaterHeight(float x, float y) { return GetBaseMap()->GetWaterHeight(x, y); }
-	ASCENT_INLINE uint8  GetWaterType(float x, float y) { return GetBaseMap()->GetWaterType(x, y); }
-	ASCENT_INLINE uint8  GetWalkableState(float x, float y) { return GetBaseMap()->GetWalkableState(x, y); }
-	ASCENT_INLINE uint16 GetAreaID(float x, float y, float z) { return GetBaseMap()->GetAreaID(x, y, z); }
-
+	float GetLandHeight(float x, float y,float z);
+	float GetWaterHeight(float x, float y, float z);
+	uint16 GetWaterType(float x, float y);
+	uint8 GetWalkableState(float x, float y);
+	uint16 GetAreaID(float x, float y, float z = 0.0f);
 	ASCENT_INLINE uint32 GetMapId() { return _mapId; }
+
+	void AddForcedCell(MapCell * c, uint32 range = 1);
+	void RemoveForcedCell(MapCell * c, uint32 range = 1);
 
 	void PushToProcessed(Player* plr);
 
 	ASCENT_INLINE bool HasPlayers() { return (m_PlayerStorage.size() > 0); }
-	ASCENT_INLINE bool IsCombatInProgress() { return (_combatProgress.size() > 0); }
 	void TeleportPlayers();
 
 	ASCENT_INLINE uint32 GetInstanceID() { return m_instanceID; }
 	ASCENT_INLINE MapInfo *GetMapInfo() { return pMapInfo; }
+	ASCENT_INLINE MapEntry *GetdbcMap() { return pdbcMap; }
 
 	bool _shutdown;
+	bool CanUseCollision(Object* obj);
 
 	ASCENT_INLINE MapScriptInterface * GetInterface() { return ScriptInterface; }
+
 	virtual int32 event_GetInstanceID() { return m_instanceID; }
 
-	void LoadAllCells();
+	void UpdateAllCells(bool apply, uint32 areamask = 0);
 	ASCENT_INLINE size_t GetPlayerCount() { return m_PlayerStorage.size(); }
 	uint32 GetTeamPlayersCount(uint32 teamId);
 
 	void _PerformObjectDuties();
 	uint32 mLoopCounter;
 	uint32 lastGameobjectUpdate;
+	uint32 lastDynamicUpdate;
 	uint32 lastUnitUpdate;
 	void EventCorpseDespawn(uint64 guid);
 
 	time_t InactiveMoveTime;
-    uint32 iInstanceMode;
+	uint32 iInstanceMode;
 
 	void EventRespawnVehicle(Vehicle *v, MapCell * p); // HearthStone (Vehicule)
 	void UnloadCell(uint32 x,uint32 y);
 	void EventRespawnCreature(Creature * c, MapCell * p);
 	void EventRespawnGameObject(GameObject * o, MapCell * c);
-	void SendMessageToCellPlayers(Object * obj, WorldPacket * packet, uint32 cell_radius = 2);
-	void SendChatMessageToCellPlayers(Object * obj, WorldPacket * packet, uint32 cell_radius, uint32 langpos, int32 lang, WorldSession * originator);
+	void SendMessageToCellPlayers(Object* obj, WorldPacket * packet, uint32 cell_radius = 2);
+	void SendChatMessageToCellPlayers(Object* obj, WorldPacket * packet, uint32 cell_radius, uint32 langpos, int32 lang, WorldSession * originator);
 
 	Instance * pInstance;
 	void BeginInstanceExpireCountdown();
-	void HookOnAreaTrigger(Player * plr, uint32 id);
-	
+	void HookOnAreaTrigger(Player* plr, uint32 id);
+
 	// better hope to clear any references to us when calling this :P
 	void InstanceShutdown()
 	{
@@ -281,30 +286,30 @@ public:
 	// kill the worker thread only
 	void KillThread()
 	{
-		//pInstance=NULL;
+		pInstance = NULL;
 		thread_kill_only = true;
 		SetThreadState(THREADSTATE_TERMINATE);
 		while(thread_running)
-		{
 			Sleep(100);
-		}
 	}
 
 protected:
-
 	//! Collect and send updates to clients
 	void _UpdateObjects();
 
 private:
 	//! Objects that exist on map
- 
+
 	uint32 _mapId;
-	set<Object*> _mapWideStaticObjects;
+	set<Object* > _mapWideStaticObjects;
 
 	bool _CellActive(uint32 x, uint32 y);
-	void UpdateInRangeSet(Object *obj, Player *plObj, MapCell* cell, ByteBuffer ** buf);
+	void UpdateInRangeSet(Object* obj, Player* plObj, MapCell* cell);
+	void UpdateInRangeSet(uint64 guid, MapCell* cell);
 
 public:
+	void UpdateInrangeSetOnCells(uint64 guid, uint32 startX, uint32 endX, uint32 startY, uint32 endY);
+
 	// Distance a Player can "see" other objects and receive updates from them (!! ALREADY dist*dist !!)
 	float m_UpdateDistance;
 
@@ -319,7 +324,9 @@ private:
 	SessionSet Sessions;
 
 	/* Map Information */
+	bool collision;
 	MapInfo *pMapInfo;
+	MapEntry* pdbcMap;
 	uint32 m_instanceID;
 
 	MapScriptInterface * ScriptInterface;
@@ -329,6 +336,7 @@ public:
 	DWORD threadid;
 #endif
 
+	Mutex ActiveLock;
 	GameObjectSet activeGameObjects;
 	CreatureSet activeCreatures;
 	VehicleSet activeVehicles; // HearthStone
