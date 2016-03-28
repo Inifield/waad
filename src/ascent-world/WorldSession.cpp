@@ -678,7 +678,7 @@ void WorldSession::InitPacketHandlerTable()
 	WorldPacketHandlers[CMSG_SET_LFG_COMMENT].handler						= &WorldSession::HandleSetLookingForGroupComment;	
 	//WorldPacketHandlers[MSG_LOOKING_FOR_GROUP].handler							= &WorldSession::HandleMsgLookingForGroup;
 	WorldPacketHandlers[CMSG_LFD_PLAYER_LOCK_INFO_REQUEST].handler			= &WorldSession::HandleSetLookingForGroup;
-	//WorldPacketHandlers[CMSG_SET_LOOKING_FOR_MORE].handler						= &WorldSession::HandleSetLookingForMore;
+	WorldPacketHandlers[CMSG_LFD_PARTY_LOCK_INFO_REQUEST].handler			= &WorldSession::HandleLFDPartyLockOpcode;
 	WorldPacketHandlers[CMSG_LFG_JOIN].handler								= &WorldSession::HandleEnableAutoJoin;
 	WorldPacketHandlers[CMSG_LFG_LEAVE].handler								= &WorldSession::HandleDisableAutoJoin;
 	WorldPacketHandlers[CMSG_SEARCH_LFG_JOIN].handler						= &WorldSession::HandleEnableAutoAddMembers;

@@ -154,6 +154,7 @@
 #include "Pet.h"
 #include "GMSecurity.h" // Ajout sécurité GM, cinemania
 #include "WorldSocket.h"
+#include "World.h"
 #include "WorldSession.h"
 #include "WorldStateManager.h"
 #include "MapMgr.h"
@@ -169,7 +170,6 @@
 #include "TransporterHandler.h"
 #include "WarsongGulch.h"
 #include "WeatherMgr.h"
-#include "World.h"
 #include "ItemInterface.h"
 #include "Stats.h"
 #include "WorldCreator.h"

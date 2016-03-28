@@ -28,6 +28,7 @@ SERVER_DECL DBCStorage<GemPropertyEntry> dbcGemProperty;
 SERVER_DECL DBCStorage<GlyphPropertyEntry> dbcGlyphProperty;
 SERVER_DECL DBCStorage<ItemSetEntry> dbcItemSet;
 SERVER_DECL DBCStorage<LockEntry> dbcLock;
+SERVER_DECL DBCStorage<LookingForGroup> dbcLookingForGroup;
 SERVER_DECL DBCStorage<SpellEntry> dbcSpell;
 SERVER_DECL DBCStorage<SpellDuration> dbcSpellDuration;
 SERVER_DECL DBCStorage<SpellRange> dbcSpellRange;
@@ -106,6 +107,7 @@ const char* ItemSetFormat   = "uxxsxxxxxxxxxxxxxuuuuuuuuuuuxxxxxxxuuuuuuuuuuuuuu
 const char* itemextendedcostFormat = "uuuxuuuuuuuuuuux";  // 322 - 332.11403 - 335.12340 Fr
 
 const char* LockFormat = "uuuuuuxxxuuuuuxxxuuuuuxxxxxxxxxxx"; // 335.12340 
+const char* LFGDungeonsFormat = "uxxxxxxxxxxxxxxxxxuuuuuiuxuxxuxuxxxxxxxxxxxxxxxxx"; // 335.12340 
 const char* EmoteTextEntryFormat = "uxuuuuxuxuxuuxxuxxx";     // 332.11403 - idem 335.12340 Fr
 const char* SkillLineSpellFormat = "uuuuuuuuuuuuuu";          // 332.11403 - idem 335.12340 Fr
 //const char* SkillLineEntryFormat = "uuusxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // 332.11403
@@ -235,6 +237,7 @@ bool LoadDBCs()
 	LOAD_DBC(_DBCPath,"CharTitles.dbc", CharTitlesEntryfmt, true, dbcCharTitlesEntry, false);
 	LOAD_DBC(_DBCPath,"ItemSet.dbc", ItemSetFormat, true, dbcItemSet, true);
 	LOAD_DBC(_DBCPath,"Lock.dbc", LockFormat, true, dbcLock, false);
+	LOAD_DBC(_DBCPath,"LFGDungeons.dbc", LFGDungeonsFormat, true, dbcLookingForGroup, false);
 	LOAD_DBC(_DBCPath,"EmotesText.dbc", EmoteTextEntryFormat, true, dbcEmoteEntry, false);
 	LOAD_DBC(_DBCPath,"SkillLineAbility.dbc", SkillLineSpellFormat, false, dbcSkillLineSpell, false);
 	LOAD_DBC(_DBCPath,"SkillLine.dbc", SkillLineEntryFormat, true, dbcSkillLine, true);

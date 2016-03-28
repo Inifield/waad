@@ -1538,8 +1538,8 @@ bool MapMgr::Do()
 	}
     //-------------------------------------------
 
-	/*if(sWorld.ServerPreloading && _mapId == 0)
-		UpdateAllCells(true);*/
+	if(sWorld.ServerPreloading && _mapId == 0)
+		UpdateAllCells(true);
 
 	// always declare local variables outside of the loop!
 	// otherwise theres a lot of sub esp; going on.

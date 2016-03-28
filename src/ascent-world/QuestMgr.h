@@ -41,6 +41,7 @@ struct QuestAssociation
 
 class Item;
 
+typedef std::map<uint32, Quest*> QuestStorageMap; // Map searches you!
 typedef std::list<QuestRelation *> QuestRelationList;
 typedef std::list<QuestAssociation *> QuestAssociationList;
 
@@ -56,6 +57,13 @@ public:
 	uint32 CalcQuestStatus(Object* quest_giver, Player* plr, QuestRelation* qst);
 	uint32 CalcQuestStatus(Object* quest_giver, Player* plr, Quest* qst, uint8 type, bool skiplevelcheck);
 	uint32 ActiveQuestsCount(Object* quest_giver, Player* plr);
+#if defined(_MSC_VER) && (_MSC_VER >= 1700) //Compilateur VC ++ 2012
+	Quest* GetQuestPointer(uint32 entry) { if(QuestStorageLFG.find(entry) != QuestStorageLFG.end()) return QuestStorageLFG.at(entry); return NULL; }; //Valable pour les compilos à partir de VC ++ 2012
+#else
+	Quest* GetQuestPointer(uint32 entry) { if(QuestStorageLFG.find(entry) != QuestStorageLFG.end()) return QuestStorageLFG[entry]; return NULL; };
+#endif
+	QuestStorageMap::iterator GetQuestStorageBegin() { return QuestStorageLFG.begin(); };
+	QuestStorageMap::iterator GetQuestStorageEnd() { return QuestStorageLFG.end(); };
 
 	//Packet Forging...
 	void BuildOfferReward(WorldPacket* data,Quest* qst, Object* qst_giver, uint32 menutype, uint32 language,Player *plr);
@@ -137,6 +145,7 @@ public:
 	void LoadExtraQuestStuff();
 
 private:
+	QuestStorageMap QuestStorageLFG;
 
 	HM_NAMESPACE::hash_map<uint32, list<QuestRelation *>* > m_npc_quests;
 	HM_NAMESPACE::hash_map<uint32, list<QuestRelation *>* > m_obj_quests;

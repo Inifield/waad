@@ -1526,6 +1526,29 @@ struct DestructibleModelDataEntry
 	}
 };
 
+struct LookingForGroup
+{
+	uint32 ID;			// 0
+//	char* name[16];		// 1-17 Name lang
+	uint32 minlevel;	// 18
+	uint32 maxlevel;	// 19
+	uint32 reclevel;	// 20
+	uint32 recminlevel;	// 21
+	uint32 recmaxlevel;	// 22
+	int32 map;			// 23
+	uint32 difficulty;	// 24
+//	uint32 unk;			// 25
+	uint32 type;		// 26
+//	int32 unk2;			// 27
+//	char* unk3;			// 28
+	uint32 expansion;	// 29
+//	uint32 unk4;		// 30
+	uint32 grouptype;	// 31
+//	char* desc[16];		// 32-47 Description
+
+	uint32 GetEntry() const { return ID + (type << 24); };
+};
+
 #pragma pack(pop)
 
 ASCENT_INLINE float GetScale(CreatureDisplayInfo *Scale)
@@ -2009,6 +2032,8 @@ extern SERVER_DECL DBCStorage<VehicleEntry> dbcVehicle;
 extern SERVER_DECL DBCStorage<VehicleSeatEntry> dbcVehicleSeat;
 extern SERVER_DECL DBCStorage<WorldMapOverlayEntry> dbcWorldMapOverlay;
 extern SERVER_DECL DBCStorage<DestructibleModelDataEntry> dbcDestructibleModelDataEntry;
+extern SERVER_DECL DBCStorage<LookingForGroup> dbcLookingForGroup;
+
 //-----------
 
 // Mangos

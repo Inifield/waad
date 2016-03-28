@@ -205,11 +205,11 @@ enum WorldMapInfoFlag
 
 enum AccountFlags
 {
-	ACCOUNT_FLAG_VIP		 = 0x1,
-	ACCOUNT_FLAG_NO_AUTOJOIN = 0x2,
-	//ACCOUNT_FLAG_XTEND_INFO  = 0x4,
-	ACCOUNT_FLAG_XPACK_01	= 0x8,
-	ACCOUNT_FLAG_XPACK_02	= 0x10,
+	ACCOUNT_FLAG_VIP			= 0x1,
+	ACCOUNT_FLAG_SPONSOR		= 0x2,
+	ACCOUNT_FLAG_SUPER_SPONSOR	= 0x4,
+	ACCOUNT_FLAG_XPACK_01		= 0x8,
+	ACCOUNT_FLAG_XPACK_02		= 0x10
 };
 
 #pragma pack(push,1)
@@ -545,6 +545,7 @@ public:
 	int32 m_socketworker_count;
 	uint32 m_nagleswitch;
 	bool UnloadCells;
+	bool ServerPreloading;
 
 	uint32 HordePlayers;
 	uint32 AlliancePlayers;

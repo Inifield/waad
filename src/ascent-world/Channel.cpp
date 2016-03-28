@@ -146,7 +146,7 @@ void Channel::AttemptJoin(Player * plr, const char * password)
 	}
 	
 	data.clear();
-	if( m_flags & 0x40 && !plr->GetSession()->HasFlag( ACCOUNT_FLAG_NO_AUTOJOIN ) )
+	if( m_flags & 0x40 && !plr->GetSession()->HasFlag( ACCOUNT_FLAG_SPONSOR ) )
 		data << uint8(CHANNEL_NOTIFY_FLAG_YOUJOINED) << m_name << uint8(0x1A) << uint32(0) << uint32(0);
 	else
 		data << uint8(CHANNEL_NOTIFY_FLAG_YOUJOINED) << m_name << m_flags << m_id << uint32(0);

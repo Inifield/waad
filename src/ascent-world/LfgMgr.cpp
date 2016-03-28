@@ -24,32 +24,68 @@ initialiseSingleton( LfgMgr );
 
 LfgMgr::LfgMgr()
 {
-	char _bufftemp_[1024];
-	DBCFile f;
-	sprintf(_bufftemp_,"%s/LFGDungeons.dbc",DBCPath);
-	if(f.open(_bufftemp_))
+	MaxDungeonID = 0;
+	uint32 levelgroup[2];
+	levelgroup[0] = LFG_LEVELGROUP_NONE;
+	levelgroup[1] = LFG_LEVELGROUP_NONE;
+	DBCStorage<LookingForGroup>::iterator itr;
+	for(itr = dbcLookingForGroup.begin(); itr != dbcLookingForGroup.end(); ++itr)
 	{
-		Log.Notice("DBC:","Loading %s",_bufftemp_);
-		for(uint32 i = 0; i < f.getRecordCount(); ++i)
-		{
-			DBCFile::Record r = f.getRecord(i);
-			uint32 id = r.getUInt(0);
-			uint32 typ = r.getUInt(26); // 332.11403
+		if((*itr)->ID > MaxDungeonID)
+			MaxDungeonID = (*itr)->ID;
 
-			if(id >= MAX_DUNGEONS)
-				Log.Warning("LFGDungeons:","Contains an out of range dungeon id %u.\n", id);
-			else
-				LfgDungeonTypes[id] = typ;
-		}
+		levelgroup[0] = GetPlayerLevelGroup((*itr)->minlevel);
+		if(levelgroup[0] != LFG_LEVELGROUP_NONE)
+			DungeonsByLevel[levelgroup[0]].insert((*itr)->ID);
+
+		levelgroup[1] = GetPlayerLevelGroup((*itr)->maxlevel);
+		if(levelgroup[1] != LFG_LEVELGROUP_NONE)
+			if(levelgroup[0] != levelgroup[1])
+				DungeonsByLevel[levelgroup[1]].insert((*itr)->ID);
+
+		levelgroup[0] = LFG_LEVELGROUP_NONE;
+		levelgroup[1] = LFG_LEVELGROUP_NONE;
 	}
-	else
-		Log.Error("!! LFGDungeons.dbc not found in %s, LFG tool will not function correctly.\n",DBCPath);
 }
 
 LfgMgr::~LfgMgr()
 {
-	
-	
+
+}
+
+void LfgMgr::LoadRandomDungeonRewards()
+{
+	uint32 count = 0;
+	QueryResult* result = WorldDatabase.Query("SELECT * FROM lfd_rewards ORDER BY dungeonid");
+	if(result != NULL)
+	{
+		do
+		{
+			Field* fields = result->Fetch();
+			uint32 dungeonid = fields[0].GetUInt32();
+			if(GetLFGReward(dungeonid))
+				continue;
+
+			uint32 questid[2], moneyreward[2], XPreward[2];
+			questid[0] = questid[1] = moneyreward[0] = moneyreward[1] = XPreward[0] = XPreward[1] = 0;
+
+			// First Reward
+			questid[0] = fields[2].GetUInt32();
+			moneyreward[0] = fields[3].GetUInt32();
+			XPreward[0] = fields[4].GetUInt32();
+
+			// Second reward
+			questid[1] = fields[5].GetUInt32();
+			moneyreward[1] = fields[6].GetUInt32();
+			XPreward[1] = fields[7].GetUInt32();
+
+			LfgReward* reward = new LfgReward(questid[0], moneyreward[0], XPreward[0], questid[1], moneyreward[1], XPreward[1]);
+			DungeonRewards[dungeonid] = reward;
+			count++;
+		}while(result->NextRow());
+	}
+
+	Log.Notice("LfgMgr", "%u LFD rewards loaded.", count);
 }
 
 bool LfgMgr::AttemptLfgJoin(Player * pl, uint32 LfgDungeonId)
@@ -86,6 +122,30 @@ bool LfgMgr::AttemptLfgJoin(Player * pl, uint32 LfgDungeonId)
 
 	m_lock.Release();*/
 	return false;
+}
+
+uint32 LfgMgr::GetPlayerLevelGroup(uint32 level)
+{
+	if(level > 80)
+		return LFG_LEVELGROUP_80_UP;
+	else if(level == 80)
+		return LFG_LEVELGROUP_80;
+	else if(level >= 70)
+		return LFG_LEVELGROUP_70_UP;
+	else if(level >= 60)
+		return LFG_LEVELGROUP_60_UP;
+	else if(level >= 50)
+		return LFG_LEVELGROUP_50_UP;
+	else if(level >= 40)
+		return LFG_LEVELGROUP_40_UP;
+	else if(level >= 30)
+		return LFG_LEVELGROUP_30_UP;
+	else if(level >= 20)
+		return LFG_LEVELGROUP_20_UP;
+	else if(level >= 10)
+		return LFG_LEVELGROUP_10_UP;
+
+	return LFG_LEVELGROUP_NONE;
 }
 
 void LfgMgr::SetPlayerInLFGqueue(Player *pl,uint32 LfgDungeonId)
@@ -169,7 +229,7 @@ void LfgMgr::UpdateLfgQueue(uint32 LfgDungeonId)
 	//LfgMatch * pMatch;
 
 	// only update on autojoinable dungeons
-	if(LfgDungeonTypes[LfgDungeonId] != LFG_INSTANCE && LfgDungeonTypes[LfgDungeonId] != LFG_HEROIC_DUNGEON)
+	if(LfgDungeonTypes[LfgDungeonId] != LFG_DUNGEON && LfgDungeonTypes[LfgDungeonId] != LFG_HEROIC_DUNGEON)
 		return;
 
 	m_lock.Acquire();

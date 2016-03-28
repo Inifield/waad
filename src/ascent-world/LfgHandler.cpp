@@ -91,7 +91,7 @@ void WorldSession::HandleDisableAutoJoin(WorldPacket& recvPacket)
 	{
 		if(_player->LfgDungeonId[i] != 0)
 		{
-			if(LfgDungeonTypes[_player->LfgDungeonId[i]] == LFG_INSTANCE || LfgDungeonTypes[_player->LfgDungeonId[i]] == LFG_HEROIC_DUNGEON)
+			if(LfgDungeonTypes[_player->LfgDungeonId[i]] == LFG_DUNGEON || LfgDungeonTypes[_player->LfgDungeonId[i]] == LFG_HEROIC_DUNGEON)
 				_player->SendMeetingStoneQueue(_player->LfgDungeonId[i], 0);
 		}
 	}
@@ -131,46 +131,110 @@ void WorldSession::HandleMsgLookingForGroup(WorldPacket& recvPacket)
 
 void WorldSession::HandleSetLookingForGroup(WorldPacket& recvPacket)
 {
-	uint32 LfgQueueId;
-	uint16 LfgDungeonId;
-	uint8 LfgType,unk1;
-	uint32 i;
-	
-	recvPacket >> LfgQueueId >> LfgDungeonId >> unk1 >> LfgType;
-	
-	if(LfgDungeonId >= MAX_DUNGEONS || LfgQueueId >= MAX_LFG_QUEUE_ID || LfgType != LfgDungeonTypes[LfgDungeonId])		// last one is for cheaters
-		return;
-	
-	if(_player->LfgDungeonId[LfgQueueId] != 0)
-		sLfgMgr.RemovePlayerFromLfgQueue(_player, _player->LfgDungeonId[LfgQueueId]);
-	
-	_player->LfgDungeonId[LfgQueueId]=LfgDungeonId;
-	_player->LfgType[LfgQueueId]=LfgType;
+	CHECK_INWORLD_RETURN;
 
-	if(LfgDungeonId)
+	DungeonSet::iterator itr;
+	DungeonSet randomDungeonSet;
+	LookingForGroup* dungeon = NULL;
+	uint32 level = _player->getLevel();
+	DungeonSet LevelDungeonSet = sLfgMgr.GetLevelSet(level);
+	for (itr = LevelDungeonSet.begin(); itr != LevelDungeonSet.end(); itr++)
 	{
-		sLfgMgr.SetPlayerInLFGqueue(_player, LfgDungeonId);
+		dungeon = dbcLookingForGroup.LookupEntry(*itr);
+		if (dungeon != NULL && dungeon->type == LFG_RANDOM
+			&& dungeon->expansion <= GetHighestExpansion()
+			&& dungeon->minlevel <= level && level <= dungeon->maxlevel)
+			randomDungeonSet.insert(dungeon->ID);
+		dungeon = NULL;
+	}
 
-		if(LfgType == LFG_HEROIC_DUNGEON || LfgType == LFG_INSTANCE)
+	// Crow: Confirmed structure below
+	WorldPacket data(SMSG_LFG_PLAYER_INFO, 400);
+	uint8 randomsize = (uint8)randomDungeonSet.size();
+	data << randomsize;
+	for(itr = randomDungeonSet.begin(); itr != randomDungeonSet.end(); itr++)
+	{
+		dungeon = dbcLookingForGroup.LookupEntry(*itr);
+		data << uint32(dungeon->GetEntry());
+
+		uint8 done = 0;
+		Quest* QuestReward = NULL;
+		LfgReward* reward = sLfgMgr.GetLFGReward(*itr);
+		if(reward)
 		{
-			sLfgMgr.UpdateLfgQueue(LfgDungeonId);
-			if(_player->m_Autojoin)
-				_player->SendMeetingStoneQueue(LfgDungeonId, 1);
+			QuestReward = sQuestMgr.GetQuestPointer(reward->reward[0].QuestId);
+			if(QuestReward)
+			{
+				done = _player->HasFinishedQuest(reward->reward[0].QuestId);
+				if(!done)
+					done = _player->HasFinishedDailyQuest(reward->reward[0].QuestId);
+				if (done)
+					QuestReward = sQuestMgr.GetQuestPointer(reward->reward[1].QuestId);
+			}
+		}
+
+		if (QuestReward)
+		{
+			data << uint8(done);
+			data << uint32(sQuestMgr.GenerateRewardMoney(_player, QuestReward));
+			data << uint32(sQuestMgr.GenerateQuestXP(_player, QuestReward)*sWorld.getRate(RATE_QUESTXP));
+			data << uint32(reward->reward[done].MoneyReward);
+			data << uint32(reward->reward[done].XPReward);
+			if(QuestReward->reward_item == NULL)
+			{
+				data << uint8(0);
+			}
+			else
+			{
+				data << uint8(QuestReward->count_reward_item);
+				if (QuestReward->count_reward_item)
+				{
+					ItemPrototype* proto = NULL;
+					for (uint8 i = 0; i < 4; i++)
+					{
+						if (!QuestReward->reward_item[i])
+							continue;
+
+						proto = ItemPrototypeStorage.LookupEntry(QuestReward->reward_item[i]);
+						data << uint32(QuestReward->reward_item[i]);
+						data << uint32(proto ? proto->DisplayInfoID : 0);
+						data << uint32(QuestReward->reward_itemcount[i]);
+					}
+				}
+			}
+		}
+		else
+		{
+			data << uint8(0);
+			data << uint32(0);
+			data << uint32(0);
+			data << uint32(0);
+			data << uint32(0);
+			data << uint8(0);
 		}
 	}
-	else
-	{
-		for(i = 0; i < 3; ++i)
-		{
-			if(_player->LfgDungeonId[i] != 0)
-				break;
-		}
-
-		if( i == 3 )
-			_player->PartLFGChannel();
-	}
+	SendPacket(&data);
 }
 
+void WorldSession::HandleLFDPartyLockOpcode( WorldPacket& recv_data )
+{
+	// Crow: Confirmed structure below
+	WorldPacket data(SMSG_LFG_PARTY_INFO, 400);
+	uint8 cnt = 0;
+	data << uint8(cnt);
+	for(uint8 i = 0; i < cnt; i++)
+	{
+		data << uint64(0);
+		uint32 count = 0;
+		data << count;
+		for(uint32 i = 0; i < count; i++)
+		{
+			data << uint32(0);
+			data << uint32(0);
+		}
+	}
+	SendPacket(&data);
+}
 void WorldSession::HandleSetLookingForMore(WorldPacket& recvPacket)
 {
 	uint16 LfgDungeonId;
@@ -201,61 +265,3 @@ void WorldSession::HandleMeetingStoneInfo(WorldPacket & recvPacket)
 {
 	_player->SendMeetingStoneQueue(0,6); //values drawn from packet logs, don't appear to change
 }
-
-/*void WorldSession::HandleLfgInviteAccept(WorldPacket & recvPacket) // A revoir ( Crash )
-{
-	CHECK_INWORLD_RETURN
-	
-	_player->PartLFGChannel();
-	if(_player->m_lfgMatch == NULL && _player->m_lfgInviterGuid == 0)
-	{
-		/*if(_player->m_lfgMatch == NULL)
-			OutPacket(SMSG_LFG_ROLE_CHECK_FAILED_RESULT);		// Matched Player(s) have gone offline - Note randdrick :N'existe plus.
-		else
-			OutPacket(SMSG_LFG_ROLE_CHECK_FAILED_RESULT);				// Group no longer available.
-
-		return;
-	}
-
-	if( _player->m_lfgMatch != NULL )
-	{
-		// move into accepted players
-		_player->m_lfgMatch->lock.Acquire();
-		_player->m_lfgMatch->PendingPlayers.erase(_player);
-
-		if( !_player->GetGroup() )
-		{
-			_player->m_lfgMatch->AcceptedPlayers.insert(_player);
-
-			if(!_player->m_lfgMatch->PendingPlayers.size())
-			{
-				// all players have accepted
-				Group * pGroup = new Group(true);
-				for(set<Player*>::iterator itr = _player->m_lfgMatch->AcceptedPlayers.begin(); itr != _player->m_lfgMatch->AcceptedPlayers.end(); ++itr)
-					pGroup->AddMember((*itr)->m_playerInfo);
-
-				_player->m_lfgMatch->pGroup = pGroup;
-			}
-		}
-		_player->m_lfgMatch->lock.Release();
-	}
-	else
-	{
-		Player * pPlayer = objmgr.GetPlayer(_player->m_lfgInviterGuid);
-		if( pPlayer == NULL )
-		{
-			OutPacket(SMSG_LFG_ROLE_CHECK_FAILED_RESULT);			// Matched Player(s) have gone offline.
-			return;
-		}
-
-		if( pPlayer->GetGroup() == NULL || pPlayer->GetGroup()->IsFull() || pPlayer->GetGroup()->GetLeader() != pPlayer->m_playerInfo )
-		{
-			OutPacket(SMSG_LFG_ROLE_CHECK_FAILED_RESULT);
-			return;
-		}
-
-		pPlayer->GetGroup()->AddMember(_player->m_playerInfo);
-	}
-	_player->m_lfgInviterGuid = 0;
-	_player->m_lfgMatch = NULL;
-}*/
