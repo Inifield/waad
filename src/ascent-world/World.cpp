@@ -1422,6 +1422,7 @@ void World::Rehash(bool load)
 	Log.log_level = Config.MainConfig.GetIntDefault("LogLevel", "Screen", 1);
 	gm_skip_attunement = Config.MainConfig.GetBoolDefault("Server", "SkipAttunementsForGM", true);	
 	CheckProfessions = Config.MainConfig.GetBoolDefault("Server", "CheckProfessions", false);
+	ServerPreloading = Config.MainConfig.GetBoolDefault("Startup", "Preloading", false);
 
 	SocketRecvBufSize = Config.MainConfig.GetIntDefault("WorldSocket", "RecvBufSize", WORLDSOCKET_RECVBUF_SIZE);
 	SocketSendBufSize = Config.MainConfig.GetIntDefault("WorldSocket", "SendBufSize", WORLDSOCKET_SENDBUF_SIZE);
