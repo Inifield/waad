@@ -1,30 +1,13 @@
-/*
- * Ascent MMORPG Server
- * Copyright (C) 2005-2010 Ascent Team <http://www.ascentemulator.net/>
- *
- * This software is  under the terms of the EULA License
- * All title, including but not limited to copyrights, in and to the AscentNG Software
- * and any copies there of are owned by ZEDCLANS INC. or its suppliers. All title
- * and intellectual property rights in and to the content which may be accessed through
- * use of the AscentNG is the property of the respective content owner and may be protected
- * by applicable copyright or other intellectual property laws and treaties. This EULA grants
- * you no rights to use such content. All rights not expressly granted are reserved by ZEDCLANS INC.
- *
- */
-
-
 #include "mpq_libmpq.h"
 #include <vector>
 #include "libmpq/common.h"
 
-//typedef std::vector<mpq_archive*> ArchiveSet;
-typedef std::vector<MPQArchive*> ArchiveSet;
 ArchiveSet gOpenArchives;
 
 MPQArchive::MPQArchive(const char* filename)
 {
 	int result = libmpq_archive_open(&mpq_a, (unsigned char*)filename);
-    printf("libmpq: Opening MPQ Archive: %s\n", filename);
+	printf("libmpq: Opening MPQ Archive: %s\n", filename);
 	if(result) {
 		printf("Error opening archive %s\n", filename);
 		return;
@@ -40,22 +23,26 @@ void MPQArchive::close()
 
 bool mpq_file_exists(const char* filename)
 {
-    for(ArchiveSet::iterator i=gOpenArchives.begin(); i!=gOpenArchives.end();++i)
-    {
-        mpq_archive &mpq_a = (*i)->mpq_a;
+	for(ArchiveSet::iterator i=gOpenArchives.begin(); i!=gOpenArchives.end();++i)
+	{
+		mpq_archive &mpq_a = (*i)->mpq_a;
 
-        mpq_hash hash = (*i)->GetHashEntry(filename);
-        uint32 blockindex = hash.blockindex;
+		mpq_hash hash = (*i)->GetHashEntry(filename);
+		uint32 blockindex = hash.blockindex;
 
-        if ((blockindex == 0xFFFFFFFF) || (blockindex == 0)) {
-            continue; //file not found
-        }
-        return true;
-    }
-    return false;
+		if ((blockindex == 0xFFFFFFFF) || (blockindex == 0))
+			continue; //file not found
+
+		int size = libmpq_file_info(&mpq_a, LIBMPQ_FILE_UNCOMPRESSED_SIZE, blockindex);
+		if (size <= 1) // Sorry developer, your data is in another MPQ file! >:(
+			continue;
+		return true;
+	}
+	return false;
 }
 
 MPQFile::MPQFile(const char* filename):
+	fName(filename),
 	eof(false),
 	buffer(0),
 	pointer(0),
@@ -65,20 +52,20 @@ MPQFile::MPQFile(const char* filename):
 	{
 		mpq_archive &mpq_a = (*i)->mpq_a;
 		
-        mpq_hash hash = (*i)->GetHashEntry(filename);
+		mpq_hash hash = (*i)->GetHashEntry(filename);
 		uint32 blockindex = hash.blockindex;
 
-        if ((blockindex == 0xFFFFFFFF) || (blockindex == 0)) {
-            continue; //file not found
-        }
-        
-        int fileno = blockindex;
+		if ((blockindex == 0xFFFFFFFF) || (blockindex == 0)) {
+			continue; //file not found
+		}
+		
+		int fileno = blockindex;
 
-        //int fileno = libmpq_file_number(&mpq_a, filename);
+		//int fileno = libmpq_file_number(&mpq_a, filename);
 		//if(fileno == LIBMPQ_EFILE_NOT_FOUND)
 		//	continue;
 
-        // Found!
+		// Found!
 		size = libmpq_file_info(&mpq_a, LIBMPQ_FILE_UNCOMPRESSED_SIZE, fileno);
 		// HACK: in patch.mpq some files don't want to open and give 1 for filesize
 		if (size<=1) {
@@ -89,7 +76,7 @@ MPQFile::MPQFile(const char* filename):
 		buffer = new char[size];
 
 		//libmpq_file_getdata
-        int result = libmpq_file_getdata(&mpq_a, hash, fileno, (unsigned char*)buffer);
+		int result = libmpq_file_getdata(&mpq_a, hash, fileno, (unsigned char*)buffer);
 		return;
 
 	}
@@ -122,7 +109,7 @@ size_t MPQFile::read(void* dest, size_t bytes)
 
 bool MPQFile::isEof()
 {
-    return eof;
+	return eof;
 }
 
 void MPQFile::seek(int offset)
@@ -139,7 +126,8 @@ void MPQFile::seekRelative(int offset)
 
 void MPQFile::close()
 {
-	if (buffer) delete[] buffer;
+	if (buffer)
+		delete [] buffer;
 	buffer = 0;
 	eof = true;
 }

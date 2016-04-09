@@ -1,18 +1,3 @@
-/*
- * Ascent MMORPG Server
- * Copyright (C) 2005-2010 Ascent Team <http://www.ascentemulator.net/>
- *
- * This software is  under the terms of the EULA License
- * All title, including but not limited to copyrights, in and to the AscentNG Software
- * and any copies there of are owned by ZEDCLANS INC. or its suppliers. All title
- * and intellectual property rights in and to the content which may be accessed through
- * use of the AscentNG is the property of the respective content owner and may be protected
- * by applicable copyright or other intellectual property laws and treaties. This EULA grants
- * you no rights to use such content. All rights not expressly granted are reserved by ZEDCLANS INC.
- *
- */
-
-
 #include "dbcfile.h"
 #include "mpq_libmpq.h"
 
@@ -30,11 +15,11 @@ void DBCFile::open()
 
 	f.read(header,4); // Number of records
 	assert(header[0]=='W' && header[1]=='D' && header[2]=='B' && header[3] == 'C');
-	f.read(&na,4); // Number of records
-	f.read(&nb,4); // Number of fields
-	f.read(&es,4); // Size of a record
-	f.read(&ss,4); // String size
-	
+	f.read(&na, 4); // Number of records
+	f.read(&nb, 4); // Number of fields
+	f.read(&es, 4); // Size of a record
+	f.read(&ss, 4); // String size
+
 	recordSize = es;
 	recordCount = na;
 	fieldCount = nb;
@@ -46,6 +31,7 @@ void DBCFile::open()
 	f.read(data,recordSize*recordCount+stringSize);
 	f.close();
 }
+
 DBCFile::~DBCFile()
 {
 	delete [] data;
@@ -68,3 +54,15 @@ DBCFile::Iterator DBCFile::end()
 	return Iterator(*this, stringTable);
 }
 
+size_t DBCFile::getMaxId()
+{
+	assert(data);
+
+	size_t maxId = 0;
+	for(size_t i = 0; i < getRecordCount(); ++i)
+	{
+		if(maxId < getRecord(i).getUInt(0))
+			maxId = getRecord(i).getUInt(0);
+	}
+	return maxId;
+}

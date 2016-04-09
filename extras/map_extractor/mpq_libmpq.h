@@ -1,18 +1,3 @@
-/*
- * Ascent MMORPG Server
- * Copyright (C) 2005-2010 Ascent Team <http://www.ascentemulator.net/>
- *
- * This software is  under the terms of the EULA License
- * All title, including but not limited to copyrights, in and to the AscentNG Software
- * and any copies there of are owned by ZEDCLANS INC. or its suppliers. All title
- * and intellectual property rights in and to the content which may be accessed through
- * use of the AscentNG is the property of the respective content owner and may be protected
- * by applicable copyright or other intellectual property laws and treaties. This EULA grants
- * you no rights to use such content. All rights not expressly granted are reserved by ZEDCLANS INC.
- *
- */
-
-
 #define _CRT_SECURE_NO_DEPRECATE
 
 #ifndef MPQ_H
@@ -31,16 +16,16 @@ class MPQArchive
 {
 	
 public:
-    mpq_archive mpq_a;
+	mpq_archive mpq_a;
 	
 	MPQArchive(const char* filename);
 	void close();
 
-    uint32 HashString(const char* Input, uint32 Offset) {
-        uint32 seed1 = 0x7fed7fed;
-        uint32 seed2 = 0xeeeeeeee;
+	uint32 HashString(const char* Input, uint32 Offset) {
+		uint32 seed1 = 0x7fed7fed;
+		uint32 seed2 = 0xeeeeeeee;
 			
-        for (uint32 i = 0; i < strlen(Input); i++) {
+		for (uint32 i = 0; i < strlen(Input); i++) {
 			uint32 val = toupper(Input[i]);
 			seed1 = mpq_a.buf[Offset + val] ^ (seed1 + seed2);
 			seed2 = val + seed1 + seed2 + (seed2 << 5) + 3;
@@ -60,49 +45,80 @@ public:
 		}
 
 		mpq_hash nullhash;
-        nullhash.blockindex = 0xFFFFFFFF;
+		nullhash.blockindex = 0xFFFFFFFF;
 		return nullhash;
 	}
 
-    vector<string> GetFileList() {
-        vector<string> filelist;
+	vector<string> GetFileList() {
+		vector<string> filelist;
 
-        mpq_hash hash = GetHashEntry("(listfile)");
-        uint32 blockindex = hash.blockindex;
+		mpq_hash hash = GetHashEntry("(listfile)");
+		uint32 blockindex = hash.blockindex;
 		
 		if ((blockindex == 0xFFFFFFFF) || (blockindex == 0)) 
 			return filelist;
 		
-        uint32 size = libmpq_file_info(&mpq_a, LIBMPQ_FILE_UNCOMPRESSED_SIZE, blockindex);
+		uint32 size = libmpq_file_info(&mpq_a, LIBMPQ_FILE_UNCOMPRESSED_SIZE, blockindex);
 		char *buffer = new char[size];
 
 		libmpq_file_getdata(&mpq_a, hash, blockindex, (unsigned char*)buffer);
 		
-        char seps[] = "\n";
-        char *token;
+		char seps[] = "\n";
+		char *token;
 
-        token = strtok( buffer, seps );
-        uint32 counter = 0;
-        while ((token != NULL) && (counter < size)) {
-            //cout << token << endl;
-            token[strlen(token) - 1] = 0;
-            string s = token;
-            filelist.push_back(s);
-            counter += strlen(token) + 2;
-            token = strtok(NULL, seps);
-        }
+		uint32 counter = 0;
+		token = strtok( buffer, seps );
+		while ((token != NULL) && (counter < size)) {
+			//cout << token << endl;
+			token[strlen(token) - 1] = 0;
+			string s = token;
+			filelist.push_back(s);
+			counter += strlen(token) + 2;
+			token = strtok(NULL, seps);
+		}
 
-        delete buffer;
-        return filelist;
-    }
+		delete buffer;
+		return filelist;
+	}
+
+	void GetFileListTo(vector<string>& filelist) {
+		mpq_hash hash = GetHashEntry("(listfile)");
+		uint32 blockindex = hash.blockindex;
+
+		if ((blockindex == 0xFFFFFFFF) || (blockindex == 0))
+			return;
+
+		uint32 size = libmpq_file_info(&mpq_a, LIBMPQ_FILE_UNCOMPRESSED_SIZE, blockindex);
+		char *buffer = new char[size];
+
+		libmpq_file_getdata(&mpq_a, hash, blockindex, (unsigned char*)buffer);
+
+		char seps[] = "\n";
+		char *token;
+
+		token = strtok( buffer, seps );
+		uint32 counter = 0;
+		while ((token != NULL) && (counter < size)) {
+			//cout << token << endl;
+			token[strlen(token) - 1] = 0;
+			string s = token;
+			filelist.push_back(s);
+			counter += strlen(token) + 2;
+			token = strtok(NULL, seps);
+		}
+
+		delete[] buffer;
+	}
 };
 
+typedef std::vector<MPQArchive*> ArchiveSet;
 
 class MPQFile
 {
 	//MPQHANDLE handle;
 	bool eof;
 	char *buffer;
+	const char* fName;
 	size_t pointer,size;
 
 	// disable copying
@@ -121,6 +137,7 @@ public:
 	void seek(int offset);
 	void seekRelative(int offset);
 	void close();
+	const char* GetFileName() { return fName; };
 };
 
 inline void flipcc(char *fcc)
