@@ -775,6 +775,7 @@ protected:
 	// VOICECHAT
 	void HandleEnableMicrophoneOpcode(WorldPacket & recv_data);
 	void HandleVoiceChatQueryOpcode(WorldPacket & recv_data);
+	void HandleChannelVoiceOnOpcode(WorldPacket & recv_data);
 	void HandleChannelVoiceQueryOpcode(WorldPacket & recv_data);
 	void HandleSetAutoLootPassOpcode(WorldPacket & recv_data);
 

@@ -464,6 +464,11 @@ struct LoginAura
 	uint32 m_flags;	
 };
 
+struct AreaPhaseData
+{	// We might need more later.
+	int32 phase;
+};
+
 // OpenAscent 3.20
 static const uint32 TalentTreesPerClass[DRUID+1][3] =  {
 	{ 0, 0, 0 },		// NONE
@@ -1319,6 +1324,8 @@ public:
     /************************************************************************/
 	uint32 GetMaxRankByHash(uint32 namehash);
 	bool HasSpell(uint32 spell);
+	SpellEntry* GetSpellWithNamehash(uint32 namehash);
+	bool HasHigherSpellForSkillLine(SpellEntry* sp);
 	bool HasTalentWithSpellID( uint32 SpellId );
 	bool HasDeletedSpell(uint32 spell);
 	void smsg_InitialSpells();
@@ -1329,6 +1336,10 @@ public:
 	void addSpell(uint32 spell_id);
 	void removeSpellByHashName(uint32 hash);
 	bool removeSpell(uint32 SpellID, bool MoveToDeleted, bool SupercededSpell, uint32 SupercededSpellID);
+	uint32 FindSpellWithNamehash(uint32 namehash);
+	uint32 FindHigherRankingSpellWithNamehash(uint32 namehash, uint32 minimumrank);
+	uint32 FindHighestRankingSpellWithNamehash(uint32 namehash);
+	SpellEntry* FindLowerRankSpell(SpellEntry* sp, int32 rankdiff);
 
     // PLEASE DO NOT INLINE!
     void AddOnStrikeSpell(SpellEntry* sp, uint32 delay)
@@ -1633,6 +1644,8 @@ public:
 	//Note:ModSkillLine -> value+=amt;ModSkillMax -->value=amt; --wierd
 	float GetSkillUpChance(uint32 id);
 	//ASCENT_INLINE std::list<struct skilllines>getSkillLines() { return m_skilllines; }
+	float CalculateCritFromAgilForClassAndLevel(uint32 _class, uint32 _level);
+	float CalculateDefenseFromAgilForClassAndLevel(uint32 _class, uint32 _level);
 	float SpellCrtiticalStrikeRatingBonus;
 	float SpellHasteRatingBonus;
 	void UpdateAttackSpeed();
@@ -1696,12 +1709,18 @@ public:
 	//Tutorials
 	uint32 GetTutorialInt(uint32 intId );
 	void SetTutorialInt(uint32 intId, uint32 value);
+	
 	//Base stats calculations
 	//void CalcBaseStats();
+	
+	// Areas
+	void UpdateAreaAndZoneInfo(uint32 areaid, uint32 zoneid);
+
 	// Rest
 	uint32 SubtractRestXP(uint32 amount);
 	void AddCalculatedRestXP(uint32 seconds);
 	void ApplyPlayerRestState(bool apply);
+	void SetLastAreaTrigger(AreaTrigger*trigger) { LastAreaTrigger = trigger; };
 	void UpdateRestState();
 
 	bool m_noFallDamage;
@@ -1992,6 +2011,16 @@ public:
 	ASCENT_INLINE uint32 GetAreaID() { return m_AreaID; }
 	void SetAreaID(uint32 area) { m_AreaID = area; m_areaDBC = dbcArea.LookupEntryForced(m_AreaID); }
 	ASCENT_INLINE AreaTable *GetAreaDBC() { return m_areaDBC; }
+	
+	// Phase stuff
+	void _LoadAreaPhaseInfo(QueryResult *result);
+	void _SaveAreaPhaseInfo(QueryBuffer* buff);
+	void EnablePhase(int32 phaseMode, bool save = false);
+	void DisablePhase(int32 phaseMode, bool save = false);
+	void SetPhaseMask(int32 phase, bool save = false);
+	int32 GetPhaseForArea(uint32 areaid);
+	void SetPhaseForArea(uint32 areaid, int32 phase);
+	map<uint32, AreaPhaseData*> areaphases; // Map<Areaid, AreaPhaseData>
 	
 	
 	std::string Lfgcomment;
@@ -2285,7 +2314,9 @@ public:
 
 	static void InitVisibleUpdateBits();
 	static UpdateMask m_visibleUpdateMask;
-
+	
+	void SendPacket(WorldPacket* data);
+	void SendDelayedPacket(WorldPacket * data);
 	void CopyAndSendDelayedPacket(WorldPacket * data);
 	void PartLFGChannel();
 	ASCENT_INLINE void RemovePlayerFromWorld() { delete this; }
@@ -2395,6 +2426,7 @@ protected:
 	uint8 m_isResting;
 	uint8 m_restState;
 	uint32 m_restAmount;
+	AreaTrigger* LastAreaTrigger;
 	//combat mods
 	float m_blockfromspell;
 	float m_blockfromspellPCT;

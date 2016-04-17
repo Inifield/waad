@@ -278,6 +278,8 @@ public:
 	ASCENT_INLINE const LocationVector & GetPosition() { return m_position; }
 	ASCENT_INLINE LocationVector & GetPositionNC() { return m_position; }
 	ASCENT_INLINE LocationVector * GetPositionV() { return &m_position; }
+	
+	bool IsInBox(float centerX, float centerY, float centerZ, float BLength, float BWidth, float BHeight, float BOrientation, float delta);
 
 	//Distance Calculation
 	float CalcDistance(Object* Ob);

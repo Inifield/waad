@@ -19,7 +19,7 @@
 #ifndef _VMAPMANAGER2_H
 #define _VMAPMANAGER2_H
 
-#include "IVMapManager.h"
+//#include "IVMapManager.h"
 #include <G3D/Vector3.h>
 
 //===========================================================
@@ -40,21 +40,31 @@ Additionally a table to match map ids and map names is used.
 
 namespace VMAP
 {
-    class StaticMapTree;
-    class WorldModel;
+	enum VMAPLoadResult
+	{
+		VMAP_LOAD_RESULT_ERROR,
+		VMAP_LOAD_RESULT_OK,
+		VMAP_LOAD_RESULT_IGNORED,
+	};
 
-    class ManagedModel
-    {
-        public:
-            ManagedModel(): iModel(0), iRefCount(0) {}
-            void setModel(WorldModel *model) { iModel = model; }
-            WorldModel *getModel() { return iModel; }
-            void incRefCount() { ++iRefCount; }
-            int decRefCount() { return --iRefCount; }
-        protected:
-            WorldModel *iModel;
-            int iRefCount;
-    };
+	#define VMAP_INVALID_HEIGHT		-100000.0f			// for check
+	#define VMAP_MAX_HEIGHT			 100000.0f			// for other checks
+
+	class StaticMapTree;
+	class WorldModel;
+
+	class ManagedModel
+	{
+		public:
+			ManagedModel(): iModel(0), iRefCount(0) {}
+			void setModel(WorldModel *model) { iModel = model; }
+			WorldModel *getModel() { return iModel; }
+			void incRefCount() { ++iRefCount; }
+			int decRefCount() { return --iRefCount; }
+		protected:
+			WorldModel *iModel;
+			int iRefCount;
+	};
 
     typedef HM_NAMESPACE::hash_map<uint32 , StaticMapTree *> InstanceTreeMap;
  
@@ -65,12 +75,13 @@ namespace VMAP
     typedef map<std::string, ManagedModel> ModelFileMap;
 #endif
 
-    class VMapManager2 : public IVMapManager
+	class VMapManager2
 	{
 		protected:
 			// Tree to check collision
 			ModelFileMap iLoadedModelFiles;
 			InstanceTreeMap iInstanceMapTrees;
+			HM_NAMESPACE::hash_map<unsigned int , bool> iIgnoreMapIds;
 
 			bool _loadMap(uint32 pMapId, const std::string &basePath, uint32 tileX, uint32 tileY);
 			/* void _unloadMap(uint32 pMapId, uint32 x, uint32 y); */
@@ -99,6 +110,7 @@ namespace VMAP
 
 			bool processCommand(char *pCommand) { return false; }		// for debug and extensions
 
+			void preventMapsFromBeingUsed(const char* pMapIdString);
 			bool getAreaInfo(unsigned int pMapId, float x, float y, float &z, uint32 &flags, int32 &adtId, int32 &rootId, int32 &groupId) const;
 			bool GetLiquidLevel(uint32 pMapId, float x, float y, float z, uint8 ReqLiquidType, float &level, float &floor, uint32 &type) const;
 

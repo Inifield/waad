@@ -109,7 +109,8 @@ public:
 	ASCENT_INLINE bool GetFirstPoint(uint32 mapId, LocationVector & pos1, LocationVector & pos2, LocationVector & outvec, float distmod)
 	{
 		return GetFirstPoint(mapId, pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z, outvec.x, outvec.y, outvec.z, distmod);
-	}};
+	}
+};
 
 extern SERVER_DECL CCollideInterface CollideInterface;
 #endif

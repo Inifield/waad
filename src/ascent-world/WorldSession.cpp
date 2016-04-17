@@ -944,8 +944,12 @@ void WorldSession::InitPacketHandlerTable()
 	// voicechat
 	//3.0.2: These have changed, woot
 	WorldPacketHandlers[CMSG_VOICE_SESSION_ENABLE].handler 					= &WorldSession::HandleEnableMicrophoneOpcode;
+	WorldPacketHandlers[CMSG_VOICE_SESSION_ENABLE].status					= STATUS_AUTHED;
+	WorldPacketHandlers[CMSG_CHANNEL_VOICE_ON].handler						= &WorldSession::HandleChannelVoiceOnOpcode;	
+	WorldPacketHandlers[CMSG_SET_CHANNEL_WATCH].handler 					= &WorldSession::HandleChannelVoiceQueryOpcode;		// 3.3.5	
 	WorldPacketHandlers[CMSG_SET_ACTIVE_VOICE_CHANNEL].handler 				= &WorldSession::HandleVoiceChatQueryOpcode;
-	//WorldPacketHandlers[CMSG_CHANNEL_VOICE_QUERY].handler = &WorldSession::HandleChannelVoiceQueryOpcode;		// couldnt find new opcode
+	WorldPacketHandlers[CMSG_SET_ACTIVE_VOICE_CHANNEL].status				= STATUS_AUTHED;
+
 	WorldPacketHandlers[CMSG_OPT_OUT_OF_LOOT].handler 						= &WorldSession::HandleSetAutoLootPassOpcode;
                  
 	               //CMSG_REALM_SPLIT 0x038C

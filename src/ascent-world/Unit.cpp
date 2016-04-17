@@ -322,6 +322,7 @@ Unit::Unit()
     m_speaker = false;         // Le PNJ ne parle pas
 	m_AI_Speak = NULL;         // Pas d'interface de parole
 	m_useAI = false;
+	pVehicle = NULL;
 
 	for (uint32 x = 0;x<NUM_CUSTOM_TIMERS;x++)
 	{
@@ -8234,7 +8235,10 @@ void Unit::ModifyBonuses(uint32 type,int32 val)
 				ModUnsigned32Value(UNIT_FIELD_ATTACK_POWER_MODS, val);
 				CalcDamage();
 			}break;
-
+		case FERAL_ATTACK_POWER:
+			{
+				m_feralAP += val;
+			}break;
 		case RANGED_ATTACK_POWER:
 			{
 				ModUnsigned32Value(UNIT_FIELD_RANGED_ATTACK_POWER_MODS, val);
@@ -8276,7 +8280,10 @@ void Unit::ModifyBonuses(uint32 type,int32 val)
 			{
 				ModUnsigned32Value(PLAYER_RATING_MODIFIER_ARMOR_PENETRATION_RATING, val);
 			}break;
-
+		case HEALTH_REGEN:
+			{
+				PctRegenModifier += val;
+			}break;
 		case SPELL_POWER:
 			{
 				// de PLAYER_FIELD_MOD_DAMAGE_DONE_POS à PLAYER_FIELD_MOD_DAMAGE_DONE_POS_6

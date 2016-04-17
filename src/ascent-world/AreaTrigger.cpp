@@ -193,7 +193,8 @@ void WorldSession::_HandleAreaTriggerOpcode(uint32 id)
 
 	// Hook for Scripted Areatriggers
 	_player->GetMapMgr()->HookOnAreaTrigger(_player, id);
-	
+
+	_player->SetLastAreaTrigger(pAreaTrigger);
 	switch(pAreaTrigger->Type)
 	{
 	case ATTYPE_INSTANCE:

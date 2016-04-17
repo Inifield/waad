@@ -952,7 +952,7 @@ public:
 	uint32 FlatStatMod[5];
 	uint32 StatModPct[5];
 	uint32 TotalStatModPct[5];
-
+	int32 m_feralAP;
 	uint32 m_ModInterrMRegenPCT[NUM_POWER_TYPES];
 	int32 m_ModInterrMRegen[NUM_POWER_TYPES];
 
@@ -1356,11 +1356,21 @@ public:
 	};
 		
 	uint32 GetResistance(uint32 type);	
-	
-    //Vehicle
+	    
 	uint32 m_teleportAckCounter;
+	//Vehicle
+	Player* pVehicle;
 	uint8 m_inVehicleSeatId;
 	Vehicle *m_CurrentVehicle;
+	
+	ASCENT_INLINE Unit* GetVehicle(bool forcevehicle = false)
+	{
+		if(m_CurrentVehicle)
+			return ((Unit *)m_CurrentVehicle);
+		if(pVehicle && !forcevehicle)
+			return ((Unit *)pVehicle);
+		return NULL;
+	}
 
 	//Pet
 	void smsg_TalentsInfo(bool pet);

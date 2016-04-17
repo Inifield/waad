@@ -45,6 +45,55 @@ void CreateDummySpell(uint32 id)
 	sWorld.dummyspells.push_back(sp);
 }
 
+uint32 GetSpellClass(SpellEntry *sp)
+{
+	switch(sp->skilline)
+	{
+	case SKILL_ARMS:
+	case SKILL_FURY:
+	case SKILL_PROTECTION:
+		return WARRIOR;
+	case SKILL_HOLY2:
+	case SKILL_PROTECTION2:
+	case SKILL_RETRIBUTION:
+		return PALADIN;
+	case SKILL_BEAST_MASTERY:
+	case SKILL_SURVIVAL:
+	case SKILL_MARKSMANSHIP:
+		return HUNTER;
+	case SKILL_ASSASSINATION:
+	case SKILL_COMBAT:
+	case SKILL_SUBTLETY:
+		return ROGUE;
+	case SKILL_DISCIPLINE:
+	case SKILL_HOLY:
+	case SKILL_SHADOW:
+		return PRIEST;
+	case SKILL_ENHANCEMENT:
+	case SKILL_RESTORATION:
+	case SKILL_ELEMENTAL_COMBAT:
+		return SHAMAN;
+	case SKILL_FROST:
+	case SKILL_FIRE:
+	case SKILL_ARCANE:
+		return MAGE;
+	case SKILL_AFFLICTION:
+	case SKILL_DEMONOLOGY:
+	case SKILL_DESTRUCTION:
+		return WARLOCK;
+	case SKILL_RESTORATION2:
+	case SKILL_BALANCE:
+	case SKILL_FERAL_COMBAT:
+		return DRUID;
+	case SKILL_DK_FROST:
+	case SKILL_UNHOLY:
+	case SKILL_BLOOD:
+		return DEATHKNIGHT;
+	}
+
+	return 0;
+}
+
 void ApplyExtraDataFixes()
 {
 	SpellEntry * sp;

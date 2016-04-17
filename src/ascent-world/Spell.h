@@ -2592,5 +2592,6 @@ void UnapplyDiminishingReturnTimer(Unit * Target, SpellEntry * spell);
 uint32 GetDiminishingGroup(uint32 NameHash);
 char *SpellCastErrorMsg(uint8 error_result);
 char *SpellEffectTxt(uint8 EffectNum);
+uint32 GetSpellClass(SpellEntry *sp);
 
 #endif

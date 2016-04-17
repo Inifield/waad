@@ -411,7 +411,10 @@ void WorldSession::HandleEnableMicrophoneOpcode(WorldPacket & recv_data)
 {
 
 }
-
+void WorldSession::HandleChannelVoiceOnOpcode(WorldPacket & recv_data)
+{
+	
+}
 void WorldSession::HandleChannelVoiceQueryOpcode(WorldPacket & recv_data)
 {
 

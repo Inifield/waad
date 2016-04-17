@@ -482,7 +482,7 @@ float TerrainMgr::GetLandHeight(float x, float y, float z)
 {
 		float adtheight = GetADTLandHeight(x, y);
 
-		VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager();
+		VMAP::VMapManager2* vmgr = VMAP::VMapFactory::createOrGetVMapManager();
 		float vmapheight = vmgr->getHeight(mapId, x, y, z + 0.5f, 10000.0f);
 
 		if (adtheight > z && vmapheight > -1000)
