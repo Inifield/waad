@@ -19,23 +19,23 @@
 
 #include "StdAfx.h"
 
-
 bool isHostile(Object* objA, Object* objB)// B is hostile for A?
 {
-	if(!objA || !objB) return false;
-
 	bool hostile = false;
 
-	if(objB->m_faction == NULL || objA->m_faction == NULL) return true;
-
 	// can't attack self.. this causes problems with buffs if we dont have it :p
-	if(objA == objB) return false;   
+	if(!objA || !objB || (objA == objB))
+		return false;
 
-	if(objA->GetTypeId() == TYPEID_CORPSE) return false;
+	// can't attack corpses neither...
+	if(objA->GetTypeId() == TYPEID_CORPSE || objB->GetTypeId() == TYPEID_CORPSE)
+		return false;
 
-	if(objB->GetTypeId() == TYPEID_CORPSE) return false;
-	
-	if( !(objA->m_Phase & objB->m_Phase) ) //What you can't see, can't be hostile!
+	if( objA->m_faction == NULL || objB->m_faction == NULL || objA->m_factionDBC == NULL || objB->m_factionDBC == NULL )
+		return true;
+
+	//What you can't see, can't be hostile!
+	if( !(objA->m_Phase & objB->m_Phase) )
 		return false;
 		
 	//neutral guards
@@ -134,22 +134,31 @@ bool isAttackable(Object* objA, Object* objB, bool CheckStealth)// A can attack 
 #endif
 */
 
-	if(!objA || !objB || objB->m_factionDBC == NULL || objA->m_factionDBC == NULL)
+	// can't attack self.. this causes problems with buffs if we don't have it :p
+	if( !objA || !objB || objA == objB )
+		return false;   
+
+	// can't attack corpses neither...
+	if( objA->GetTypeId() == TYPEID_CORPSE || objB->GetTypeId() == TYPEID_CORPSE )
 		return false;
 
-	if(objB->m_faction == NULL || objA->m_faction == NULL )
-		return true;
-
-	if(objA == objB)
-		return false;   // can't attack self.. this causes problems with buffs if we don't have it :p
-		
-	if( !(objA->m_Phase & objB->m_Phase) ) //What you can't see, you can't attack either...
-		return false;
-		
-	if(objA->GetTypeId() == TYPEID_CORPSE)
+	// We do need all factiondata for this
+	if( objB->m_factionDBC == NULL || objA->m_factionDBC == NULL || objB->m_faction == NULL || objA->m_faction == NULL )
 		return false;
 
-	if(objB->GetTypeId() == TYPEID_CORPSE)
+	// Checks for untouchable, unattackable
+	if( objA->IsUnit() && objA->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_ATTACKABLE_9 | UNIT_FLAG_MOUNTED_TAXI | UNIT_FLAG_NOT_SELECTABLE))
+		return false;
+	if( objB->IsUnit() && objB->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_ATTACKABLE_9 | UNIT_FLAG_MOUNTED_TAXI | UNIT_FLAG_NOT_SELECTABLE))
+		return false;
+
+	// we cannot attack sheathed units. Maybe checked in other places too ?
+	// !! warning, this presumes that objA is attacking ObjB
+	if( CheckStealth && objB->IsUnit() && static_cast<Unit*>(objB)->IsStealth() )
+		return false;
+
+	//What you can't see, you can't attack either...
+	if( !(objA->m_Phase & objB->m_Phase) )
 		return false;
 
 	//neutral guards
@@ -157,112 +166,153 @@ bool isAttackable(Object* objA, Object* objB, bool CheckStealth)// A can attack 
 		return true;
 	if (objB->IsUnit() && static_cast<Unit*>(objB)->GetAIInterface()->m_neutralGuard && objA->IsPlayer() && static_cast<Player*>(objA)->m_pvpcombat)
 		return true;
-	
-	// Players in feign death flags can't be attacked (where did you get this information from?)
-	// Changed by Supa: Creatures cannot attack players with feign death flags.
-	/*if(!objA->IsPlayer())
-		if(objA->HasFlag(UNIT_FIELD_FLAGS_2, 0x00000001))
-			return false;
-	if(!objB->IsPlayer())
-		if(objB->HasFlag(UNIT_FIELD_FLAGS_2, 0x00000001))
-			return false;*/
 
-	// Checks for untouchable, unattackable
-	if(objA->IsUnit() && objA->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_MOUNTED_TAXI | UNIT_FLAG_NOT_SELECTABLE))
-		return false;
-	if(objB->IsUnit())
-	{
-		if(objB->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_MOUNTED_TAXI | UNIT_FLAG_NOT_SELECTABLE))
-			return false;
-
-		/// added by Zack : 
-        /// we cannot attack sheathed units. Maybe checked in other places too ?
-		/// !! warning, this presumes that objA is attacking ObjB
-        /// Capt: Added the possibility to disregard this (regarding the spell class)
-		if(static_cast<Unit *>(objB)->IsStealth() && CheckStealth)
-			return false;
-	}
-
-	if(objA->IsPlayer() && objB->IsPlayer())
-	{
-		if(
-			static_cast< Player* >( objA )->DuelingWith == static_cast< Player* >(objB) && 
-			static_cast< Player* >( objA )->GetDuelState() == DUEL_STATE_STARTED
-			)
-		return true;
-
-		if(objA->HasFlag(PLAYER_FLAGS,PLAYER_FLAG_FREE_FOR_ALL_PVP) && objB->HasFlag(PLAYER_FLAGS,PLAYER_FLAG_FREE_FOR_ALL_PVP))
-		{
-			if( static_cast< Player* >( objA )->m_bg != NULL )
-				if( static_cast< Player* >( objA )->GetGroup() == static_cast< Player* >( objB )->GetGroup() )
-					return false;
-
-			return true;		// can hurt each other in FFA pvp
-		}
-	}
-	
-	//handles for pets, totems, etcs, etcs in duels
+	//Get players (or owners of pets/totems)
 	Player* pFromA = objA->GetPlayerFrom();
 	Player* pFromB = objB->GetPlayerFrom();
 
-	if (pFromA != NULL && pFromB != NULL && pFromA->DuelingWith == pFromB && pFromA->GetDuelState() == DUEL_STATE_STARTED)
-		return true;
-
-	// do not let people attack each other in sanctuary
-	// Dueling is already catered for
-	if (pFromA != NULL && pFromB != NULL)
+	if(objA->IsPlayer() && objB->IsPlayer())
 	{
-		AreaTable *atA = dbcArea.LookupEntry(pFromA->GetAreaID());
-		AreaTable *atB = dbcArea.LookupEntry(pFromB->GetAreaID());
+		//Handle duels
+		if (pFromA != NULL && pFromB != NULL && pFromA->DuelingWith == pFromB && pFromA->GetDuelState() == DUEL_STATE_STARTED)
+			return true;
 
-		if (atA != NULL && atB != NULL)
+		// do not let people attack each other in sanctuary
+		// Dueling is already catered for
+		if (pFromA != NULL && pFromB != NULL)
 		{
-			if (atA->category == AREAC_SANCTUARY || atA->AreaFlags & AREA_SANCTUARY || atB->category == AREAC_SANCTUARY || atB->AreaFlags & AREA_SANCTUARY)
+			AreaTable *atA = dbcArea.LookupEntry(pFromA->GetAreaID());
+			AreaTable *atB = dbcArea.LookupEntry(pFromB->GetAreaID());
+
+			if (atA != NULL && atB != NULL)
+			{
+				if (atA->category == AREAC_SANCTUARY || atA->AreaFlags & AREA_SANCTUARY || atB->category == AREAC_SANCTUARY || atB->AreaFlags & AREA_SANCTUARY)
+					return false;
+			}
+		}
+
+		// Players with feign death flags can't be attacked
+		// But they can be attacked by another players. -- Dvlpr
+		// WARNING: This presumes, that objA attacks objb!!!
+		if( (objA->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || objB->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH)) && !objA->IsPlayer() )
+			return false;
+
+		//Handle BG's
+		if( pFromA->m_bg != NULL )
+		{
+			//Handle ffa_PVP
+			if(objA->HasFlag(PLAYER_FLAGS,PLAYER_FLAG_FREE_FOR_ALL_PVP) && objB->HasFlag(PLAYER_FLAGS,PLAYER_FLAG_FREE_FOR_ALL_PVP))
+			{
+				if( pFromA->GetGroup() == pFromB->GetGroup() )
+					return false;
+				else
+					return true;
+			}
+			//Handle Arenas
+			if( pFromA->GetTeam() != pFromB->GetTeam() )
+				return true;
+		}
+
+		if(pFromA->IsFFAPvPFlagged() && pFromB->IsFFAPvPFlagged())
+		{
+			if( pFromA->GetGroup() && pFromA->GetGroup() == pFromB->GetGroup() )
 				return false;
+
+			if( pFromA == pFromB) // Totems...
+				return false;
+
+			return true;		// can hurt each other in FFA pvp
+		}
+
+		if( pFromA->GetAreaDBC() != NULL )
+		{
+			if( pFromA->GetAreaDBC()->AreaFlags & 0x800 )
+				return false;
+		}
+	}	
+
+	// same faction can't kill each other.
+	if(objA->m_faction == objB->m_faction)  
+		return false;
+
+	//moved this from IsHostile(); 
+	// by doing so we skip a hell of a lot redundant checks, which we already passed in this routine.
+	//uint32 faction = objB->m_faction->Mask;
+	uint32 factionG = objA->m_faction->FactionGroup;
+	uint32 hostileM  = objB->m_faction->HostileMask;
+	uint32 friendlyM = objB->m_faction->FriendlyMask;
+    bool hostile = false;
+    if(factionG & hostileM)  hostile = true;
+	//if(factionG & friendlyM) hostile = false; // FFA (Arene etc...) (Branruz)
+
+	// check friend/enemy list
+	for(uint32 i = 0; i < 4; i++)
+	{
+		//if(objA->m_faction->EnemyFactions[i] == objB->m_faction->Faction)
+		if(objB->m_faction->EnemyFactions[i] == objA->m_faction->Faction)
+		{
+			hostile = true;
+			break;
+		}
+		if(objB->m_faction->FriendlyFactions[i] == objA->m_faction->Faction)
+		{
+			hostile = false;
+			break;
 		}
 	}
 
-	if(objA->m_faction == objB->m_faction)  // same faction can't kill each other unless in ffa pvp/duel
-		return false;
-
-	bool attackable = isHostile(objA, objB); // B is attackable if its hostile for A
-	/*if((objA->m_faction->HostileMask & 8) && (objB->m_factionDBC->RepListId != 0) && 
-		(objB->GetTypeId() != TYPEID_PLAYER) && objB->m_faction->Faction != 31) // B is attackable if its a neutral Creature*/
+	// Reputation System Checks
+	if(pFromA && !pFromB)	   // PvE
+	{
+		if(objB->m_factionDBC->RepListId >= 0)
+			hostile = pFromA->IsHostileBasedOnReputation( objB->m_factionDBC );
+	}
+	
+	if(pFromB && !pFromA)	   // PvE
+	{
+		if(objA->m_factionDBC->RepListId >= 0)
+			hostile = pFromB->IsHostileBasedOnReputation( objA->m_factionDBC );
+	}
 
 	// Neutral Creature Check
 	if(pFromA != NULL)
 	{
 		if(objB->m_factionDBC->RepListId == -1 && objB->m_faction->HostileMask == 0 && objB->m_faction->FriendlyMask == 0)
 		{
-			attackable = true;
+			hostile = true;
 		}
 	}
 	else if(pFromB != NULL)
 	{
 		if(objA->m_factionDBC->RepListId == -1 && objA->m_faction->HostileMask == 0 && objA->m_faction->FriendlyMask == 0)
 		{
-			attackable = true;
+			hostile = true;
 		}
 	}
 
-	return attackable;
+	return hostile;
 }
 
 bool isCombatSupport(Object* objA, Object* objB)// B combat supports A?
 {
-	if(!objA || !objB) return false;
+	if( !objA || !objB )
+		return false;   
 
-	if(objA->GetTypeId() == TYPEID_CORPSE ) return false;
- 	if(objB->GetTypeId() == TYPEID_CORPSE) return false;
+	// can't support corpses...
+	if( objA->GetTypeId() == TYPEID_CORPSE || objB->GetTypeId() == TYPEID_CORPSE )
+		return false;
 
-	if(objB->m_faction == 0 || objA->m_faction == 0) return false;
+	// We do need all factiondata for this
+	if( objB->m_factionDBC == NULL || objA->m_factionDBC == NULL || objB->m_faction == NULL || objA->m_faction == NULL )
+		 return false;
 
 	// fixes an issue where horde pets would chain aggro horde guards and vice versa for alliance.
 	if( objA->IsPet() || objB->IsPet() ) return false;
-	
-	if( !(objA->m_Phase & objB->m_Phase) ) //What you can't see, you can't support either...
+
+ 	//What you can't see, you can't support either...	
+	if( !(objA->m_Phase & objB->m_Phase) )
 		return false;
-		
+
 	bool combatSupport = false;
 
 	// Test, la colonne Mask a disparu du FactionTemplate.dbc, (Branruz)
@@ -289,18 +339,19 @@ bool isCombatSupport(Object* objA, Object* objB)// B combat supports A?
 	return combatSupport;
 }
 
-
 bool isAlliance(Object* objA)// A is alliance?
 {
-	FactionTemplateDBC * m_sw_faction = dbcFactionTemplate.LookupEntry(11);
-	FactionDBC * m_sw_factionDBC = dbcFaction.LookupEntry(72);
 	if(!objA || objA->m_factionDBC == NULL || objA->m_faction == NULL)
 		return true;
+
+	//Get stormwind faction frm dbc (11/72)
+	FactionTemplateDBC * m_sw_faction = dbcFactionTemplate.LookupEntry(11);
+	FactionDBC * m_sw_factionDBC = dbcFaction.LookupEntry(72);
 
 	if(m_sw_faction == objA->m_faction || m_sw_factionDBC == objA->m_factionDBC)
 		return true;
 
-	//bool hostile = false;
+	//Is StormWind hostile to ObjectA?
 	uint32 faction = m_sw_faction->Faction;
 	uint32 host = objA->m_faction->HostileMask;
 
@@ -327,6 +378,7 @@ bool isAlliance(Object* objA)// A is alliance?
 			return false;
 	}
 
+	//We're not hostile towards SW, so we are allied
 	return true;
 }
 

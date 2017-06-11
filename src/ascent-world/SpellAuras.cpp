@@ -4307,23 +4307,57 @@ void Aura::SpellAuraModRoot(bool apply)
 		if(m_target->m_auracount[SPELL_AURA_MOD_ROOT] == 1)
 			m_target->Root();
 
-		// -Supalosa- TODO: Mobs will attack nearest enemy in range on aggro list when rooted. 
-		//if (m_spellProto->schoolMask & SCHOOL_MASK_FROST)
-			m_target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN);		
+		if((m_spellProto->School == SCHOOL_FROST && HasMechanic(MECHANIC_ROOTED) ) || HasMechanic(MECHANIC_FROZEN))
+			m_target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN|0x400000);
+
+		WorldPacket data(MSG_MOVE_UNROOT, 9+7*4+1*2);
+		data << m_target->GetNewGUID();
+		data << uint16(0x1000);
+		data << uint32(0);
+		data << float(-0.0f);
+		data << float(m_target->GetPositionX());
+		data << float(m_target->GetPositionY());
+		data << float(m_target->GetPositionZ());
+		data << float(m_target->GetOrientation());
+		data << float(0.0f);
+		data << float(0.0f);
+		data << float(cosf(m_target->GetOrientation()));
+		data << float(sinf(m_target->GetOrientation()));
+		data << float(0.0f);
+		m_target->SendMessageToSet(&data,true);
+		// -Supalosa- TODO: Mobs will attack nearest enemy in range on aggro list when rooted.
 	}
 	else
 	{
 
 		if(m_target->m_auracount[SPELL_AURA_MOD_ROOT] == 0)
-		{
-			//remove frozen aura states
-		//	if (m_target->HasFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN))
-		//		m_target->RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN);
+			 m_target->Unroot();
 
-		 m_target->Unroot();
-		}
+		//remove frozen aura states
+		if((m_spellProto->School == SCHOOL_FROST && HasMechanic(MECHANIC_ROOTED) ) || HasMechanic(MECHANIC_FROZEN))
+			m_target->RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN|0x400000);
+
+		WorldPacket data(MSG_MOVE_UNROOT, 9+7*4+1*2);
+		data << m_target->GetNewGUID();
+		data << uint16(0x1000);
+		data << uint32(0);
+		data << float(-0.0f);
+		data << float(m_target->GetPositionX());
+		data << float(m_target->GetPositionY());
+		data << float(m_target->GetPositionZ());
+		data << float(m_target->GetOrientation());
+		data << float(0.0f);
+		data << float(0.0f);
+		data << float(cosf(m_target->GetOrientation()));
+		data << float(sinf(m_target->GetOrientation()));
+		data << float(0.0f);
+		m_target->SendMessageToSet(&data,true);
+
 		if(m_target->GetTypeId() == TYPEID_UNIT)
 			m_target->GetAIInterface()->AttackReaction(GetUnitCaster(), 1, 0);
+
+		if (m_spellProto->NameHash == SPELL_HASH_FROST_NOVA || m_spellProto->NameHash == SPELL_HASH_FROSTBITE)
+			m_target->RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN);
 	}
 }
 

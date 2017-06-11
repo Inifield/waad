@@ -542,7 +542,7 @@ void Spell::SpellEffectSchoolDMG(uint32 i) // dmg school
 	}
 	else
 	{
-	 Log.Warning("SpellEffectSchoolDMG","Defense type : %u",GetType());
+	 //Log.Warning("SpellEffectSchoolDMG","Defense type : %u",GetType());
 	 if( GetType() == DEFENSE_TYPE_MAGIC )		
 	 {
 		//Log.Warning("SpellEffectSchoolDMG","DEFENSE_TYPE_MAGIC");
@@ -1840,20 +1840,17 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 			Log.Warning("                      ","Aura %u -> UniqueTargetBased %u",m_spellInfo->EffectApplyAuraName[i],m_spellInfo->UniqueTargetBased);
         
 			if (m_spellInfo->UniqueTargetBased == 0)
-			{
 				oldaura = unitTarget->FindAuraByUniqueGroup(m_spellInfo->UniqueGroup, m_caster->GetGUID());
-			} 
+
 			if(oldaura)
-			{
 				Log.Warning("                      ","oldAura : Spell %u",oldaura->GetSpellProto()->Id);
-			}
-			/*else 
+
+			else 
 			{
 				// target based, on peut peut-etre l'ajouté aux autres auras
 				if (m_spellInfo->UniqueTargetBased & 1) 
-				{
 					oldaura = unitTarget->FindAuraByUniqueGroup(m_spellInfo->UniqueGroup);
-				}
+
 				// ----------------------------------------------------------------------
 				// Test si seulement 1 par caster, on vire l'aura
 				// genre on passe de 'Aspect du guepard' à ' Aspect du faucon', car les 2 en meme temps ca le fait pas trop, ptdr... (Brz)
@@ -1872,7 +1869,7 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 					}
 				}
 				// ----------------------------------------------------------------------
-			}*/
+			}
 
 			if( (oldaura != NULL) && (Duration > 0)) // && (Duration > 0) test (Branruz)
 			{
@@ -1888,13 +1885,14 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 		pAura->pSpellId = pSpellId; //this is required for triggered spells
 
 		//Note Randdrick : Si la même aura est appliquée sur la cible par un caster, si elle n'est pas terminée
-		// et si elle n'est pas cummulative, alors on la supprime avant de la poser à nouveau.
+		// et si elle n'est pas cummulative, alors on ne la ré-applique pas.
 		oldaura = unitTarget->FindAura(m_spellInfo->Id);
 		if( (oldaura != NULL) && (Duration > 0) && (m_spellInfo->cumulativeAura == 0) )
 		{
 			Log.Notice("[SpellEffectApplyAura]","L'aura pour le Spell %u n'est pas cummulative. Elle existe deja: %d msec",m_spellInfo->Id,(oldaura->GetDuration(INVOC_DURATION)));
-			unitTarget->RemoveAura(oldaura);
-			oldaura = NULL;
+			/*unitTarget->RemoveAura(oldaura);
+			oldaura = NULL;*/
+			return;
 		}
 
 		unitTarget->tmpAura[m_spellInfo->Id] = pAura; // equiv insert
@@ -1902,9 +1900,8 @@ void Spell::SpellEffectApplyAura(uint32 i)  // Apply Aura
 		sEventMgr.AddEvent(this, &Spell::NewHandleAddAura, unitTarget->GetGUID(), EVENT_SPELL_HIT, 100, 1, 0);
 	}
 	else
-	{
 		pAura=itr->second;
-	} 
+
 	miscValue = m_spellInfo->EffectMiscValue[i];
 
 	if(((Item *)m_caster) && m_caster->IsPlayer() && m_spellInfo->EffectApplyAuraName[i]==SPELL_AURA_PROC_TRIGGER_SPELL)
@@ -2012,56 +2009,55 @@ void Spell::SpellEffectHealthLeech(uint32 i) // Health Leech
 
 void Spell::SpellEffectHeal(uint32 i) // Heal
 {
-	int32 dmg = float2int32(damage * amp);
-
-	float reduce = m_spellInfo->effectChainAmplitude[i] * 100.0f;
-	if(m_caster->IsUnit())
+	if( unitTarget == NULL || !unitTarget->isAlive() )
 	{
-	 if(m_spellInfo->SpellGroupType[0] || m_spellInfo->SpellGroupType[1] || m_spellInfo->SpellGroupType[2])
-	 {
-		SM_FFValue(((Unit *)m_caster)->SM_PJumpReduce, &reduce, m_spellInfo);
-	 }
-	 }
+		sLog.outError("La cible n'existe pas pour le soin");
+		return;
+	}
 
-	amp = amp * reduce / 100;
-
+	if(m_spellInfo->EffectChainTarget[i])//chain
+	{ 
+		if(!chaindamage)
+		{
+			Aura* riptide = NULL;
+			riptide = unitTarget->FindAuraPosByNameHash(SPELL_HASH_RIPTIDE);
+			if(unitTarget != NULL && riptide != NULL && m_spellInfo->NameHash == SPELL_HASH_CHAIN_HEAL)
+			{
+				damage += damage / 4; // +25%
+				unitTarget->RemoveAura(riptide);
+			}
+			chaindamage = damage;
+			Heal((int32)chaindamage);
+		}
+		else
+		{
+			float reduce = m_spellInfo->effectChainAmplitude[i] * 100.0f;
+			if((m_spellInfo->SpellGroupType[0] || m_spellInfo->SpellGroupType[1] || m_spellInfo->SpellGroupType[2]) && m_caster->IsUnit())
+			{
+				SM_FFValue(((Unit *)m_caster)->SM_PJumpReduce, &reduce, m_spellInfo);
+			}
+			chaindamage -= (reduce * chaindamage) / 100;
+			Heal((int32)chaindamage);
+		}
+	}
+	else
+	{
 		//yep, the usual special case. This one is shaman talent : Nature's guardian
 		//health is below 30%, we have a mother spell to get value from
 		switch (m_spellInfo->Id)
 		{
-		case 31616:
-			{
-				if(unitTarget && unitTarget->IsPlayer() && pSpellId && unitTarget->GetHealthPct()<30)
-				{
-					//check for that 10 second cooldown
-					SpellEntry *spellInfo = dbcSpell.LookupEntry(pSpellId );
-					if(spellInfo)
-					{
-						//heal value is receivad by the level of current active talent :s
-						//maybe we should use CalculateEffect(uint32 i) to gain SM benefits
-						int32 value = 0;
-						int32 basePoints = spellInfo->EffectBasePoints[i]+1;//+(m_caster->getLevel()*basePointsPerLevel);
-						int32 randomPoints = spellInfo->EffectDieSides[i];
-						if(randomPoints <= 1)
-							value = basePoints;
-						else
-							value = basePoints + rand() % randomPoints;
-						//the value is in percent. Until now it's a fixed 10%
-						Heal(unitTarget->GetUInt32Value(UNIT_FIELD_MAXHEALTH)*value/100);
-					}
-				}
-			}break;
 		case 34299: //Druid: Improved Leader of the PAck
 			{
 				if (!unitTarget->IsPlayer() || !unitTarget->isAlive())
 					break;
 
-				Player* mPlayer = static_cast< Player* >( unitTarget );
+				Player* mPlayer = static_cast<Player *>( unitTarget );
 				if( !mPlayer->IsInFeralForm() || (
 					mPlayer->GetShapeShift() != FORM_CAT &&
 					mPlayer->GetShapeShift() != FORM_BEAR &&
 					mPlayer->GetShapeShift() != FORM_DIREBEAR ) )
 					break;
+
 				uint32 max = mPlayer->GetUInt32Value( UNIT_FIELD_MAXHEALTH );
 				uint32 val = float2int32( ( ( mPlayer->FindAura( 34300 ) ) ? 0.04f : 0.02f ) * max );
 				if (val)
@@ -2071,75 +2067,146 @@ void Spell::SpellEffectHeal(uint32 i) // Heal
 			{
 				if (!unitTarget->IsPlayer() || !unitTarget->isAlive())
 					break;
-				Player* mPlayer = static_cast< Player* >( unitTarget );
+
+				Player* mPlayer = static_cast<Player *>( unitTarget );
 				if (!mPlayer->IsInFeralForm() || 
 					(mPlayer->GetShapeShift() != FORM_BEAR &&
 					mPlayer->GetShapeShift() != FORM_DIREBEAR))
 					break;
+
 				uint32 val = mPlayer->GetUInt32Value(UNIT_FIELD_POWER2);
-				if (val>100)
+				if (val > 100)
 					val = 100;
-				mPlayer->SetRage(mPlayer->GetUInt32Value(UNIT_FIELD_POWER2) - val);
+
+				mPlayer->SetUInt32Value(UNIT_FIELD_POWER2, mPlayer->GetUInt32Value(UNIT_FIELD_POWER2) - val);
 				if (val)
-					mPlayer->Heal(mPlayer,22845,uint32(val*2.5f));
+					mPlayer->Heal(mPlayer, 22845, ( mPlayer->GetUInt32Value(UNIT_FIELD_MAXHEALTH) * 0.003f ) * (val / 10) );
+			
 			}break;
 		case 18562: //druid - swiftmend
 			{
-				if( unitTarget )
+				uint32 new_dmg = 0;
+				//consume rejuvenetaion and regrowth
+				Aura* taura = NULL;
+				taura = unitTarget->FindAuraPosByNameHash( SPELL_HASH_REGROWTH ); //Regrowth
+				if( taura != NULL && taura->GetSpellProto() != NULL)
 				{
-					uint32 new_dmg = 0;
-					//consume rejuvenetaion and regrowth
-					Aura * taura = unitTarget->FindAuraPosByNameHash( SPELL_HASH_REGROWTH ); //Regrowth
-					if( taura != NULL && taura->GetSpellProto() != NULL)
+					uint32 amplitude = taura->GetSpellProto()->EffectAmplitude[1] / 1000;
+					if( !amplitude )
+						amplitude = 3;
+
+					//our hapiness is that we did not store the aura mod amount so we have to recalc it
+					Spell* spell(new Spell( m_caster, taura->GetSpellProto(), false, NULL ));				
+					uint32 healamount = spell->CalculateEffect( 1, unitTarget );  
+					delete spell;
+					spell = NULL;
+					new_dmg = healamount * 18 / amplitude;
+
+					unitTarget->RemoveAura( taura );
+
+					//do not remove flag if we still can cast it again
+					if( !unitTarget->HasAurasWithNameHash( SPELL_HASH_REJUVENATION ) )
 					{
-						uint32 amplitude = taura->GetSpellProto()->EffectAmplitude[1] / 1000;
+						unitTarget->RemoveFlag( UNIT_FIELD_AURASTATE, AURASTATE_FLAG_REJUVENATE );	
+						sEventMgr.RemoveEvents( unitTarget, EVENT_REJUVENATION_FLAG_EXPIRE );
+					}
+				}
+				else
+				{
+					taura = NULL;
+					taura = unitTarget->FindAuraPosByNameHash( SPELL_HASH_REJUVENATION );//Rejuvenation
+					if( taura != NULL && taura->GetSpellProto() != NULL )
+					{
+						uint32 amplitude = taura->GetSpellProto()->EffectAmplitude[0] / 1000;
 						if( !amplitude )
 							amplitude = 3;
-
+					
 						//our hapiness is that we did not store the aura mod amount so we have to recalc it
-						Spell *spell = new Spell( m_caster, taura->GetSpellProto(), false, NULL );				
-						uint32 healamount = spell->CalculateEffect( 1, unitTarget );  
+						Spell* spell(new Spell( m_caster, taura->GetSpellProto(), false, NULL ));				
+						uint32 healamount = spell->CalculateEffect( 0, unitTarget );  
 						delete spell;
-						new_dmg = healamount * 18 / amplitude;
+						spell = NULL;
+						new_dmg = healamount * 12 / amplitude;
 
 						unitTarget->RemoveAura( taura );
-
-						//do not remove flag if we still can cast it again
-						if( !unitTarget->HasAurasWithNameHash( SPELL_HASH_REJUVENATION ) )
-						{
-							unitTarget->RemoveFlag( UNIT_FIELD_AURASTATE, AURASTATE_FLAG_REJUVENATE );	
-							sEventMgr.RemoveEvents( unitTarget, EVENT_REJUVENATION_FLAG_EXPIRE );
-						}
+						unitTarget->RemoveFlag( UNIT_FIELD_AURASTATE,AURASTATE_FLAG_REJUVENATE );	
+						sEventMgr.RemoveEvents( unitTarget,EVENT_REJUVENATION_FLAG_EXPIRE );
 					}
-					else
+				}
+				
+				if( new_dmg > 0 )
+					Heal( (int32)new_dmg );
+			}break;
+		case 48743://death pact
+			{
+				if( !((Player *)m_caster) )
+					return;
+
+				uint32 maxhp = ((Player *)m_caster)->GetMaxHealth();
+				int32 realdmg = float2int32(float(maxhp) * 0.4f);
+				Heal( realdmg );
+			}break;
+		case 50464:
+			{
+				if( m_caster == NULL )
+					return;
+
+				bool bonus = false;
+				Aura* pAura = NULL;
+				for(uint32 i = 0; i < MAX_POSITIVE_AURAS; ++i)
+				{
+					pAura = unitTarget->m_auras[i];
+					if( pAura != NULL && pAura->GetCaster() == m_caster )
 					{
-						taura = unitTarget->FindAuraPosByNameHash( SPELL_HASH_REJUVENATION );//Rejuvenation
-						if( taura != NULL && taura->GetSpellProto() != NULL )
-						{
-							uint32 amplitude = taura->GetSpellProto()->EffectAmplitude[0] / 1000;
-							if( !amplitude )
-								amplitude = 3;
-
-							//our hapiness is that we did not store the aura mod amount so we have to recalc it
-							Spell *spell = new Spell( m_caster, taura->GetSpellProto(), false, NULL );				
-							uint32 healamount = spell->CalculateEffect( 0, unitTarget );  
-							delete spell;
-							new_dmg = healamount * 12 / amplitude;
-
-							unitTarget->RemoveAura( taura );
-
-							unitTarget->RemoveFlag( UNIT_FIELD_AURASTATE,AURASTATE_FLAG_REJUVENATE );	
-							sEventMgr.RemoveEvents( unitTarget,EVENT_REJUVENATION_FLAG_EXPIRE );
-						}
+						if( pAura->m_spellProto->NameHash == SPELL_HASH_REJUVENATION ||
+							pAura->m_spellProto->NameHash == SPELL_HASH_REGROWTH ||
+							pAura->m_spellProto->NameHash == SPELL_HASH_LIFEBLOOM ||
+							pAura->m_spellProto->NameHash == SPELL_HASH_WILD_GROWTH )
+							bonus = true;
 					}
-					if( new_dmg > 0 )
-						Heal( (int32)new_dmg );
+				}
+				if( bonus )
+				{
+					int32 new_dmg = damage + float2int32(damage*0.2f);
+					Heal(new_dmg);
+				}else
+					Heal((int32)damage);
+			}break;
+		case 48153: // Guardian spirit
+			{
+				if( !((Player *)m_caster) )
+					return;
+
+				Heal( float2int32(unitTarget->GetUInt32Value(UNIT_FIELD_MAXHEALTH) * (damage/100.0f) ));
+			}break;
+		case 20267: // judgement of light heal effect
+			{
+				if( ((Unit *)m_caster) )
+				{
+					Aura* aur = NULL;
+					aur = ((Unit *)m_caster)->FindAura(20185);
+					if( aur != NULL)
+					{
+						Unit* orgcstr = ((Unit *)m_caster)->FindAura(20185)->GetUnitCaster();
+						if( orgcstr )
+							Heal( float2int32(orgcstr->GetAP() * 0.10f + orgcstr->GetDamageDoneMod(SCHOOL_HOLY) * 0.10f) );
+					}
 				}
 			}break;
+		case 54172: // Divine strom heal
+		case 54968: // Glyph of Holy Light
+			{
+				Heal((int32)forced_basepoints[0]);
+			}break;
+		case 23880: // Bloodthirst
+			{
+				Heal( float2int32( unitTarget->GetUInt32Value(UNIT_FIELD_MAXHEALTH) / 100.0f ) );
+			}break;
 		default:
-			Heal((int32)dmg);
+			Heal((int32)damage);
 			break;
 		}
+	}
 }
 
 void Spell::SpellEffectBind(uint32 i) 

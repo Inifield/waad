@@ -988,7 +988,12 @@ void HookInterface::OnDeath(Player * pPlayer)
 bool HookInterface::OnRepop(Player * pPlayer)
 {
 	OUTER_LOOP_BEGIN_COND(SERVER_HOOK_EVENT_ON_REPOP, tOnRepop)
-		ret_val = (call)(pPlayer);
+	{
+		if(ret_val == true)
+			ret_val = (call)(pPlayer);
+		else
+			(call)(pPlayer);
+	}
 	OUTER_LOOP_END_COND
 }
 
@@ -1011,14 +1016,24 @@ void HookInterface::OnEnterCombat(Player * pPlayer, Unit * pTarget)
 bool HookInterface::OnCastSpell(Player * pPlayer, SpellEntry* pSpell)
 {
 	OUTER_LOOP_BEGIN_COND(SERVER_HOOK_EVENT_ON_CAST_SPELL, tOnCastSpell)
-		ret_val = (call)(pPlayer, pSpell);
+	{
+		if(ret_val == true)
+			ret_val = (call)(pPlayer, pSpell);
+		else
+			(call)(pPlayer, pSpell);
+	}
 	OUTER_LOOP_END_COND
 }
 
 bool HookInterface::OnLogoutRequest(Player * pPlayer)
 {
 	OUTER_LOOP_BEGIN_COND(SERVER_HOOK_EVENT_ON_LOGOUT_REQUEST, tOnLogoutRequest)
-		ret_val = (call)(pPlayer);
+	{
+		if(ret_val == true)
+			ret_val = (call)(pPlayer);
+		else
+			(call)(pPlayer);
+	}
 	OUTER_LOOP_END_COND
 }
 
@@ -1048,7 +1063,12 @@ void HookInterface::OnZone(Player * pPlayer, uint32 Zone)
 bool HookInterface::OnChat(Player * pPlayer, uint32 Type, uint32 Lang, const char * Message, const char * Misc)
 {
 	OUTER_LOOP_BEGIN_COND(SERVER_HOOK_EVENT_ON_CHAT, tOnChat)
-		ret_val = (call)(pPlayer, Type, Lang, Message, Misc);
+	{
+		if(ret_val == true)
+			ret_val = (call)(pPlayer, Type, Lang, Message, Misc);
+		else
+			(call)(pPlayer, Type, Lang, Message, Misc);
+	}
 	OUTER_LOOP_END_COND
 }
 

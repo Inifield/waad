@@ -35,26 +35,28 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	typedef std::list<Aura*> AuraList;
 	
 	Player* p_User = GetPlayer();
+	if(p_User->getDeathState()==CORPSE)
+		return;
+	
 	sLog.outDetail("WORLD: got use Item packet, data length = %i",recvPacket.size());
-	int8 tmp1,slot,tmp3;
+	int8 bagIndex,slot,castFlags;
 	uint32 item_guidL;
 	uint32 item_guidH;
 	uint8 cn;
-	uint32 spellId = 0;
+	uint32 spellId;
 	//uint32 SpellCategorie = 0;
 	//uint32 ItemSpellCategorie = 0;
 	
-	uint8 glyphIndex; 
-	uint8 unk1;	
-	uint16 unk2; 
+	uint32 glyphIndex; 
+ 
 
-	recvPacket >> tmp1 >> slot >> tmp3 >> cn >> item_guidL >> item_guidH >> glyphIndex >> unk1 >> unk2;
+	recvPacket >> bagIndex >> slot >> cn >> spellId >> item_guidL >> item_guidH >> glyphIndex >> castFlags;
     
-	sLog.outDetail("WORLD: tmp1:0x%02X (%d) slot:%d tmp3:0x%02X (%d) cn:%u item_guid 0x%08X %08X",
-		                         tmp1,tmp1,slot,tmp3,tmp3,cn,item_guidL,item_guidH);
+	sLog.outDetail("WORLD: BagIndex:0x%02X (%d) slot:%d cn:%u spell:%u item_guid 0x%08X %08X",
+		                         bagIndex,bagIndex,slot,cn,spellId,item_guidL,item_guidH);
 
 	Item* tmpItem = NULL;
-	tmpItem = p_User->GetItemInterface()->GetInventoryItem(tmp1,slot);
+	tmpItem = p_User->GetItemInterface()->GetInventoryItem(bagIndex,slot);
 
 	if (!tmpItem) tmpItem = p_User->GetItemInterface()->GetInventoryItem(slot);
 
@@ -71,9 +73,6 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         Log.Error("HandleUseItemOpcode","%s veux utiliser un item qui n'existe pas dans la base!",p_User->GetName());
 		return;
 	}
-
-	if(p_User->getDeathState()==CORPSE) return;
-
 
 	if(itemProto->Bonding == ITEM_BIND_ON_USE) tmpItem->SoulBind();
 
@@ -119,6 +118,7 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	{
 		// Item Starter
 		Quest *qst = QuestStorage.LookupEntry(itemProto->QuestId);
+
 		// Player fait la quete ?
 		if(!qst) return;
 
@@ -139,43 +139,53 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	// Maj Caster = player
 	SpellCastTargets targets(recvPacket, p_User);
 
+	bool MatchTrgEnc = false;
 	uint32 spellIndex;
 	for(spellIndex = 0; spellIndex < 5; spellIndex++)
 	{
 		if(itemProto->Spells[spellIndex].Trigger == USE)
 		{
-			if(itemProto->Spells[spellIndex].Id)
+			if(itemProto->Spells[spellIndex].Id == spellId)
 			{
-				spellId = itemProto->Spells[spellIndex].Id;
-				//SpellCategorie = itemProto->Spells[spellIndex].Category;
+				MatchTrgEnc = true;
 				break;
 			}
 		}
 	}
-    if(!spellId) 
+
+	if(tmpItem->HasEnchantment(spellId))
+		MatchTrgEnc = true;
+
+    if(!MatchTrgEnc) 
 	{
-		Log.Warning("HandleUseItemOpcode","Pas de Spell avec Trigger");
+		Log.Warning("HandleUseItemOpcode","Pas de Spell avec Trigger ou d'Enchantements");
 		return;
 	}
 	
 	SpellEntry *spellInfo = dbcSpell.LookupEntryForced( spellId );
 
-    if ( !spellInfo)
+    if (!spellInfo)
 	{
-		Log.Error("HandleUseItemOpcode","Unknown spell id %i\n", spellId);
+		Log.Error("HandleUseItemOpcode","Spell inconnu id %i\n", spellId);
 		return;
 	}
 
-	//if(sHookInterface.OnCastSpell( _player, spellInfo )) return; // A Deliberer plus tard.....(Branruz)
-    sHookInterface.OnCastSpell( p_User, spellInfo );
+	// Note Randdrick
+	// A ce niveau, un Spellscript ne peut pas exister, puisque le sort n'est pas lancé.
+	// Si toutefois il existe, il faut empêcher le sort de se lancer 
+	if(sHookInterface.OnCastSpell(_player, spellInfo))
+	{
+		_player->SendCastResult(spellInfo->Id, SPELL_FAILED_UNKNOWN, cn, 0);
+		return;
+	}
 
 	// Redefinition possible de la cible via les implicitTargets
     // Attention: A ce stade le m_target = Player par defaut, il s'agit ici d'un override eventuel (Brz)
 	uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->Id,spellInfo->EffectImplicitTargetA[0]);
 	if(_result != SPELL_CANCAST_OK)
 	{
- 	 p_User->SendCastResult(spellInfo->Id, _result, cn, 0); // A Finir: Parametre eventuel du spellFailure à definir (Branruz)
-	 return;
+ 		p_User->SendCastResult(spellInfo->Id, _result, cn, 0); // A Finir: Parametre eventuel du spellFailure à definir (Branruz)
+		return;
 	}
 
 	// Le player s'assoie (genre l'item est de la nourriture (Randdrick) )
@@ -311,18 +321,13 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 		}
 	} // End if
 
-    //if(spell->g_caster != NULL)	Log.Warning("HandleUseItemOpcode","Go : %u", spell->g_caster->GetEntry());
-	//else                        Log.Warning("HandleUseItemOpcode","Go introuvable");
 	
 	if( spell->prepare(&targets) == SPELL_CANCAST_OK )
 	{
-		p_User->Cooldown_AddItem( itemProto, spellIndex );
-		//Log.Warning("HandleUseItemOpcode","SPELL_CANCAST_OK: %u\n",spellInfo->Id);
-
 		// Lancement du spell Effect de l'item sur la cible
 		for(uint32 i=0;i < 3;i++)
 		{
-			// Validation et recheche de la cible en fonction du spellEffect (Brz)
+			// Validation et recheche de la cible en fonction de l'Implicit Target si il existe. (Randdrick)
 			if(spellInfo->EffectImplicitTargetA[i])
 			{
 				uint8 _result = p_User->ConfirmPlayerTarget(&targets,p_User,spellInfo->Id,spellInfo->EffectImplicitTargetA[i]);
@@ -342,7 +347,7 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 					return; // SpellFailure, on sort
 				} 
 			} 
-
+			/*
 			if(spellInfo->Effect[i]) 
 			{
 				if(spell->m_caster)
@@ -358,10 +363,12 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 					spell->m_caster = spell->m_owner; // m_caster est l'item lui-meme (ou doit forcement etre le player ?) (Brz)
 				    spell->HandleEffects(spell->m_caster,i,false);
 					return;
-				}*/
+				}
 				
-			}
+			}*/
 		}
+
+		p_User->Cooldown_AddItem( itemProto, spellIndex );
 /*
 	 // Event Nourriture ou boisson (NE PAS TOUCHER AU COMMENTAIRE - Branruz)
      if(itemProto->Class==ITEM_CLASS_CONSUMABLE)
@@ -463,6 +470,8 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 	} // End if( spell->prepare(&targets) == SPELL_CANCAST_OK)
 }
 
+bool IsException(Player* plr, uint32 spellid);
+
 //{CLIENT} Packet: (0x012E) CMSG_CAST_SPELL PacketSize = 10
 //|------------------------------------------------|----------------|
 //|00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |0123456789ABCDEF|
@@ -525,20 +534,33 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 		return;
 	}
 
-	if (spellInfo->attributes & ATTRIBUTES_PASSIVE)
-	{
-		// Pour Verif
-		Log.Warning("CMSG_CAST_SPELL","%s tried to cast a passive spell (spell id %u)",plr->GetName(), spellInfo->Id);
-		plr->SendCastResult(spellInfo->Id,SPELL_FAILED_SUCCESS, cn, 0);
-		return;
-	}
+	// Cheat Detection only if player and not from an item
+    // this could fuck up things but meh it's needed ALOT of the newbs are using WPE now
+    // WPE allows them to mod the outgoing packet and basicly choose what ever spell they want :(
 
+    if(((!GetPlayer()->HasSpell(spellId)) || spellInfo->attributes & ATTRIBUTES_PASSIVE) && !IsException(_player, spellId))
+    {
+        // Some spells the player doesn't actually know, but are given to him by his current shapeshift.
+        // These spells should be allowed to be cast.
+        uint8 shapeshift = GetPlayer()->GetShapeShift();
+       SpellShapeshiftForm * ssf = dbcSpellShapeshiftForm.LookupEntry(shapeshift);
+        if(!ssf) return;
+
+        bool ok = false;
+        for(uint8 i = 0; i < 8; i++)
+            if( ssf->spells[i] == spellId)
+                ok = true;
+
+        if( !ok )
+		{
+			// Pour Verif
+			Log.Warning("CMSG_CAST_SPELL","%s is only a player spell (spell id %u)",plr->GetName(), spellInfo->Id);
+            return;
+		}
+    }
 	// Debug (Branruz)
 	//Log.Notice("[HandleCastSpellOpcode]","(%s) Spell Recu, SpellId - %i (%s)",this->GetPlayer()->GetName(),spellId, spellInfo->Name);
 	
-	// Cheat Detection only if player and not from an item
-	// this could fuck up things but meh it's needed ALOT of the newbs are using WPE now
-	// WPE allows them to mod the outgoing packet and basicly choose what ever spell they want :(
     // A ce stade, autant laisser le client coincé.....gniark....
 	if( !plr->HasSpell(spellId) )
 	{
@@ -546,10 +568,14 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 		return;
 	}
 
-	// Si le spellScript existe, on l'execute et on ressort, sinon on passe a la gestion standard
-    // if(sHookInterface.OnCastSpell(plr, spellInfo)) return; // A discuter (Branruz)
-
-    sHookInterface.OnCastSpell(plr, spellInfo);
+	// Note Randdrick
+	// A ce niveau, un Spellscript ne peut pas exister, puisque le sort n'est pas lancé.
+	// Si toutefois il existe, il faut empêcher le sort de se lancer 
+	if(sHookInterface.OnCastSpell(_player, spellInfo))
+	{
+		_player->SendCastResult(spellInfo->Id, SPELL_FAILED_UNKNOWN, cn, 0);
+		return;
+	}
 
 	//if(spellInfo->attributesEx & ATTRIBUTESEX_AREA_OF_EFFECT)
 	// EffectImplicitTargetA[0] == EFF_TARGET_ALL_ENEMY_IN_AREA_INSTANT
@@ -634,8 +660,6 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 				//This will fix fast clicks
 				if(plr->m_AutoShotAttackTimer < 500) plr->m_AutoShotAttackTimer = 500;
 				plr->m_onAutoShot = true;
-
-
 			}
 
 			return;
@@ -664,7 +688,6 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         plr->SendCastResult(spellInfo->Id, SPELL_FAILED_BAD_TARGETS, cn, 0); // "Cet objet n'est pas une cible autorisée"
 		return;
 		*/
-
 		
 		SpellCastTargets targets(recvPacket, plr); // Définition de la cible
 		Spell *spell = new Spell(plr, spellInfo, false, NULL);
@@ -756,10 +779,8 @@ void WorldSession::HandleCancelChannellingOpcode( WorldPacket& recvPacket)
 
 void WorldSession::HandleCancelAutoRepeatSpellOpcode(WorldPacket& recv_data)
 {
-	//sLog.outString("Received CMSG_CANCEL_AUTO_REPEAT_SPELL message.");
-	//on original we automatically enter combat when creature got close to us
-//	GetPlayer()->GetSession()->OutPacket(SMSG_CANCEL_COMBAT);
-	GetPlayer()->m_onAutoShot = false;
+	if(_player)
+		_player->m_onAutoShot = false;
 }
 
 void WorldSession::HandleAddDynamicTargetOpcode(WorldPacket & recvPacket)
@@ -815,4 +836,20 @@ void WorldSession::HandleAddDynamicTargetOpcode(WorldPacket & recvPacket)
 		Spell * pSpell = new Spell(_player->m_CurrentCharm, sp, false, 0);
 		pSpell->prepare(&targets);
 	}
+}
+
+bool IsException(Player* plr, uint32 spellid)
+{
+	switch(spellid)
+	{
+	case 63644:
+	case 63645:
+		{
+			if(plr->m_talentSpecsCount > 1)
+				return true;
+			else
+				return false;
+		}break;
+	}
+	return false;
 }

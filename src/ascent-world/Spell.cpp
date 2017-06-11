@@ -337,7 +337,11 @@ void Spell::Init()
 
 Spell::~Spell()
 {
-	//POINTERLOGDELETE(this);
+	
+	// If this spell deals with rune power, send spell_go to update client
+	// For instance, when Dk cast Empower Rune Weapon, if we don't send spell_go, the client won't update
+	if(GetSpellProto()->runeCostID && GetSpellProto()->powerType == POWER_TYPE_RUNES)
+		SendSpellGo();
 
 	//delete only if no aura references on it :)
 	if (m_spellScript != NULL)
@@ -348,8 +352,8 @@ Spell::~Spell()
 	
 	if(m_caster)
 	{
-     if(m_caster->IsUnit() && ((Unit *)m_caster)->GetCurrentSpell() == this)
-	                      ((Unit *)m_caster)->SetCurrentSpell(NULL);
+		if(m_caster->IsUnit() && ((Unit *)m_caster)->GetCurrentSpell() == this)
+			((Unit *)m_caster)->SetCurrentSpell(NULL);
 	}
 
 	//g_caster = NULL;
@@ -6878,6 +6882,8 @@ void Spell::Heal(int32 amount, bool ForceCrit)
 {
 	if( !unitTarget || !unitTarget->isAlive() )
 		return;
+
+	//Log.Warning("[Spell::Heal]","Un soin a été déclenché pour %u points", amount);
 	
 	if( m_caster->IsPlayer() )
 		((Player *)m_caster)->last_heal_spell=m_spellInfo;
@@ -6894,16 +6900,18 @@ void Spell::Heal(int32 amount, bool ForceCrit)
 	bool critical = false;
 	float critchance = 0; 
 	int32 bonus = 0;
-	if( m_caster->IsUnit() )
+	uint32 school = GetSpellProto()->School;
+	if( m_caster->IsUnit() && !(GetSpellProto()->attributesExC & ATTRIBUTESEXC_NO_HEALING_BONUS))
 	{		
 		// All calculations are done in getspellbonusdamage
-		amount = ((Unit *)m_caster)->GetSpellDmgBonus(unitTarget, m_spellInfo, amount, false, true); // 3.0.2 Spellpower change: In order to keep the effective amount healed for a given spell the same, weâ€™d expect the original coefficients to be multiplied by 1/0.532 or 1.88.
+		bonus = ((Unit *)m_caster)->GetSpellDmgBonus(unitTarget, m_spellInfo, amount, true); // 3.0.2 Spellpower change: In order to keep the effective amount healed for a given spell the same, weâ€™d expect the original coefficients to be multiplied by 1/0.532 or 1.88.
+		bonus += unitTarget->HealTakenMod[school];
 
 		// Healing Way fix
  		if(m_spellInfo->NameHash == SPELL_HASH_HEALING_WAVE)
 		{
 			if(unitTarget->HasActiveAura(29203))
-				amount += amount * 18 / 100;
+				amount += bonus * 18 / 100;
 		}
 		else if( m_spellInfo->NameHash == SPELL_HASH_HOLY_LIGHT )
 		{
@@ -7029,6 +7037,7 @@ void Spell::Heal(int32 amount, bool ForceCrit)
 	if(amount < 0) 
 		amount = 0;
 
+	//Log.Warning("[Spell::Heal]","Le soin sera prodigué pour %u points", amount);
 	uint32 overheal = 0;
 	uint32 curHealth = unitTarget->GetUInt32Value(UNIT_FIELD_HEALTH);
 	uint32 maxHealth = unitTarget->GetUInt32Value(UNIT_FIELD_MAXHEALTH);
@@ -7102,7 +7111,7 @@ void Spell::Heal(int32 amount, bool ForceCrit)
 		int count = 0;
 		Unit *unit;
 		std::vector<Unit *> target_threat;
-		if(base_threat)
+		if(base_threat > 0)
 		{
 			target_threat.reserve(((Unit *)m_caster)->GetInRangeCount()); // this helps speed
 
@@ -7110,7 +7119,7 @@ void Spell::Heal(int32 amount, bool ForceCrit)
 			{
 				if((*itr)->GetTypeId() != TYPEID_UNIT)
 					continue;
-				unit = static_cast<Unit *>(*itr);
+				unit = static_cast<Unit*>((*itr));
 				if(unit->GetAIInterface()->GetNextTarget() == unitTarget)
 				{
 					target_threat.push_back(unit);
@@ -7130,7 +7139,7 @@ void Spell::Heal(int32 amount, bool ForceCrit)
 			for(std::vector<Unit *>::iterator itr = target_threat.begin(); itr != target_threat.end(); ++itr)
 			{
 				// for now we'll just use heal amount as threat.. we'll prolly need a formula though
-				static_cast<Unit *>(*itr)->GetAIInterface()->HealReaction( ((Unit *)m_caster), unitTarget, threat/*, m_spellInfo*/ );
+				((Unit*)(*itr))->GetAIInterface()->HealReaction(((Unit *)m_caster), unitTarget, threat);
 			}
 		}
 
